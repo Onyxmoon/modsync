@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.curseforge.com)",
+      "WebFetch(domain:support.curseforge.com)",
+      "WebFetch(domain:hytale-docs.com)",
+      "WebFetch(domain:britakee-studios.gitbook.io)",
+      "WebFetch(domain:hytalemodding.dev)",
+      "WebFetch(domain:hytale-docs.pages.dev)",
+      "Bash(unzip:*)"
+    ]
+  }
+}

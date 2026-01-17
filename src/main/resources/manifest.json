@@ -1,0 +1,22 @@
+{
+    "Group": "Onyxmoon",
+    "Name": "ModSync",
+    "Version": "0.0.2",
+    "Description": "Synchronizes mod lists from CurseForge and other sources",
+    "Authors": [
+        {
+            "Name": "Onyxmoon"
+        }
+    ],
+    "Website": "philippborucki.me",
+    "ServerVersion": "*",
+    "Dependencies": {
+        
+    },
+    "OptionalDependencies": {
+        
+    },
+    "DisabledByDefault": false,
+    "Main": "de.onyxmoon.modsync.ModSync",
+    "IncludesAssetPack": true
+}
