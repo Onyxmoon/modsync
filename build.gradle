@@ -57,6 +57,12 @@ if (!serverRunDir.exists()) {
     serverRunDir.mkdirs()
 }
 
+// Create the earlyplugins directory for bootstrap plugins
+def earlyPluginsDir = file("$projectDir/run/earlyplugins")
+if (!earlyPluginsDir.exists()) {
+    earlyPluginsDir.mkdirs()
+}
+
 // Updates the manifest.json file with the latest properties defined in the
 // build.properties file. Currently we update the version and if packs are
 // included with the plugin.
@@ -78,7 +84,12 @@ tasks.named('processResources') {
     dependsOn 'updatePluginManifest'
 }
 
-def createServerRunArguments(String srcDir) {
+// Ensure bootstrap plugin is built before running the server
+tasks.named('classes') {
+    dependsOn ':bootstrap:build'
+}
+
+def createServerRunArguments(String srcDir, String earlyPluginsPath) {
     def programParameters = '--allow-op --disable-sentry --assets="' + "${hytaleHome}/install/$patchline/package/game/latest/Assets.zip" + '"'
     def modPaths = []
     if (includes_pack.toBoolean()) {
@@ -90,6 +101,8 @@ def createServerRunArguments(String srcDir) {
     if (!modPaths.isEmpty()) {
         programParameters += ' --mods="' + modPaths.join(',') + '"'
     }
+    // Add early plugins path for bootstrap plugin
+    programParameters += ' --early-plugins="' + earlyPluginsPath + '" --accept-early-plugins'
     return programParameters
 }
 
@@ -99,7 +112,7 @@ idea.project.settings.runConfigurations {
     'HytaleServer'(org.jetbrains.gradle.ext.Application) {
         mainClass = 'com.hypixel.hytale.Main'
         moduleName = project.idea.module.name + '.main'
-        programParameters = createServerRunArguments(sourceSets.main.java.srcDirs.first().parentFile.absolutePath)
+        programParameters = createServerRunArguments(sourceSets.main.java.srcDirs.first().parentFile.absolutePath, earlyPluginsDir.absolutePath)
         workingDirectory = serverRunDir.absolutePath
     }
 }
@@ -112,7 +125,7 @@ tasks.register('generateVSCodeLaunch') {
         if (!vscodeDir.exists()) {
             vscodeDir.mkdirs()
         }
-        def programParams = createServerRunArguments("\${workspaceFolder}")
+        def programParams = createServerRunArguments("\${workspaceFolder}", "\${workspaceFolder}/run/earlyplugins")
         def launchConfig = [
             version: "0.2.0",
             configurations: [
@@ -126,6 +139,7 @@ tasks.register('generateVSCodeLaunch') {
                 ]
             ]
         ]
-        launchFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(launchConfig))
+        launchFile.text = new groovy.json.JsonOutput().toJson(launchConfig)
+        launchFile.text = groovy.json.JsonOutput.prettyPrint(launchFile.text)
     }
 }

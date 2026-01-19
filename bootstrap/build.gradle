@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+}
+
+import org.gradle.internal.os.OperatingSystem
+
+ext {
+    if (project.hasProperty('hytale_home')) {
+        hytaleHome = project.findProperty('hytale_home')
+    }
+    else {
+        def os = OperatingSystem.current()
+        if (os.isWindows()) {
+            hytaleHome = "${System.getProperty("user.home")}/AppData/Roaming/Hytale"
+        }
+        else if (os.isMacOsX()) {
+            hytaleHome = "${System.getProperty("user.home")}/Library/Application Support/Hytale"
+        }
+        else if (os.isLinux()) {
+            hytaleHome = "${System.getProperty("user.home")}/.var/app/com.hypixel.HytaleLauncher/data/Hytale"
+            if (!file(hytaleHome).exists()) {
+                hytaleHome = "${System.getProperty("user.home")}/.local/share/Hytale"
+            }
+        }
+    }
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+}
+
+dependencies {
+    // HytaleServer for ClassTransformer interface (compileOnly - not included in jar)
+    compileOnly(files("$hytaleHome/install/${rootProject.findProperty('patchline')}/package/game/latest/Server/HytaleServer.jar"))
+}
+
+jar {
+    archiveBaseName = 'modsync-bootstrap'
+    archiveVersion = project.version
+}
+
+// Updates the bootstrap manifest.json with the version from gradle.properties
+tasks.register('updateBootstrapManifest') {
+    def manifestFile = file('src/main/resources/manifest.json')
+    doLast {
+        if (manifestFile.exists()) {
+            def manifestJson = new groovy.json.JsonSlurper().parseText(manifestFile.text)
+            manifestJson.Version = version
+            manifestFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(manifestJson))
+        }
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn 'updateBootstrapManifest'
+}
+
+// Copy the bootstrap jar to earlyplugins folder after build
+tasks.register('copyToEarlyPlugins', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    into "${rootProject.projectDir}/run/earlyplugins"
+}
+
+tasks.named('build') {
+    finalizedBy 'copyToEarlyPlugins'
+}

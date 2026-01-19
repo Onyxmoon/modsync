@@ -1,0 +1,22 @@
+{
+    "Group": "Onyxmoon",
+    "Name": "ModSyncBootstrap",
+    "Version": "0.0.2",
+    "Description": "Bootstrap plugin for ModSync - deletes pending mod files before server loads them",
+    "Authors": [
+        {
+            "Name": "Onyxmoon"
+        }
+    ],
+    "Website": "philippborucki.me",
+    "ServerVersion": "*",
+    "Dependencies": {
+        
+    },
+    "OptionalDependencies": {
+        
+    },
+    "DisabledByDefault": false,
+    "Main": "de.onyxmoon.modsync.bootstrap.ModSyncBootstrap",
+    "IncludesAssetPack": false
+}
