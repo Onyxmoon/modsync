@@ -1,101 +1,176 @@
-# 🛠️ Hytale Plugin Template
+# ModSync
 
-Welcome to the **Hytale Plugin Template**! This project is a pre-configured foundation for building **Java Plugins**. It streamlines the development process by handling classpath setup, server execution, and asset bundling.
+![Java](https://img.shields.io/badge/Java-25-orange)
+![Status](https://img.shields.io/badge/Status-Alpha-yellow)
+![License](https://img.shields.io/badge/License-Polyform%20NC-blue)
+![Hytale](https://img.shields.io/badge/Hytale-Plugin-purple)
 
-> **⚠️ Early Access Warning**
-> Hytale is currently in Early Access. Features, APIs, and this template are subject to frequent changes. Please ensure you are using the latest version of the template for the best experience.
+A Hytale server plugin for managing server-side mods. ModSync allows server administrators to add mods via CurseForge URLs, track them in a managed list, and install/update them via in-game commands.
 
----
+## Features
 
-## 📋 Prerequisites
+- **CurseForge Integration** - Add mods directly from CurseForge URLs
+- **Mod Management** - Track, install, update, and remove mods via commands
+- **Version Tracking** - Check for updates and upgrade mods to latest versions
+- **Identifier Support** - Reference mods by `group:name` format (e.g., `Onyxmoon:SimplyTrash`)
+- **Bootstrap Plugin** - Handles Windows file locking for seamless mod updates
 
-Before you begin, ensure your environment is ready:
+## Quick Start (Using the mod)
 
-* **Hytale Launcher**: Installed and updated.
-* **Java 25 SDK**: Required for modern Hytale development.
-* **IntelliJ IDEA**: (Community or Ultimate) Recommended for full feature support.
+### Prerequisites
 
----
+- Java 25
+- Hytale Server (release patchline)
+- CurseForge API key
 
-## 🚀 Quick Start Installation
+### Installation
 
-### 1. Initial Setup (Before Importing)
+1. Download the latest release from [CurseForge](https://curseforge.com/hytale/mods/modsync)
+2. Download the bootstrap plugin from [CurseForge](https://curseforge.com/hytale/bootstrap/modsync-bootstrap)
+3. Place the main plugin JAR in your server's `mods/` directory
+4. Place the bootstrap JAR in your server's `earlyplugins/` directory
+5. Start the server with `--early-plugins` and `--accept-early-plugins` flags
+6. Set your CurseForge API key: `/modsync setkey <your-api-key>`
 
-To avoid IDE caching issues, configure these files **before** you open the project in IntelliJ:
+## Commands
 
-* **`settings.gradle`**: Set your unique project name.
-```gradle
-rootProject.name = 'MyAwesomePlugin'
+All commands are subcommands of `/modsync`:
+
+| Command | Description |
+|---------|-------------|
+| `add <url>` | Add a mod from a CurseForge URL |
+| `list` | Show all managed mods with install status and version |
+| `install [name\|identifier]` | Install all managed mods or a specific mod |
+| `remove [index\|--all\|name\|identifier]` | Remove mod(s) interactively or by index/name/identifier |
+| `check` | Check for available updates (shows version comparison) |
+| `upgrade [name\|identifier]` | Upgrade all or a specific mod to latest version |
+| `setkey <key>` | Set your CurseForge API key |
+| `status` | Show current configuration |
+| `reload` | Reload configuration from disk |
+
+### Examples
 
 ```
+/modsync add https://curseforge.com/hytale/mods/example-mod
+/modsync list
+/modsync install
+/modsync check
+/modsync upgrade Onyxmoon:ExampleMod
+/modsync remove 1
+```
 
+## Configuration
 
-* **`gradle.properties`**: Set your `maven_group` (e.g., `com.yourname`) and starting version.
-* **`src/main/resources/manifest.json`**: Update your plugin metadata.
-* **CRITICAL:** Ensure the `"Main"` property points exactly to your entry-point class.
+### API Key Setup
 
+ModSync requires a CurseForge API key to fetch mod information. Get your key from the [CurseForge Console](https://console.curseforge.com/).
 
+```
+/modsync setkey <your-api-key>
+```
 
-### 2. Importing the Project
+### Data Files
 
-1. Open IntelliJ IDEA and select **Open**.
-2. Navigate to the template folder and click **OK**.
-3. Wait for the Gradle sync to finish. This will automatically download dependencies, create a `./run` folder, and generate the **HytaleServer** run configuration.
+All data files are stored in `mods/Onyxmoon_ModSync/`:
 
-### 3. Authenticating your Test Server
+| File | Purpose |
+|------|---------|
+| `config.json` | API keys and plugin settings |
+| `managed_mods.json` | Your tracked mod list |
+| `installed_mods.json` | Registry of installed mods |
+| `pending_deletions.json` | Files queued for deletion on next startup |
 
-You **must** authenticate your local server to connect to it:
+## Building from Source
 
-1. Launch the **HytaleServer** configuration in IDEA.
-2. In the terminal, run: `auth login device`.
-3. Follow the printed URL to log in via your Hytale account.
-4. Once verified, run: `auth persistence Encrypted`.
+### Prerequisites
 
----
+- Java 25 JDK
+- Hytale installed (for HytaleServer.jar dependency)
 
-## 🎮 Developing & Testing
+### Build Commands
 
-### Running the Server
+```bash
+# Windows
+gradlew.bat build
 
-If you do not see the **HytaleServer** run configuration in the top-right dropdown, click "Edit Configurations..." to unhide it. Press the **Green Play Button** to start, or the **Bug Icon** to start in Debug Mode to enable breakpoints.
+# Unix
+./gradlew build
 
-### Verifying the Setup
+# Clean build
+gradlew.bat clean build
+```
 
-1. Launch your standard Hytale Client.
-2. Connect to `Local Server` (127.0.0.1).
-3. Type `/test` in-game. If it returns your plugin version, everything is working!
+The build output will be in `build/libs/`.
 
-### Bundling Assets
+### Project Structure
 
-You can include models and textures by placing them in `src/main/resources/Common/` or `src/main/resources/Server/`. These are editable in real-time using the in-game **Asset Editor**.
+```
+modsync/
+├── src/main/java/          # Main plugin source
+├── bootstrap/              # Bootstrap early plugin
+│   └── src/main/java/      # Bootstrap source
+├── build.gradle            # Main build configuration
+└── settings.gradle         # Multi-project settings
+```
 
----
+## Architecture
 
-## 📦 Building your Plugin
+### Plugin Lifecycle
 
-To create a shareable `.jar` file for distribution:
+1. `ModSyncPlugin.setup()` - Initializes storage and provider registry
+2. `ModSyncPlugin.start()` - Registers commands
+3. `ModSyncPlugin.shutdown()` - Saves configuration
 
-1. Open the **Gradle Tab** on the right side of IDEA.
-2. Navigate to `Tasks` -> `build` -> `build`.
-3. Your compiled plugin will be in: `build/libs/your-plugin-name-1.0.0.jar`.
+### Provider System
 
-To install it manually, drop the JAR into `%appdata%/Hytale/UserData/Mods/`.
+ModSync uses a Service Provider Interface (SPI) for mod sources:
 
----
+- `ModListProvider` - Interface for mod sources
+- `ProviderRegistry` - Loads providers via `ServiceLoader`
+- `CurseForgeProvider` - Current implementation
 
-## 📚 Advanced Documentation
+To add new mod sources, implement `ModListProvider` and register in `META-INF/services`.
 
-For detailed guides on commands, event listeners, and professional patterns, visit our full documentation:
-👉 **[Hytale Modding Documentation](https://britakee-studios.gitbook.io/hytale-modding-documentation)**
+### Bootstrap Plugin
 
----
+The bootstrap plugin is an "early plugin" that runs before normal plugins load. It handles file deletion for mods that were locked during runtime (common on Windows when JAR files are loaded as plugins).
 
-## 🆘 Troubleshooting
+**How it works:**
+1. When a mod file cannot be deleted, it's queued in `pending_deletions.json`
+2. On next server start, the bootstrap plugin runs first
+3. It deletes the queued files before they get loaded
+4. Normal plugin loading proceeds
 
-* **Sync Fails**: Check that your Project SDK is set to **Java 25** via `File > Project Structure`.
-* **Cannot Connect**: Ensure you ran the `auth` commands in the server console.
-* **Plugin Not Loading**: Double-check your `manifest.json` for typos in the `"Main"` class path.
+## Roadmap
 
----
+- Additional mod source providers (Modrinth, etc.)
+- Mod dependency resolution
+- Automatic update scheduling
+- Web dashboard for remote management
 
-**Need Help?** Visit our full guide here: **[Hytale Modding Documentation](https://britakee-studios.gitbook.io/hytale-modding-documentation)**
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the [Polyform NonCommercial 1.0.0](LICENSE) license.
+
+**You may:**
+- View, copy, modify, and distribute for non-commercial purposes
+- Use for personal servers and private use
+
+**You may not:**
+- Use commercially without explicit permission from the author
+
+## Acknowledgements
+
+- [Hypixel Studios](https://hypixelstudios.com/) for Hytale
+- [CurseForge](https://curseforge.com/) for their mod hosting platform and API
