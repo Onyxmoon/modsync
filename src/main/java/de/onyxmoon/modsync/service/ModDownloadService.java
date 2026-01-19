@@ -146,10 +146,11 @@ public class ModDownloadService {
     }
 
     /**
-     * Delete an installed mod. Unloads if loaded, then schedules for deletion on next startup.
+     * Delete an installed mod. Unloads if loaded, then deletes or schedules for deletion on next startup.
+     * @return true if file was deleted immediately, false if restart is required
      */
-    public CompletableFuture<Void> deleteMod(InstalledMod mod) {
-        return CompletableFuture.runAsync(() -> {
+    public CompletableFuture<Boolean> deleteMod(InstalledMod mod) {
+        return CompletableFuture.supplyAsync(() -> {
             // Unload if currently loaded
             if (modSync.getPluginManager().getPlugin(mod.getIdentifier()) != null &&
                     Objects.requireNonNull(modSync.getPluginManager().getPlugin(mod.getIdentifier())).isEnabled()) {
@@ -159,6 +160,7 @@ public class ModDownloadService {
             }
 
             Path filePath = Path.of(mod.getFilePath());
+            boolean deletedImmediately = true;
 
             // Try to delete immediately
             if (Files.exists(filePath)) {
@@ -169,11 +171,13 @@ public class ModDownloadService {
                     // File is locked, schedule for deletion on next startup
                     LOGGER.atWarning().log("File locked, scheduling for deletion on next startup: {}", filePath);
                     modSync.addPendingDeletion(filePath.toString());
+                    deletedImmediately = false;
                 }
             }
 
             // Remove from storage
             modSync.getInstalledModStorage().removeMod(mod.getSourceId());
+            return deletedImmediately;
         });
     }
 

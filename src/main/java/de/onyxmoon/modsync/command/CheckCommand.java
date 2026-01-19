@@ -13,6 +13,7 @@ import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.model.InstalledMod;
 import de.onyxmoon.modsync.api.model.ManagedModEntry;
 import de.onyxmoon.modsync.api.model.ManagedModList;
+import de.onyxmoon.modsync.api.model.ModVersion;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -71,10 +72,14 @@ public class CheckCommand extends AbstractPlayerCommand {
 
         CompletableFuture<?>[] futures = installedEntries.stream()
                 .map(entry -> checkForUpdate(entry)
-                        .thenAccept(hasUpdate -> {
-                            if (hasUpdate) {
+                        .thenAccept(result -> {
+                            if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  Update available: " + entry.getName()).color("yellow"));
+                                playerRef.sendMessage(Message.raw("  " + entry.getName()).color("yellow")
+                                        .insert(Message.raw(": ").color("gray"))
+                                        .insert(Message.raw(result.installedVersion()).color("red"))
+                                        .insert(Message.raw(" -> ").color("gray"))
+                                        .insert(Message.raw(result.latestVersion()).color("green")));
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -103,19 +108,19 @@ public class CheckCommand extends AbstractPlayerCommand {
                 });
     }
 
-    private CompletableFuture<Boolean> checkForUpdate(ManagedModEntry entry) {
+    private CompletableFuture<CheckResult> checkForUpdate(ManagedModEntry entry) {
         Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage()
                 .getRegistry()
                 .findBySourceId(entry.getSource(), entry.getModId());
 
         if (installedOpt.isEmpty()) {
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.completedFuture(CheckResult.upToDate("", ""));
         }
 
         InstalledMod installed = installedOpt.get();
 
         if (!plugin.getProviderRegistry().hasProvider(entry.getSource())) {
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.completedFuture(CheckResult.upToDate(installed.getInstalledVersionNumber(), ""));
         }
 
         ModListProvider provider = plugin.getProviderRegistry().getProvider(entry.getSource());
@@ -129,15 +134,26 @@ public class CheckCommand extends AbstractPlayerCommand {
 
         return provider.fetchMod(apiKey, entry.getModId())
                 .thenApply(modEntry -> {
-                    if (modEntry.getLatestVersion() == null) {
-                        return false;
+                    ModVersion latestVersion = modEntry.getLatestVersion();
+                    if (latestVersion == null) {
+                        return CheckResult.upToDate(installed.getInstalledVersionNumber(), "");
                     }
 
-                    String latestVersionId = modEntry.getLatestVersion().getVersionId();
+                    String latestVersionId = latestVersion.getVersionId();
                     String installedVersionId = installed.getInstalledVersionId();
 
-                    // Compare version IDs
-                    return !latestVersionId.equals(installedVersionId);
+                    boolean hasUpdate = !latestVersionId.equals(installedVersionId);
+                    return new CheckResult(
+                            hasUpdate,
+                            installed.getInstalledVersionNumber(),
+                            latestVersion.getVersionNumber()
+                    );
                 });
+    }
+
+    private record CheckResult(boolean hasUpdate, String installedVersion, String latestVersion) {
+        static CheckResult upToDate(String installedVersion, String latestVersion) {
+            return new CheckResult(false, installedVersion, latestVersion);
+        }
     }
 }

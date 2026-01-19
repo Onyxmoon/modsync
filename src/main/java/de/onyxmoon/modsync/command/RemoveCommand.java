@@ -134,6 +134,14 @@ public class RemoveCommand extends AbstractPlayerCommand {
             entryOpt = modList.findBySlug(nameOrSlug);
         }
 
+        // Try by identifier (group:name) if contains colon
+        if (entryOpt.isEmpty() && nameOrSlug.contains(":")) {
+            Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage().findByIdentifier(nameOrSlug);
+            if (installedOpt.isPresent()) {
+                entryOpt = modList.findBySourceId(installedOpt.get().getSourceId());
+            }
+        }
+
         if (entryOpt.isEmpty()) {
             playerRef.sendMessage(Message.raw("Mod not found: " + nameOrSlug).color("red"));
             return;
@@ -150,10 +158,16 @@ public class RemoveCommand extends AbstractPlayerCommand {
 
         AtomicInteger removed = new AtomicInteger(0);
         AtomicInteger failed = new AtomicInteger(0);
+        AtomicInteger pendingRestart = new AtomicInteger(0);
 
         CompletableFuture<?>[] futures = mods.stream()
-                .map(entry -> removeModAsync(entry)
-                        .thenRun(() -> removed.incrementAndGet())
+                .map(entry -> removeModAsyncWithStatus(entry)
+                        .thenAccept(deletedImmediately -> {
+                            removed.incrementAndGet();
+                            if (!deletedImmediately) {
+                                pendingRestart.incrementAndGet();
+                            }
+                        })
                         .exceptionally(ex -> {
                             failed.incrementAndGet();
                             return null;
@@ -164,6 +178,9 @@ public class RemoveCommand extends AbstractPlayerCommand {
                 .thenRun(() -> {
                     playerRef.sendMessage(Message.raw("Removed: " + removed.get()).color("green")
                             .insert(Message.raw(" | Failed: " + failed.get()).color(failed.get() > 0 ? "red" : "gray")));
+                    if (pendingRestart.get() > 0) {
+                        playerRef.sendMessage(Message.raw(pendingRestart.get() + " file(s) locked. Restart server to complete deletion.").color("yellow"));
+                    }
                 });
     }
 
@@ -177,9 +194,14 @@ public class RemoveCommand extends AbstractPlayerCommand {
             playerRef.sendMessage(Message.raw("Removing installed file...").color("yellow"));
 
             plugin.getDownloadService().deleteMod(installed)
-                    .thenRun(() -> {
+                    .thenAccept(deletedImmediately -> {
                         plugin.getManagedModListStorage().removeMod(entry.getSourceId());
-                        playerRef.sendMessage(Message.raw("Removed: " + entry.getName() + " (file deleted)").color("green"));
+                        if (deletedImmediately) {
+                            playerRef.sendMessage(Message.raw("Removed: " + entry.getName() + " (file deleted)").color("green"));
+                        } else {
+                            playerRef.sendMessage(Message.raw("Removed: " + entry.getName()).color("green"));
+                            playerRef.sendMessage(Message.raw("File is locked. Restart server to complete deletion.").color("yellow"));
+                        }
                     })
                     .exceptionally(ex -> {
                         playerRef.sendMessage(Message.raw("Failed to delete file: " + ex.getMessage()).color("red"));
@@ -193,17 +215,20 @@ public class RemoveCommand extends AbstractPlayerCommand {
         }
     }
 
-    private CompletableFuture<Void> removeModAsync(ManagedModEntry entry) {
+    private CompletableFuture<Boolean> removeModAsyncWithStatus(ManagedModEntry entry) {
         Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage()
                 .getRegistry()
                 .findBySourceId(entry.getSource(), entry.getModId());
 
         if (installedOpt.isPresent()) {
             return plugin.getDownloadService().deleteMod(installedOpt.get())
-                    .thenRun(() -> plugin.getManagedModListStorage().removeMod(entry.getSourceId()));
+                    .thenApply(deletedImmediately -> {
+                        plugin.getManagedModListStorage().removeMod(entry.getSourceId());
+                        return deletedImmediately;
+                    });
         } else {
             plugin.getManagedModListStorage().removeMod(entry.getSourceId());
-            return CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(true);
         }
     }
 }

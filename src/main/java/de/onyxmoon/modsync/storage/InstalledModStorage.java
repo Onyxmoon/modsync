@@ -101,6 +101,15 @@ public class InstalledModStorage {
     }
 
     /**
+     * Find an installed mod by its plugin identifier string (format: "group:name").
+     */
+    public Optional<InstalledMod> findByIdentifier(String identifier) {
+        return registry.getAll().stream()
+                .filter(mod -> mod.getIdentifier().toString().equalsIgnoreCase(identifier))
+                .findFirst();
+    }
+
+    /**
      * Add a mod to the registry and save.
      */
     public void addMod(InstalledMod mod) {

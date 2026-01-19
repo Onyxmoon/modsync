@@ -73,6 +73,14 @@ public class UpgradeCommand extends AbstractPlayerCommand {
             entryOpt = modList.findBySlug(nameOrSlug);
         }
 
+        // Try by identifier (group:name) if contains colon
+        if (entryOpt.isEmpty() && nameOrSlug.contains(":")) {
+            Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage().findByIdentifier(nameOrSlug);
+            if (installedOpt.isPresent()) {
+                entryOpt = modList.findBySourceId(installedOpt.get().getSourceId());
+            }
+        }
+
         if (entryOpt.isEmpty()) {
             playerRef.sendMessage(Message.raw("Mod not found in list: " + nameOrSlug).color("red"));
             return;

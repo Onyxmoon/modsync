@@ -54,13 +54,32 @@ public class ListCommand extends AbstractPlayerCommand {
         playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color("gold"));
 
         for (ManagedModEntry entry : mods) {
-            Message status = getStatusMessage(entry);
-            String versionInfo = entry.wantsLatestVersion() ? "latest" : entry.getDesiredVersionId();
+            Optional<InstalledMod> installed = plugin.getInstalledModStorage()
+                    .getRegistry()
+                    .findBySourceId(entry.getSource(), entry.getModId());
 
-            playerRef.sendMessage(status
-                    .insert(Message.raw(" " + entry.getName()).color("white"))
-                    .insert(Message.raw(" (" + entry.getSource().getDisplayName() + ")").color("gray"))
-                    .insert(Message.raw(" [" + versionInfo + "]").color("dark_gray")));
+            Message status = getStatusMessage(installed);
+
+            // Show installed version if available, otherwise show desired version
+            String versionInfo;
+            if (installed.isPresent()) {
+                versionInfo = installed.get().getInstalledVersionNumber();
+            } else {
+                versionInfo = entry.wantsLatestVersion() ? "latest" : entry.getDesiredVersionId();
+            }
+
+            Message line = status
+                    .insert(Message.raw(" " + entry.getName()).color("white"));
+
+            // Show identifier for installed mods
+            if (installed.isPresent()) {
+                line = line.insert(Message.raw(" [" + installed.get().getIdentifier().toString() + "]").color("aqua"));
+            }
+
+            line = line.insert(Message.raw(" (" + entry.getSource().getDisplayName() + ")").color("gray"))
+                    .insert(Message.raw(" [" + versionInfo + "]").color("dark_gray"));
+
+            playerRef.sendMessage(line);
         }
 
         // Summary
@@ -74,11 +93,7 @@ public class ListCommand extends AbstractPlayerCommand {
                 .insert(Message.raw(String.valueOf(notInstalled)).color("red")));
     }
 
-    private Message getStatusMessage(ManagedModEntry entry) {
-        Optional<InstalledMod> installed = plugin.getInstalledModStorage()
-                .getRegistry()
-                .findBySourceId(entry.getSource(), entry.getModId());
-
+    private Message getStatusMessage(Optional<InstalledMod> installed) {
         if (installed.isEmpty()) {
             return Message.raw("[NOT INSTALLED]").color("red");
         }

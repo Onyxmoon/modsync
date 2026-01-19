@@ -25,8 +25,7 @@ public class ProviderRegistry {
         Set<ClassLoader> loaders = new LinkedHashSet<>(List.of(
                 Thread.currentThread().getContextClassLoader(),
                 ProviderRegistry.class.getClassLoader(),
-                ModListProvider.class.getClassLoader(),
-                ClassLoader.getSystemClassLoader()
+                ModListProvider.class.getClassLoader()
         ));
 
         for (ClassLoader cl : loaders) {

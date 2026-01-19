@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.model.InstalledMod;
 import de.onyxmoon.modsync.api.model.ManagedModEntry;
 import de.onyxmoon.modsync.api.model.ManagedModList;
 import de.onyxmoon.modsync.api.model.ModVersion;
@@ -75,6 +76,14 @@ public class InstallCommand extends AbstractPlayerCommand {
         Optional<ManagedModEntry> entryOpt = modList.findByName(nameOrSlug);
         if (entryOpt.isEmpty()) {
             entryOpt = modList.findBySlug(nameOrSlug);
+        }
+
+        // Try by identifier (group:name) if contains colon
+        if (entryOpt.isEmpty() && nameOrSlug.contains(":")) {
+            Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage().findByIdentifier(nameOrSlug);
+            if (installedOpt.isPresent()) {
+                entryOpt = modList.findBySourceId(installedOpt.get().getSourceId());
+            }
         }
 
         if (entryOpt.isEmpty()) {

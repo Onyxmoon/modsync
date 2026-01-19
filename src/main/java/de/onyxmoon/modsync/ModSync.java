@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Main plugin class for ModSync.
@@ -46,13 +45,6 @@ public class ModSync extends JavaPlugin {
 
     public ModSync(@Nonnull JavaPluginInit init) {
         super(init);
-    }
-
-    @Override
-    public CompletableFuture<Void> preLoad() {
-        // Process pending deletions before any mods are loaded
-        processPendingDeletions();
-        return super.preLoad();
     }
 
     @Override
@@ -142,59 +134,8 @@ public class ModSync extends JavaPlugin {
     }
 
     /**
-     * Processes pending file deletions from previous sessions.
-     * Called in preLoad() before the PluginManager loads mods.
-     */
-    private void processPendingDeletions() {
-        Path pendingFile = getDataDirectory().resolve(PENDING_DELETIONS_FILE);
-
-        if (!Files.exists(pendingFile)) {
-            return;
-        }
-
-        try {
-            String json = Files.readString(pendingFile);
-            List<String> pendingPaths = GSON.fromJson(json, new TypeToken<List<String>>(){}.getType());
-
-            if (pendingPaths == null || pendingPaths.isEmpty()) {
-                Files.deleteIfExists(pendingFile);
-                return;
-            }
-
-            List<String> stillPending = new ArrayList<>();
-
-            for (String pathStr : pendingPaths) {
-                Path path = Path.of(pathStr);
-                if (Files.exists(path)) {
-                    try {
-                        Files.delete(path);
-                        LOGGER.atInfo().log("Deleted previously locked file: {}", path);
-                    } catch (IOException e) {
-                        LOGGER.atWarning().log("Still cannot delete file, keeping in pending list: {}", path);
-                        stillPending.add(pathStr);
-                    }
-                } else {
-                    LOGGER.atFine().log("Pending file no longer exists: {}", path);
-                }
-            }
-
-            // Update or remove the pending file
-            if (stillPending.isEmpty()) {
-                Files.deleteIfExists(pendingFile);
-            } else {
-                Files.writeString(pendingFile, GSON.toJson(stillPending));
-            }
-
-        } catch (IOException e) {
-            LOGGER.atWarning().log("Failed to process pending deletions: {}", e.getMessage());
-        }
-    }
-
-    // Deletion on startup
-
-    /**
      * Adds a file path to the pending deletion list.
-     * The file will be deleted on next server startup.
+     * The file will be deleted on next server startup by the bootstrap plugin.
      */
     public void addPendingDeletion(String filePath) {
         Path pendingFile = getDataDirectory().resolve(PENDING_DELETIONS_FILE);
