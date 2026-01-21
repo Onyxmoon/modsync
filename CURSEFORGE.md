@@ -11,7 +11,7 @@ A server-side mod management plugin for Hytale that lets you easily add, install
 *   **Easy installation** - Install all managed mods with a single command
 *   **Update checking** - Check for available updates with version comparison display
 *   **One-click upgrades** - Upgrade mods to their latest versions
-*   **Flexible removal** - Remove mods by index number, name, slug, or plugin identifier
+*   **Flexible removal** - Remove mods by name, slug, or plugin identifier
 *   **Persistent tracking** - Your mod list is saved and persists across server restarts
 *   **Smart file handling** - Locked files are automatically queued for deletion on next server restart
 *   **Configurable paths** - Early plugins folder path is configurable
@@ -25,17 +25,17 @@ All commands use the `/modsync` prefix:
 | <code>/modsync add [url]</code>    |Add a mod from a CurseForge URL                                    |
 | <code>/modsync list</code>         |Show all managed mods with install status, version, and identifier |
 | <code>/modsync install</code>      |Install all mods from your list                                    |
-| <code>/modsync install [name|identifier]</code> |Install a specific mod                                             |
-| <code>/modsync remove</code>       |Show numbered list for removal                                     |
-| <code>/modsync remove [number]</code> |Remove mod by list number                                          |
-| <code>/modsync remove [name|identifier];</code> |Remove mod by name or identifier                                   |
-| <code>/modsync remove --all</code> |Remove all mods                                                    |
+| <code>/modsync install [name]</code> |Install a specific mod by name, slug, or identifier              |
+| <code>/modsync remove all</code>   |Remove all mods                                                    |
+| <code>/modsync remove [name]</code>|Remove mod by name, slug, or identifier                            |
 | <code>/modsync check</code>        |Check for available updates (shows installed vs. latest version)   |
 | <code>/modsync upgrade</code>      |Upgrade all installed mods to latest version                       |
-| <code>/modsync upgrade [name|identifier]</code> |Upgrade a specific mod                                             |
+| <code>/modsync upgrade [name]</code> |Upgrade a specific mod by name, slug, or identifier              |
 | <code>/modsync setkey [key]</code> |Set your CurseForge API key                                        |
 | <code>/modsync status</code>       |Show current configuration                                         |
 | <code>/modsync reload</code>       |Reload configuration                                               |
+
+> **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 
 ### Examples
 
@@ -47,10 +47,14 @@ All commands use the `/modsync` prefix:
 /modsync add https://www.curseforge.com/hytale/bootstrap/example
 
 # Managing mods
+/modsync install
 /modsync install simply-trash
+/modsync install BlameJared:SimplyTrash
 /modsync check
+/modsync upgrade
 /modsync upgrade BlameJared:SimplyTrash
 /modsync remove BlameJared:SimplyTrash
+/modsync remove all
 ```
 
 ## Setup
@@ -152,8 +156,8 @@ The `config.json` file in `mods/Onyxmoon_ModSync/` contains:
 All data is stored in `mods/Onyxmoon_ModSync/`:
 
 *   `config.json` - API keys and settings
-*   `managed_mods.json` - Your curated mod list
-*   `installed_mods.json` - Registry of installed mods with versions
+*   `mods.json` - Your curated mod list (shareable between servers)
+*   `mods.lock.json` - Installation state (machine-specific, not shareable)
 *   `pending_deletions.json` - Files queued for deletion on restart
 
 ## Support

@@ -40,13 +40,15 @@ All commands are subcommands of `/modsync`:
 |---------|-------------|
 | `add <url>` | Add a mod from a CurseForge URL |
 | `list` | Show all managed mods with install status and version |
-| `install [name\|identifier]` | Install all managed mods or a specific mod |
-| `remove [index\|--all\|name\|identifier]` | Remove mod(s) interactively or by index/name/identifier |
+| `install [target]` | Install mod by name/slug/identifier (no argument = install all) |
+| `remove <target>` | Remove mod by name/slug/identifier, or `all` for all |
 | `check` | Check for available updates (shows version comparison) |
-| `upgrade [name\|identifier]` | Upgrade all or a specific mod to latest version |
+| `upgrade [target]` | Upgrade mod by name/slug/identifier (no argument = upgrade all) |
 | `setkey <key>` | Set your CurseForge API key |
 | `status` | Show current configuration |
 | `reload` | Reload configuration from disk |
+
+> **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 
 ### Examples
 
@@ -54,9 +56,13 @@ All commands are subcommands of `/modsync`:
 /modsync add https://curseforge.com/hytale/mods/example-mod
 /modsync list
 /modsync install
+/modsync install ExampleMod
+/modsync install "Example Mod"
 /modsync check
+/modsync upgrade
 /modsync upgrade Onyxmoon:ExampleMod
-/modsync remove 1
+/modsync remove example-mod
+/modsync remove all
 ```
 
 ## Configuration
@@ -76,8 +82,8 @@ All data files are stored in `mods/Onyxmoon_ModSync/`:
 | File | Purpose |
 |------|---------|
 | `config.json` | API keys and plugin settings |
-| `managed_mods.json` | Your tracked mod list |
-| `installed_mods.json` | Registry of installed mods |
+| `mods.json` | Your tracked mod list (shareable) |
+| `mods.lock.json` | Installation state (machine-specific) |
 | `pending_deletions.json` | Files queued for deletion on next startup |
 
 ## Building from Source
