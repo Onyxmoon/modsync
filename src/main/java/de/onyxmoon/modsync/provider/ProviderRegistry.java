@@ -42,7 +42,7 @@ public class ProviderRegistry {
                         providers.put(prov.getSource(), prov);
                         LOGGER.atInfo().log("Registered provider via %s: %s", cl, prov.getClass().getName());
                     } catch (Throwable t) {
-                        LOGGER.atSevere().withCause(t).log("Failed to instantiate provider {} via {}", p.type().getName(), cl);
+                        LOGGER.atSevere().withCause(t).log("Failed to instantiate provider %s via %s", p.type().getName(), cl);
                     }
                 });
             } catch (Throwable t) {

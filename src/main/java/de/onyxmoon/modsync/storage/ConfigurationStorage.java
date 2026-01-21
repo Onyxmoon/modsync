@@ -41,7 +41,7 @@ public class ConfigurationStorage {
             LOGGER.atInfo().log("Configuration loaded successfully");
             return loaded;
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to load configuration", e);
+            LOGGER.atSevere().withCause(e).log("Failed to load configuration");
             return new PluginConfig();
         }
     }
@@ -53,7 +53,7 @@ public class ConfigurationStorage {
             Files.writeString(configPath, json);
             LOGGER.atInfo().log("Configuration saved successfully");
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to save configuration", e);
+            LOGGER.atSevere().withCause(e).log("Failed to save configuration");
         }
     }
 

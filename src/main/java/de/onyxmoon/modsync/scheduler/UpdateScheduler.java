@@ -52,7 +52,7 @@ public class UpdateScheduler {
         executor.schedule(
             () -> performUpdate()
                 .exceptionally(ex -> {
-                    LOGGER.atSevere().log("Startup update failed", ex);
+                    LOGGER.atSevere().withCause(ex).log("Startup update failed");
                     return null;
                 }),
             30,
@@ -74,7 +74,7 @@ public class UpdateScheduler {
         periodicTask = executor.scheduleAtFixedRate(
             () -> performUpdate()
                 .exceptionally(ex -> {
-                    LOGGER.atSevere().log("Periodic update failed", ex);
+                    LOGGER.atSevere().withCause(ex).log("Periodic update failed");
                     return null;
                 }),
             intervalMinutes,
@@ -82,7 +82,7 @@ public class UpdateScheduler {
             TimeUnit.MINUTES
         );
 
-        LOGGER.atInfo().log("Scheduled periodic updates every {} minutes", intervalMinutes);
+        LOGGER.atInfo().log("Scheduled periodic updates every %d minutes", intervalMinutes);
     }
 
     /**
@@ -129,7 +129,7 @@ public class UpdateScheduler {
         ModListProvider provider = plugin.getProviderRegistry()
             .getProvider(config.getCurrentSource());
 
-        LOGGER.atInfo().log("Starting mod list update from {} for project {}",
+        LOGGER.atInfo().log("Starting mod list update from %s for project %s",
                    config.getCurrentSource().getDisplayName(), projectId);
 
         return provider.fetchModList(apiKey, projectId)
@@ -137,15 +137,15 @@ public class UpdateScheduler {
                 // Save to storage
                 plugin.getModListStorage().save(modList);
 
-                LOGGER.atInfo().log("Mod list updated successfully: {} mods loaded from {}",
+                LOGGER.atInfo().log("Mod list updated successfully: %d mods loaded from %s",
                            modList.getMods().size(),
                            modList.getSource().getDisplayName());
 
                 return modList;
             })
             .exceptionally(ex -> {
-                LOGGER.atSevere().log("Failed to fetch mod list from {}",
-                            config.getCurrentSource().getDisplayName(), ex);
+                LOGGER.atSevere().withCause(ex).log("Failed to fetch mod list from %s",
+                            config.getCurrentSource().getDisplayName());
                 throw new RuntimeException("Update failed: " + ex.getMessage(), ex);
             });
     }

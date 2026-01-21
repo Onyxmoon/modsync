@@ -35,9 +35,9 @@ public class JsonModListStorage {
             StoredModList stored = new StoredModList(modList, Instant.now());
             String json = gson.toJson(stored);
             Files.writeString(modListPath, json);
-            LOGGER.atInfo().log("Mod list saved successfully ({} mods)", modList.getMods().size());
+            LOGGER.atInfo().log("Mod list saved successfully (%d mods)", modList.getMods().size());
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to save mod list", e);
+            LOGGER.atSevere().withCause(e).log("Failed to save mod list");
             throw new RuntimeException("Failed to save mod list", e);
         }
     }
@@ -51,11 +51,11 @@ public class JsonModListStorage {
         try {
             String json = Files.readString(modListPath);
             StoredModList stored = gson.fromJson(json, StoredModList.class);
-            LOGGER.atInfo().log("Mod list loaded successfully ({} mods)",
+            LOGGER.atInfo().log("Mod list loaded successfully (%d mods)",
                        stored.getModList().getMods().size());
             return Optional.of(stored.getModList());
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to load mod list", e);
+            LOGGER.atSevere().withCause(e).log("Failed to load mod list");
             return Optional.empty();
         }
     }
@@ -70,7 +70,7 @@ public class JsonModListStorage {
             StoredModList stored = gson.fromJson(json, StoredModList.class);
             return Optional.of(stored.getStoredAt());
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to read last update time", e);
+            LOGGER.atSevere().withCause(e).log("Failed to read last update time");
             return Optional.empty();
         }
     }

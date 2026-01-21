@@ -124,10 +124,10 @@ public class ManagedModStorage {
             Files.writeString(modsJsonPath, gson.toJson(modListFile));
             Files.writeString(modsLockPath, gson.toJson(lockFile));
 
-            LOGGER.atInfo().log("Saved {} mods to mods.json, {} installations to mods.lock.json",
+            LOGGER.atInfo().log("Saved %d mods to mods.json, %d installations to mods.lock.json",
                     entries.size(), installations.size());
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to save managed mods", e);
+            LOGGER.atSevere().withCause(e).log("Failed to save managed mods");
             throw new RuntimeException("Failed to save managed mods", e);
         }
     }
@@ -208,11 +208,11 @@ public class ManagedModStorage {
 
             ManagedModRegistry loadedRegistry = builder.build();
             this.registry = loadedRegistry;
-            LOGGER.atInfo().log("Loaded {} mods from mods.json, {} installations from mods.lock.json",
+            LOGGER.atInfo().log("Loaded %d mods from mods.json, %d installations from mods.lock.json",
                     modListFile.getMods().size(), installations.size());
             return Optional.of(loadedRegistry);
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to load managed mods", e);
+            LOGGER.atSevere().withCause(e).log("Failed to load managed mods");
             return Optional.empty();
         }
     }
@@ -246,10 +246,10 @@ public class ManagedModStorage {
                 if (oldManaged != null && oldManaged.createdAt != null) {
                     builder.createdAt(oldManaged.createdAt);
                 }
-                LOGGER.atInfo().log("Found {} managed mods in old format",
+                LOGGER.atInfo().log("Found %d managed mods in old format",
                         oldManaged != null && oldManaged.mods != null ? oldManaged.mods.size() : 0);
             } catch (IOException e) {
-                LOGGER.atWarning().log("Failed to read old managed_mods.json: {}", e.getMessage());
+                LOGGER.atWarning().log("Failed to read old managed_mods.json: %s", e.getMessage());
             }
         }
 
@@ -262,10 +262,10 @@ public class ManagedModStorage {
                         .create();
                 String json = Files.readString(oldInstalledModsPath);
                 oldInstalled = installedGson.fromJson(json, OldInstalledModList.class);
-                LOGGER.atInfo().log("Found {} installed mods in old format",
+                LOGGER.atInfo().log("Found %d installed mods in old format",
                         oldInstalled != null && oldInstalled.mods != null ? oldInstalled.mods.size() : 0);
             } catch (IOException e) {
-                LOGGER.atWarning().log("Failed to read old installed_mods.json: {}", e.getMessage());
+                LOGGER.atWarning().log("Failed to read old installed_mods.json: %s", e.getMessage());
             }
         }
 
@@ -310,7 +310,7 @@ public class ManagedModStorage {
         }
 
         ManagedModRegistry migrated = builder.lastModifiedAt(Instant.now()).build();
-        LOGGER.atInfo().log("Migration complete: {} mods migrated", migrated.size());
+        LOGGER.atInfo().log("Migration complete: %d mods migrated", migrated.size());
         return Optional.of(migrated);
     }
 
@@ -330,7 +330,7 @@ public class ManagedModStorage {
                 LOGGER.atInfo().log("Backed up old installed_mods.json");
             }
         } catch (IOException e) {
-            LOGGER.atWarning().log("Failed to backup old files: {}", e.getMessage());
+            LOGGER.atWarning().log("Failed to backup old files: %s", e.getMessage());
         }
     }
 

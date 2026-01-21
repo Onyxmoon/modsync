@@ -58,7 +58,7 @@ public class ModDownloadService {
             Files.createDirectories(modsFolder);
             Files.createDirectories(earlyPluginsFolder);
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to create plugin folders", e);
+            LOGGER.atSevere().withCause(e).log("Failed to create plugin folders");
         }
     }
 
@@ -82,7 +82,7 @@ public class ModDownloadService {
         Path targetFolder = getTargetFolder(pluginType);
         Path targetPath = targetFolder.resolve(fileName);
 
-        LOGGER.atInfo().log("Downloading {} ({}) to {}", mod.getName(), pluginType.getDisplayName(), targetPath);
+        LOGGER.atInfo().log("Downloading %s (%s) to %s", mod.getName(), pluginType.getDisplayName(), targetPath);
 
         return downloadFile(downloadUrl, targetPath)
                 .thenApply(filePath -> {
@@ -104,7 +104,7 @@ public class ModDownloadService {
                                 .lastChecked(Instant.now())
                                 .build();
 
-                        LOGGER.atInfo().log("Successfully installed {} ({}) as {}",
+                        LOGGER.atInfo().log("Successfully installed %s (%s) as %s",
                                 mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
                         return installedState;
                     } catch (IOException e) {
@@ -183,10 +183,10 @@ public class ModDownloadService {
             if (Files.exists(filePath)) {
                 try {
                     Files.delete(filePath);
-                    LOGGER.atInfo().log("Deleted mod file: {}", filePath);
+                    LOGGER.atInfo().log("Deleted mod file: %s", filePath);
                 } catch (IOException e) {
                     // File is locked, schedule for deletion on next startup
-                    LOGGER.atWarning().log("File locked, scheduling for deletion on next startup: {}", filePath);
+                    LOGGER.atWarning().log("File locked, scheduling for deletion on next startup: %s", filePath);
                     modSync.addPendingDeletion(filePath.toString());
                     deletedImmediately = false;
                 }
