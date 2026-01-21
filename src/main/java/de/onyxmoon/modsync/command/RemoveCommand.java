@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -13,29 +13,31 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
+import de.onyxmoon.modsync.util.CommandUtils;
+import de.onyxmoon.modsync.util.ModSelector;
+import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Command: /modsync remove [index|--all|name]
+ * Command: /modsync remove <target>
  * Removes mods from the managed list.
  *
  * Usage:
- * - /modsync remove        - Shows numbered list
- * - /modsync remove 1      - Removes mod at index 1
- * - /modsync remove --all  - Removes all mods
- * - /modsync remove name   - Removes mod by name/slug/identifier
+ * - /modsync remove --all           - Removes all mods
+ * - /modsync remove <name>          - Removes mod by name
+ * - /modsync remove <slug>          - Removes mod by slug
+ * - /modsync remove <group:name>    - Removes mod by identifier
  */
 public class RemoveCommand extends AbstractPlayerCommand {
     private final ModSync plugin;
-    private final OptionalArg<String> argArg = this.withOptionalArg(
-            "index|--all|name",
-            "Index number, --all, or mod name",
+    private final RequiredArg<String> targetArg = this.withRequiredArg(
+            "target",
+            "all | name | slug | identifier",
             ArgTypes.STRING
     );
 
@@ -61,86 +63,53 @@ public class RemoveCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String arg = commandContext.provided(argArg) ? commandContext.get(argArg) : "";
+        String target = CommandUtils.stripQuotes(commandContext.get(targetArg));
 
-        if (arg.isEmpty()) {
-            // Interactive: show numbered list
-            showNumberedList(playerRef, registry);
+        if (target == null || target.isEmpty()) {
+            showHelp(playerRef, registry);
             return;
         }
 
-        if (arg.equals("--all")) {
-            // Remove all mods
+        if (target.equals("all")) {
             removeAllMods(playerRef, registry);
             return;
         }
 
-        // Try to parse as index
-        try {
-            int index = Integer.parseInt(arg);
-            removeByIndex(playerRef, registry, index);
-            return;
-        } catch (NumberFormatException ignored) {
-            // Not a number, try by name
-        }
-
-        // Remove by name/slug/identifier
-        removeByName(playerRef, registry, arg);
+        // Use ModSelector for unified lookup (name, slug, identifier)
+        SelectionResult result = ModSelector.findByNameOrSlugOrIdentifier(registry, target);
+        handleSelectionResult(playerRef, result);
     }
 
-    private void showNumberedList(PlayerRef playerRef, ManagedModRegistry registry) {
-        List<ManagedMod> mods = registry.getAll();
-
-        playerRef.sendMessage(Message.raw("=== Select mod to remove ===").color("gold"));
-
-        for (int i = 0; i < mods.size(); i++) {
-            ManagedMod mod = mods.get(i);
-            String status = mod.isInstalled() ? "[installed]" : "[not installed]";
-            String statusColor = mod.isInstalled() ? "green" : "gray";
-
-            playerRef.sendMessage(Message.raw((i + 1) + ". ").color("white")
-                    .insert(Message.raw(mod.getName()).color("yellow"))
-                    .insert(Message.raw(" " + status).color(statusColor)));
+    private void handleSelectionResult(PlayerRef playerRef, SelectionResult result) {
+        switch (result) {
+            case SelectionResult.Found found -> removeMod(playerRef, found.mod());
+            case SelectionResult.NotFound notFound ->
+                playerRef.sendMessage(Message.raw("Mod not found: " + notFound.query()).color("red"));
+            case SelectionResult.InvalidIndex invalid ->
+                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to remove mods.").color("red"));
+            case SelectionResult.EmptyRegistry ignored ->
+                playerRef.sendMessage(Message.raw("No mods in list.").color("yellow"));
         }
+    }
 
-        playerRef.sendMessage(Message.raw(""));
-        playerRef.sendMessage(Message.raw("Use ").color("gray")
-                .insert(Message.raw("/modsync remove <number>").color("white"))
-                .insert(Message.raw(" to remove").color("gray")));
-        playerRef.sendMessage(Message.raw("Use ").color("gray")
-                .insert(Message.raw("/modsync remove --all").color("white"))
+    private void showHelp(PlayerRef playerRef, ManagedModRegistry registry) {
+        playerRef.sendMessage(Message.raw("Usage: ").color("gold")
+                .insert(Message.raw("/modsync remove <name|slug|identifier>").color("white")));
+        playerRef.sendMessage(Message.raw("       ").color("gold")
+                .insert(Message.raw("/modsync remove all").color("white"))
                 .insert(Message.raw(" to remove all").color("gray")));
-    }
+        playerRef.sendMessage(Message.raw("Tip: ").color("gray")
+                .insert(Message.raw("Use quotes for names with spaces: ").color("gray"))
+                .insert(Message.raw("\"My Mod\"").color("yellow")));
+        playerRef.sendMessage(Message.raw(""));
 
-    private void removeByIndex(PlayerRef playerRef, ManagedModRegistry registry, int index) {
+        // Show current mods (like ListCommand)
         List<ManagedMod> mods = registry.getAll();
+        playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color("gold"));
 
-        if (index < 1 || index > mods.size()) {
-            playerRef.sendMessage(Message.raw("Invalid index. Use 1-" + mods.size()).color("red"));
-            return;
+        for (ManagedMod mod : mods) {
+            playerRef.sendMessage(CommandUtils.formatModLineWithStatus(mod));
         }
-
-        ManagedMod mod = mods.get(index - 1);
-        removeMod(playerRef, mod);
-    }
-
-    private void removeByName(PlayerRef playerRef, ManagedModRegistry registry, String nameOrSlug) {
-        // Simplified lookup - directly on registry
-        Optional<ManagedMod> modOpt = registry.findByName(nameOrSlug);
-        if (modOpt.isEmpty()) {
-            modOpt = registry.findBySlug(nameOrSlug);
-        }
-        // Try by identifier (group:name) if contains colon
-        if (modOpt.isEmpty() && nameOrSlug.contains(":")) {
-            modOpt = registry.findByIdentifier(nameOrSlug);
-        }
-
-        if (modOpt.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Mod not found: " + nameOrSlug).color("red"));
-            return;
-        }
-
-        removeMod(playerRef, modOpt.get());
     }
 
     private void removeAllMods(PlayerRef playerRef, ManagedModRegistry registry) {
@@ -154,7 +123,7 @@ public class RemoveCommand extends AbstractPlayerCommand {
         AtomicInteger pendingRestart = new AtomicInteger(0);
 
         CompletableFuture<?>[] futures = mods.stream()
-                .map(mod -> removeModAsyncWithStatus(mod)
+                .map(mod -> removeModAsync(mod)
                         .thenAccept(deletedImmediately -> {
                             removed.incrementAndGet();
                             if (!deletedImmediately) {
@@ -174,6 +143,9 @@ public class RemoveCommand extends AbstractPlayerCommand {
                     if (pendingRestart.get() > 0) {
                         playerRef.sendMessage(Message.raw(pendingRestart.get() + " file(s) locked. Restart server to complete deletion.").color("yellow"));
                     }
+                    if (removed.get() > 0) {
+                        playerRef.sendMessage(Message.raw("Server restart required to fully unload mods.").color("gold"));
+                    }
                 });
     }
 
@@ -185,9 +157,10 @@ public class RemoveCommand extends AbstractPlayerCommand {
                     .thenAccept(deletedImmediately -> {
                         plugin.getManagedModStorage().removeMod(mod.getSourceId());
                         if (deletedImmediately) {
-                            playerRef.sendMessage(Message.raw("Removed: " + mod.getName() + " (file deleted)").color("green"));
+                            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).insert(" (file deleted)").color("green"));
+                            playerRef.sendMessage(Message.raw("Server restart required to fully unload the mod.").color("gold"));
                         } else {
-                            playerRef.sendMessage(Message.raw("Removed: " + mod.getName()).color("green"));
+                            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).insert(" (file deleted)").color("green"));
                             playerRef.sendMessage(Message.raw("File is locked. Restart server to complete deletion.").color("yellow"));
                         }
                     })
@@ -199,11 +172,11 @@ public class RemoveCommand extends AbstractPlayerCommand {
                     });
         } else {
             plugin.getManagedModStorage().removeMod(mod.getSourceId());
-            playerRef.sendMessage(Message.raw("Removed: " + mod.getName()).color("green"));
+            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).color("green"));
         }
     }
 
-    private CompletableFuture<Boolean> removeModAsyncWithStatus(ManagedMod mod) {
+    private CompletableFuture<Boolean> removeModAsync(ManagedMod mod) {
         if (mod.isInstalled()) {
             return plugin.getDownloadService().deleteMod(mod)
                     .thenApply(deletedImmediately -> {

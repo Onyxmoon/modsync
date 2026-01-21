@@ -14,6 +14,7 @@ import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
+import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -69,7 +70,7 @@ public class CheckCommand extends AbstractPlayerCommand {
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  " + mod.getName()).color("yellow")
+                                playerRef.sendMessage(Message.raw("  ").insert(CommandUtils.formatModLine(mod)).color("yellow")
                                         .insert(Message.raw(": ").color("gray"))
                                         .insert(Message.raw(result.installedVersion()).color("red"))
                                         .insert(Message.raw(" -> ").color("gray"))

@@ -5,6 +5,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -16,23 +17,31 @@ import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
+import de.onyxmoon.modsync.util.CommandUtils;
+import de.onyxmoon.modsync.util.ModSelector;
+import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Command: /modsync upgrade [name]
+ * Command: /modsync upgrade <target>
  * Upgrades installed mods to their latest versions.
+ *
+ * Usage:
+ * - /modsync upgrade --all          - Upgrades all installed mods
+ * - /modsync upgrade <name>         - Upgrades mod by name
+ * - /modsync upgrade <slug>         - Upgrades mod by slug
+ * - /modsync upgrade <group:name>   - Upgrades mod by identifier
  */
 public class UpgradeCommand extends AbstractPlayerCommand {
     private final ModSync plugin;
-    private final OptionalArg<String> nameArg = this.withOptionalArg(
-            "name",
-            "Mod name or slug to upgrade (omit to upgrade all)",
+    private final OptionalArg<String> targetArg = this.withOptionalArg(
+            "target",
+            "name | slug | identifier",
             ArgTypes.STRING
     );
 
@@ -51,8 +60,6 @@ public class UpgradeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String name = commandContext.provided(nameArg) ? commandContext.get(nameArg) : "";
-
         ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
@@ -60,61 +67,84 @@ public class UpgradeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!name.isEmpty()) {
-            upgradeSpecificMod(playerRef, registry, name);
-        } else {
+        String target = CommandUtils.stripQuotes(commandContext.get(targetArg));
+
+        if (target == null || target.isEmpty()) {
             upgradeAllMods(playerRef, registry);
+        } else {
+            upgradeSpecificMod(playerRef, registry, target);
         }
     }
 
-    private void upgradeSpecificMod(PlayerRef playerRef, ManagedModRegistry registry, String nameOrSlug) {
-        Optional<ManagedMod> modOpt = registry.findByName(nameOrSlug);
-        if (modOpt.isEmpty()) {
-            modOpt = registry.findBySlug(nameOrSlug);
+    private void showHelp(PlayerRef playerRef, ManagedModRegistry registry) {
+        playerRef.sendMessage(Message.raw("Usage: ").color("gold")
+                .insert(Message.raw("/modsync upgrade <name|slug|identifier>").color("white")));
+        playerRef.sendMessage(Message.raw("       ").color("gold")
+                .insert(Message.raw("/modsync upgrade all").color("white"))
+                .insert(Message.raw(" to upgrade all").color("gray")));
+        playerRef.sendMessage(Message.raw("Tip: ").color("gray")
+                .insert(Message.raw("Use quotes for names with spaces: ").color("gray"))
+                .insert(Message.raw("\"My Mod\"").color("yellow")));
+        playerRef.sendMessage(Message.raw(""));
+
+        // Show installed mods
+        List<ManagedMod> installed = registry.getInstalled();
+        if (installed.isEmpty()) {
+            playerRef.sendMessage(Message.raw("No installed mods to upgrade.").color("yellow"));
+        } else {
+            playerRef.sendMessage(Message.raw("=== Installed (" + installed.size() + ") ===").color("gold"));
+            for (ManagedMod mod : installed) {
+                playerRef.sendMessage(CommandUtils.formatModLine(mod));
+            }
         }
+    }
 
-        // Try by identifier (group:name) if contains colon
-        if (modOpt.isEmpty() && nameOrSlug.contains(":")) {
-            modOpt = registry.findByIdentifier(nameOrSlug);
+    private void upgradeSpecificMod(PlayerRef playerRef, ManagedModRegistry registry, String target) {
+        SelectionResult result = ModSelector.findByNameOrSlugOrIdentifier(registry, target);
+
+        switch (result) {
+            case SelectionResult.Found found -> {
+                ManagedMod mod = found.mod();
+                if (!mod.isInstalled()) {
+                    playerRef.sendMessage(Message.raw("Mod is not installed: " + mod.getName()).color("red"));
+                    playerRef.sendMessage(Message.raw("Use ").color("gray")
+                            .insert(Message.raw("/modsync install " + target).color("white"))
+                            .insert(Message.raw(" to install it first.").color("gray")));
+                    return;
+                }
+                playerRef.sendMessage(Message.raw("Checking for update: " + mod.getName() + "...").color("yellow"));
+                upgradeMod(mod)
+                        .thenAccept(upgradeResult -> {
+                            switch (upgradeResult) {
+                                case UPGRADED -> {
+                                    playerRef.sendMessage(Message.raw("Upgraded: ").insert(CommandUtils.formatModLine(mod)).color("green"));
+                                    playerRef.sendMessage(Message.raw("Server restart required to load the new version.").color("gold"));
+                                }
+                                case UP_TO_DATE ->
+                                    playerRef.sendMessage(Message.raw("Already up to date: ").insert(CommandUtils.formatModLine(mod)).color("green"));
+                                case SKIPPED ->
+                                    playerRef.sendMessage(Message.raw("Skipped: ").insert(CommandUtils.formatModLine(mod)).insert(" - Download URL not available").color("yellow"));
+                            }
+                        })
+                        .exceptionally(ex -> {
+                            String errorMsg = CommandUtils.extractErrorMessage(ex);
+                            playerRef.sendMessage(Message.raw("Failed to upgrade ").insert(CommandUtils.formatModLine(mod)).insert(": " + errorMsg).color("red"));
+                            return null;
+                        });
+            }
+            case SelectionResult.NotFound notFound -> {
+                playerRef.sendMessage(Message.raw("Mod not found in list: " + notFound.query()).color("red"));
+                playerRef.sendMessage(Message.raw("     "));
+                showHelp(playerRef, registry);
+            }
+            case SelectionResult.InvalidIndex ignored ->
+                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to upgrade mods.").color("red"));
+            case SelectionResult.EmptyRegistry ignored ->
+                playerRef.sendMessage(Message.raw("No mods in list.").color("red"));
         }
-
-        if (modOpt.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Mod not found in list: " + nameOrSlug).color("red"));
-            return;
-        }
-
-        ManagedMod mod = modOpt.get();
-
-        if (!mod.isInstalled()) {
-            playerRef.sendMessage(Message.raw("Mod is not installed: " + mod.getName()).color("red"));
-            playerRef.sendMessage(Message.raw("Use ").color("gray")
-                    .insert(Message.raw("/modsync install " + nameOrSlug).color("white"))
-                    .insert(Message.raw(" to install it first.").color("gray")));
-            return;
-        }
-
-        playerRef.sendMessage(Message.raw("Checking for update: " + mod.getName() + "...").color("yellow"));
-
-        upgradeMod(mod)
-                .thenAccept(result -> {
-                    if (result == UpgradeResult.UPGRADED) {
-                        playerRef.sendMessage(Message.raw("Upgraded: " + mod.getName()).color("green"));
-                        playerRef.sendMessage(Message.raw("Server restart required to load the new version.").color("gold"));
-                    } else if (result == UpgradeResult.UP_TO_DATE) {
-                        playerRef.sendMessage(Message.raw("Already up to date: " + mod.getName()).color("green"));
-                    } else {
-                        playerRef.sendMessage(Message.raw("Skipped: " + mod.getName() + " - Download URL not available").color("yellow"));
-                    }
-                })
-                .exceptionally(ex -> {
-                    String errorMsg = extractErrorMessage(ex);
-                    playerRef.sendMessage(Message.raw("Failed to upgrade " + mod.getName() + ": " + errorMsg).color("red"));
-                    return null;
-                });
     }
 
     private void upgradeAllMods(PlayerRef playerRef, ManagedModRegistry registry) {
-        // Get all installed mods
         List<ManagedMod> installedMods = registry.getInstalled();
 
         if (installedMods.isEmpty()) {
@@ -133,23 +163,21 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                 .map(mod -> upgradeMod(mod)
                         .thenAccept(result -> {
                             switch (result) {
-                                case UPGRADED:
+                                case UPGRADED -> {
                                     upgraded.incrementAndGet();
-                                    playerRef.sendMessage(Message.raw("  Upgraded: " + mod.getName()).color("green"));
-                                    break;
-                                case UP_TO_DATE:
-                                    upToDate.incrementAndGet();
-                                    break;
-                                case SKIPPED:
+                                    playerRef.sendMessage(Message.raw("  Upgraded: ").insert(CommandUtils.formatModLine(mod)).color("green"));
+                                }
+                                case UP_TO_DATE -> upToDate.incrementAndGet();
+                                case SKIPPED -> {
                                     skipped.incrementAndGet();
-                                    playerRef.sendMessage(Message.raw("  Skipped: " + mod.getName() + " - Download URL not available").color("yellow"));
-                                    break;
+                                    playerRef.sendMessage(Message.raw("  Skipped: ").insert(CommandUtils.formatModLine(mod)).insert(" - Download URL not available").color("yellow"));
+                                }
                             }
                         })
                         .exceptionally(ex -> {
                             failed.incrementAndGet();
-                            String errorMsg = extractErrorMessage(ex);
-                            playerRef.sendMessage(Message.raw("  Failed: " + mod.getName() + " - " + errorMsg).color("red"));
+                            String errorMsg = CommandUtils.extractErrorMessage(ex);
+                            playerRef.sendMessage(Message.raw("  Failed: ").insert(CommandUtils.formatModLine(mod)).insert(" - " + errorMsg).color("red"));
                             return null;
                         }))
                 .toArray(CompletableFuture[]::new);
@@ -231,7 +259,6 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                     return plugin.getDownloadService().deleteMod(mod)
                             .thenCompose(v -> plugin.getDownloadService().downloadAndInstall(mod, latestVersion))
                             .thenApply(newInstalledState -> {
-                                // Update the mod with the new installed state
                                 ManagedMod updatedMod = mod.toBuilder()
                                         .installedState(newInstalledState)
                                         .build();
@@ -239,15 +266,6 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                                 return UpgradeResult.UPGRADED;
                             });
                 });
-    }
-
-    private String extractErrorMessage(Throwable ex) {
-        if (ex == null) {
-            return "Unknown error";
-        }
-        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-        String msg = cause.getMessage();
-        return msg != null ? msg : cause.getClass().getSimpleName();
     }
 
     private enum UpgradeResult {
