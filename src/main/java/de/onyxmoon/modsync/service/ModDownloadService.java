@@ -8,6 +8,7 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
 import com.hypixel.hytale.server.core.plugin.PluginManager;
 import de.onyxmoon.modsync.ModSync;
+import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.InstalledMod;
 import de.onyxmoon.modsync.api.model.ManagedModEntry;
 import de.onyxmoon.modsync.api.model.ModVersion;
@@ -40,21 +41,24 @@ public class ModDownloadService {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
     private final ModSync modSync;
     private final Path modsFolder;
+    private final Path earlyPluginsFolder;
     private final HttpClient httpClient;
 
-    public ModDownloadService(ModSync modSync, Path modsFolder) {
+    public ModDownloadService(ModSync modSync, Path modsFolder, Path earlyPluginsFolder) {
         this.modSync = modSync;
         this.modsFolder = modsFolder;
+        this.earlyPluginsFolder = earlyPluginsFolder;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
-        // Ensure mods folder exists
+        // Ensure folders exist
         try {
             Files.createDirectories(modsFolder);
+            Files.createDirectories(earlyPluginsFolder);
         } catch (IOException e) {
-            LOGGER.atSevere().log("Failed to create mods folder: {}", modsFolder, e);
+            LOGGER.atSevere().log("Failed to create plugin folders", e);
         }
     }
 
@@ -73,9 +77,11 @@ public class ModDownloadService {
         }
 
         String fileName = version.getFileName();
-        Path targetPath = modsFolder.resolve(fileName);
+        PluginType pluginType = entry.getPluginType();
+        Path targetFolder = getTargetFolder(pluginType);
+        Path targetPath = targetFolder.resolve(fileName);
 
-        LOGGER.atInfo().log("Downloading {} to {}", entry.getName(), targetPath);
+        LOGGER.atInfo().log("Downloading {} ({}) to {}", entry.getName(), pluginType.getDisplayName(), targetPath);
 
         return downloadFile(downloadUrl, targetPath)
                 .thenApply(filePath -> {
@@ -91,6 +97,7 @@ public class ModDownloadService {
                                 .slug(entry.getSlug())
                                 .identifier(identifier)
                                 .source(entry.getSource())
+                                .pluginType(pluginType)
                                 .installedVersionId(version.getVersionId())
                                 .installedVersionNumber(version.getVersionNumber())
                                 .filePath(filePath.toString())
@@ -103,12 +110,19 @@ public class ModDownloadService {
 
                         modSync.getInstalledModStorage().addMod(installed);
 
-                        LOGGER.atInfo().log("Successfully installed {} ({})", entry.getName(), version.getVersionNumber());
+                        LOGGER.atInfo().log("Successfully installed {} ({}) as {}", entry.getName(), version.getVersionNumber(), pluginType.getDisplayName());
                         return installed;
                     } catch (IOException e) {
                         throw new RuntimeException("Failed to process downloaded file", e);
                     }
                 });
+    }
+
+    /**
+     * Get the target folder for the given plugin type.
+     */
+    private Path getTargetFolder(PluginType pluginType) {
+        return pluginType == PluginType.EARLY_PLUGIN ? earlyPluginsFolder : modsFolder;
     }
 
     private CompletableFuture<Path> downloadFile(String url, Path targetPath) {
@@ -209,5 +223,9 @@ public class ModDownloadService {
 
     public Path getModsFolder() {
         return modsFolder;
+    }
+
+    public Path getEarlyPluginsFolder() {
+        return earlyPluginsFolder;
     }
 }

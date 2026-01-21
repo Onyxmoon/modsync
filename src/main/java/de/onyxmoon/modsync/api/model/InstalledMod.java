@@ -2,6 +2,7 @@ package de.onyxmoon.modsync.api.model;
 
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.PluginType;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -15,6 +16,7 @@ public final class InstalledMod {
     private final String slug;
     private final PluginIdentifier identifier;
     private final ModListSource source;
+    private final PluginType pluginType;
     private final String installedVersionId;
     private final String installedVersionNumber;
     private final String filePath;
@@ -30,6 +32,7 @@ public final class InstalledMod {
         this.slug = builder.slug;
         this.source = Objects.requireNonNull(builder.source, "source cannot be null");
         this.identifier = Objects.requireNonNull(builder.identifier, "identifier cannot be null");
+        this.pluginType = builder.pluginType != null ? builder.pluginType : PluginType.PLUGIN;
         this.installedVersionId = builder.installedVersionId;
         this.installedVersionNumber = builder.installedVersionNumber;
         this.filePath = Objects.requireNonNull(builder.filePath, "filePath cannot be null");
@@ -56,6 +59,10 @@ public final class InstalledMod {
 
     public ModListSource getSource() {
         return source;
+    }
+
+    public PluginType getPluginType() {
+        return pluginType != null ? pluginType : PluginType.PLUGIN;
     }
 
     public String getInstalledVersionId() {
@@ -112,6 +119,7 @@ public final class InstalledMod {
                 .slug(slug)
                 .identifier(identifier)
                 .source(source)
+                .pluginType(pluginType)
                 .installedVersionId(installedVersionId)
                 .installedVersionNumber(installedVersionNumber)
                 .filePath(filePath)
@@ -133,6 +141,7 @@ public final class InstalledMod {
                Objects.equals(slug, that.slug) &&
                Objects.equals(identifier, that.identifier) &&
                source == that.source &&
+               pluginType == that.pluginType &&
                Objects.equals(installedVersionId, that.installedVersionId) &&
                Objects.equals(installedVersionNumber, that.installedVersionNumber) &&
                Objects.equals(filePath, that.filePath) &&
@@ -144,7 +153,7 @@ public final class InstalledMod {
 
     @Override
     public int hashCode() {
-        return Objects.hash(modId, name, slug, identifier, source, installedVersionId, installedVersionNumber,
+        return Objects.hash(modId, name, slug, identifier, source, pluginType, installedVersionId, installedVersionNumber,
                            filePath, fileName, fileSize, fileHash, installedAt, lastChecked);
     }
 
@@ -154,6 +163,7 @@ public final class InstalledMod {
                "modId='" + modId + '\'' +
                ", name='" + name + '\'' +
                ", source=" + source +
+               ", pluginType=" + pluginType +
                ", version='" + installedVersionNumber + '\'' +
                ", fileName='" + fileName + '\'' +
                '}';
@@ -165,6 +175,7 @@ public final class InstalledMod {
         private String slug;
         private PluginIdentifier identifier;
         private ModListSource source;
+        private PluginType pluginType;
         private String installedVersionId;
         private String installedVersionNumber;
         private String filePath;
@@ -196,6 +207,11 @@ public final class InstalledMod {
 
         public Builder source(ModListSource source) {
             this.source = source;
+            return this;
+        }
+
+        public Builder pluginType(PluginType pluginType) {
+            this.pluginType = pluginType;
             return this;
         }
 

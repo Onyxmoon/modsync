@@ -1,5 +1,7 @@
 package de.onyxmoon.modsync.api.model;
 
+import de.onyxmoon.modsync.api.PluginType;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -15,6 +17,7 @@ public final class ModEntry {
     private final List<ModAuthor> authors;
     private final ModVersion latestVersion;
     private final List<String> categories;
+    private final PluginType pluginType;
     private final int downloadCount;
     private final String websiteUrl;
     private final String logoUrl;
@@ -28,6 +31,7 @@ public final class ModEntry {
         this.authors = builder.authors != null ? List.copyOf(builder.authors) : List.of();
         this.latestVersion = builder.latestVersion;
         this.categories = builder.categories != null ? List.copyOf(builder.categories) : List.of();
+        this.pluginType = builder.pluginType != null ? builder.pluginType : PluginType.PLUGIN;
         this.downloadCount = builder.downloadCount;
         this.websiteUrl = builder.websiteUrl;
         this.logoUrl = builder.logoUrl;
@@ -60,6 +64,10 @@ public final class ModEntry {
 
     public List<String> getCategories() {
         return categories;
+    }
+
+    public PluginType getPluginType() {
+        return pluginType;
     }
 
     public int getDownloadCount() {
@@ -95,6 +103,7 @@ public final class ModEntry {
                Objects.equals(authors, modEntry.authors) &&
                Objects.equals(latestVersion, modEntry.latestVersion) &&
                Objects.equals(categories, modEntry.categories) &&
+               pluginType == modEntry.pluginType &&
                Objects.equals(websiteUrl, modEntry.websiteUrl) &&
                Objects.equals(logoUrl, modEntry.logoUrl) &&
                Objects.equals(lastUpdated, modEntry.lastUpdated);
@@ -103,7 +112,7 @@ public final class ModEntry {
     @Override
     public int hashCode() {
         return Objects.hash(modId, name, slug, summary, authors, latestVersion,
-                          categories, downloadCount, websiteUrl, logoUrl, lastUpdated);
+                          categories, pluginType, downloadCount, websiteUrl, logoUrl, lastUpdated);
     }
 
     @Override
@@ -112,6 +121,7 @@ public final class ModEntry {
                "modId='" + modId + '\'' +
                ", name='" + name + '\'' +
                ", slug='" + slug + '\'' +
+               ", pluginType=" + pluginType +
                ", authors=" + authors +
                ", downloadCount=" + downloadCount +
                '}';
@@ -125,6 +135,7 @@ public final class ModEntry {
         private List<ModAuthor> authors;
         private ModVersion latestVersion;
         private List<String> categories;
+        private PluginType pluginType;
         private int downloadCount;
         private String websiteUrl;
         private String logoUrl;
@@ -162,6 +173,11 @@ public final class ModEntry {
 
         public Builder categories(List<String> categories) {
             this.categories = categories;
+            return this;
+        }
+
+        public Builder pluginType(PluginType pluginType) {
+            this.pluginType = pluginType;
             return this;
         }
 

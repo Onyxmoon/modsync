@@ -26,6 +26,7 @@ public class CurseForgeModResponse {
         private List<AuthorData> authors;
         private List<FileData> latestFiles;
         private List<CategoryData> categories;
+        private Integer classId;
         private int downloadCount;
         private LinksData links;
         private LogoData logo;
@@ -85,6 +86,14 @@ public class CurseForgeModResponse {
 
         public void setCategories(List<CategoryData> categories) {
             this.categories = categories;
+        }
+
+        public Integer getClassId() {
+            return classId;
+        }
+
+        public void setClassId(Integer classId) {
+            this.classId = classId;
         }
 
         public int getDownloadCount() {

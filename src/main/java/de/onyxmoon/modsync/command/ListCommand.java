@@ -76,7 +76,10 @@ public class ListCommand extends AbstractPlayerCommand {
                 line = line.insert(Message.raw(" [" + installed.get().getIdentifier().toString() + "]").color("aqua"));
             }
 
-            line = line.insert(Message.raw(" (" + entry.getSource().getDisplayName() + ")").color("gray"))
+            // Show plugin type
+            String typeAbbrev = entry.getPluginType().getDisplayName();
+            line = line.insert(Message.raw(" [" + typeAbbrev + "]").color("light_purple"))
+                    .insert(Message.raw(" (" + entry.getSource().getDisplayName() + ")").color("gray"))
                     .insert(Message.raw(" [" + versionInfo + "]").color("dark_gray"));
 
             playerRef.sendMessage(line);

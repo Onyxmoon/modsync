@@ -1,6 +1,7 @@
 package de.onyxmoon.modsync.provider.curseforge;
 
 import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.*;
 import de.onyxmoon.modsync.provider.curseforge.model.CurseForgeModResponse;
 import de.onyxmoon.modsync.provider.curseforge.model.CurseForgeSearchResponse;
@@ -13,6 +14,11 @@ import java.util.stream.Collectors;
  * Adapter to convert CurseForge API responses to canonical models.
  */
 public class CurseForgeAdapter {
+
+    /**
+     * CurseForge class ID for Bootstrap plugins (Early Plugins).
+     */
+    private static final int BOOTSTRAP_CLASS_ID = 9281;
 
     public ModList adaptToModList(
             CurseForgeSearchResponse searchResponse,
@@ -41,6 +47,7 @@ public class CurseForgeAdapter {
                 .authors(adaptAuthors(cfMod.getAuthors()))
                 .latestVersion(adaptLatestFile(cfMod.getLatestFiles()))
                 .categories(adaptCategories(cfMod.getCategories()))
+                .pluginType(adaptPluginType(cfMod.getClassId()))
                 .downloadCount(cfMod.getDownloadCount())
                 .websiteUrl(cfMod.getLinks() != null ? cfMod.getLinks().getWebsiteUrl() : null)
                 .logoUrl(cfMod.getLogo() != null ? cfMod.getLogo().getUrl() : null)
@@ -85,5 +92,12 @@ public class CurseForgeAdapter {
         return cfCategories.stream()
                 .map(CurseForgeModResponse.CategoryData::getName)
                 .collect(Collectors.toList());
+    }
+
+    private PluginType adaptPluginType(Integer classId) {
+        if (classId != null && classId == BOOTSTRAP_CLASS_ID) {
+            return PluginType.EARLY_PLUGIN;
+        }
+        return PluginType.PLUGIN;
     }
 }

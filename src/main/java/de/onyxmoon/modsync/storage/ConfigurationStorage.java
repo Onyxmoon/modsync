@@ -24,6 +24,9 @@ public class ConfigurationStorage {
                 .setPrettyPrinting()
                 .create();
         this.config = load();
+
+        // Save immediately to persist any new default fields
+        save();
     }
 
     private PluginConfig load() {

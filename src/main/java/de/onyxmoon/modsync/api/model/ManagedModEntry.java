@@ -1,6 +1,7 @@
 package de.onyxmoon.modsync.api.model;
 
 import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.PluginType;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -14,6 +15,7 @@ public final class ManagedModEntry {
     private final ModListSource source;
     private final String slug;
     private final String name;
+    private final PluginType pluginType;
     private final String desiredVersionId;
     private final Instant addedAt;
     private final String addedViaUrl;
@@ -23,6 +25,7 @@ public final class ManagedModEntry {
         this.source = Objects.requireNonNull(builder.source, "source cannot be null");
         this.slug = builder.slug;
         this.name = Objects.requireNonNull(builder.name, "name cannot be null");
+        this.pluginType = builder.pluginType != null ? builder.pluginType : PluginType.PLUGIN;
         this.desiredVersionId = builder.desiredVersionId;
         this.addedAt = Objects.requireNonNull(builder.addedAt, "addedAt cannot be null");
         this.addedViaUrl = builder.addedViaUrl;
@@ -42,6 +45,10 @@ public final class ManagedModEntry {
 
     public String getName() {
         return name;
+    }
+
+    public PluginType getPluginType() {
+        return pluginType != null ? pluginType : PluginType.PLUGIN;
     }
 
     /**
@@ -90,6 +97,7 @@ public final class ManagedModEntry {
                 .source(source)
                 .slug(slug)
                 .name(name)
+                .pluginType(pluginType)
                 .desiredVersionId(desiredVersionId)
                 .addedAt(addedAt)
                 .addedViaUrl(addedViaUrl);
@@ -104,6 +112,7 @@ public final class ManagedModEntry {
                source == that.source &&
                Objects.equals(slug, that.slug) &&
                Objects.equals(name, that.name) &&
+               pluginType == that.pluginType &&
                Objects.equals(desiredVersionId, that.desiredVersionId) &&
                Objects.equals(addedAt, that.addedAt) &&
                Objects.equals(addedViaUrl, that.addedViaUrl);
@@ -111,7 +120,7 @@ public final class ManagedModEntry {
 
     @Override
     public int hashCode() {
-        return Objects.hash(modId, source, slug, name, desiredVersionId, addedAt, addedViaUrl);
+        return Objects.hash(modId, source, slug, name, pluginType, desiredVersionId, addedAt, addedViaUrl);
     }
 
     @Override
@@ -120,6 +129,7 @@ public final class ManagedModEntry {
                "modId='" + modId + '\'' +
                ", source=" + source +
                ", name='" + name + '\'' +
+               ", pluginType=" + pluginType +
                ", desiredVersion=" + (desiredVersionId != null ? desiredVersionId : "latest") +
                '}';
     }
@@ -129,6 +139,7 @@ public final class ManagedModEntry {
         private ModListSource source;
         private String slug;
         private String name;
+        private PluginType pluginType;
         private String desiredVersionId;
         private Instant addedAt;
         private String addedViaUrl;
@@ -150,6 +161,11 @@ public final class ManagedModEntry {
 
         public Builder name(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder pluginType(PluginType pluginType) {
+            this.pluginType = pluginType;
             return this;
         }
 

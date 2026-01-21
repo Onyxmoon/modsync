@@ -15,14 +15,16 @@ import java.util.regex.Pattern;
  * - https://www.curseforge.com/hytale/mods/example-mod
  * - https://www.curseforge.com/hytale/mods/example-mod/files
  * - https://www.curseforge.com/hytale/mods/example-mod/files/12345
+ * - https://www.curseforge.com/hytale/bootstrap/example-plugin
+ * - https://www.curseforge.com/hytale/bootstrap/example-plugin/files/12345
  * - https://curseforge.com/hytale/mods/example-mod
  */
 public class CurseForgeUrlParser implements ModUrlParser {
 
-    // Pattern to match CurseForge Hytale mod URLs
-    // Groups: (1) slug, (2) optional file ID
+    // Pattern to match CurseForge Hytale mod/bootstrap URLs
+    // Groups: (1) category (mods/bootstrap), (2) slug, (3) optional file ID
     private static final Pattern CURSEFORGE_URL_PATTERN = Pattern.compile(
-            "^https?://(?:www\\.)?curseforge\\.com/hytale/mods/([\\w-]+)(?:/files(?:/(\\d+))?)?/?$",
+            "^https?://(?:www\\.)?curseforge\\.com/hytale/(mods|bootstrap)/([\\w-]+)(?:/files(?:/(\\d+))?)?/?$",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -44,9 +46,9 @@ public class CurseForgeUrlParser implements ModUrlParser {
         if (!matcher.matches()) {
             throw new InvalidModUrlException(url, "URL does not match CurseForge pattern");
         }
-
-        String slug = matcher.group(1);
-        String versionId = matcher.group(2); // May be null
+        
+        String slug = matcher.group(2);
+        String versionId = matcher.group(3); // May be null
 
         return new ParsedModUrl(
                 ModListSource.CURSEFORGE,

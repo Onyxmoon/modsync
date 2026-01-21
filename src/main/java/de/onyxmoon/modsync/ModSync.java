@@ -62,9 +62,22 @@ public class ModSync extends JavaPlugin {
         this.providerRegistry = new ProviderRegistry();
         this.urlParserRegistry = new UrlParserRegistry();
 
-        // Initialize download service (mods folder is in the server's mods directory)
+        // Initialize download service
+        // mods folder is the parent of the data folder (mods/)
+        // earlyplugins folder path is configurable (default: earlyplugins/ relative to server root)
         Path modsFolder = dataFolder.getParent();
-        this.downloadService = new ModDownloadService(this, modsFolder);
+        Path serverRoot = modsFolder != null ? modsFolder.getParent() : null;
+        
+        if (serverRoot == null) {
+            serverRoot = Path.of("").toAbsolutePath();
+            LOGGER.atWarning().log("Could not determine server root from path hierarchy, using working directory: %s", serverRoot);
+        }
+
+        Path earlyPluginsFolder = resolveEarlyPluginsPath(serverRoot);
+        this.downloadService = new ModDownloadService(this, modsFolder, earlyPluginsFolder);
+
+        LOGGER.atInfo().log("Mods folder: %s", modsFolder);
+        LOGGER.atInfo().log("Early plugins folder: %s", earlyPluginsFolder);
 
         // Initialize update scheduler
         this.updateScheduler = new UpdateScheduler(this);
@@ -150,7 +163,7 @@ public class ModSync extends JavaPlugin {
                     pendingPaths.addAll(existing);
                 }
             } catch (IOException e) {
-                LOGGER.atWarning().log("Failed to read pending deletions: {}", e.getMessage());
+                LOGGER.atWarning().log("Failed to read pending deletions: %s", e.getMessage());
             }
         }
 
@@ -161,9 +174,9 @@ public class ModSync extends JavaPlugin {
             try {
                 Files.createDirectories(pendingFile.getParent());
                 Files.writeString(pendingFile, GSON.toJson(pendingPaths));
-                LOGGER.atInfo().log("Added to pending deletions: {}", filePath);
+                LOGGER.atInfo().log("Added to pending deletions: %s", filePath);
             } catch (IOException e) {
-                LOGGER.atSevere().log("Failed to save pending deletions: {}", e.getMessage());
+                LOGGER.atSevere().log("Failed to save pending deletions: %s", e.getMessage());
             }
         }
     }
@@ -203,5 +216,25 @@ public class ModSync extends JavaPlugin {
 
     public PluginManager getPluginManager() {
         return pluginManager;
+    }
+
+    // Internal methods
+    /**
+     * Resolves the early plugins folder path from configuration.
+     * Supports both absolute and relative paths.
+     *
+     * @param serverRoot the server root directory
+     * @return the resolved path for the early plugins folder
+     */
+    private Path resolveEarlyPluginsPath(Path serverRoot) {
+        String configuredPath = configStorage.getConfig().getEarlyPluginsPath();
+        Path path = Path.of(configuredPath);
+
+        if (path.isAbsolute()) {
+            return path;
+        }
+
+        // Relative path - resolve against server root
+        return serverRoot.resolve(path);
     }
 }

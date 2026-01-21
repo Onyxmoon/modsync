@@ -10,12 +10,18 @@ import java.util.Map;
  * Plugin configuration model.
  */
 public class PluginConfig {
+    /**
+     * Default path for early plugins folder, relative to server root.
+     */
+    public static final String DEFAULT_EARLY_PLUGINS_PATH = "earlyplugins";
+
     private Map<ModListSource, String> apiKeys;
     private String currentProjectId;
     private ModListSource currentSource;
     private UpdateMode updateMode;
     private int updateIntervalMinutes;
     private boolean updateOnStartup;
+    private String earlyPluginsPath;
 
     public PluginConfig() {
         this.apiKeys = new HashMap<>();
@@ -23,6 +29,7 @@ public class PluginConfig {
         this.updateMode = UpdateMode.MANUAL;
         this.updateIntervalMinutes = 60;
         this.updateOnStartup = false;
+        this.earlyPluginsPath = DEFAULT_EARLY_PLUGINS_PATH;
     }
 
     public Map<ModListSource, String> getApiKeys() {
@@ -79,5 +86,19 @@ public class PluginConfig {
 
     public void setUpdateOnStartup(boolean updateOnStartup) {
         this.updateOnStartup = updateOnStartup;
+    }
+
+    /**
+     * Gets the path for the early plugins folder.
+     * Can be absolute or relative to server root.
+     *
+     * @return the early plugins path, or default if not set
+     */
+    public String getEarlyPluginsPath() {
+        return earlyPluginsPath != null ? earlyPluginsPath : DEFAULT_EARLY_PLUGINS_PATH;
+    }
+
+    public void setEarlyPluginsPath(String earlyPluginsPath) {
+        this.earlyPluginsPath = earlyPluginsPath;
     }
 }

@@ -102,6 +102,7 @@ public class AddCommand extends AbstractPlayerCommand {
                         .source(parsed.source())
                         .slug(modEntry.getSlug())
                         .name(modEntry.getName())
+                        .pluginType(modEntry.getPluginType())
                         .desiredVersionId(parsed.versionId())
                         .addedAt(Instant.now())
                         .addedViaUrl(url)
@@ -112,7 +113,8 @@ public class AddCommand extends AbstractPlayerCommand {
 
                 playerRef.sendMessage(Message.raw("Added: ").color("green")
                         .insert(Message.raw(modEntry.getName()).color("white"))
-                        .insert(Message.raw(" (" + modEntry.getSlug() + ")").color("gray")));
+                        .insert(Message.raw(" (" + modEntry.getSlug() + ")").color("gray"))
+                        .insert(Message.raw(" [" + modEntry.getPluginType().getDisplayName() + "]").color("aqua")));
                 playerRef.sendMessage(Message.raw("Use ").color("gray")
                         .insert(Message.raw("/modsync install").color("white"))
                         .insert(Message.raw(" to download").color("gray")));
