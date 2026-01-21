@@ -11,9 +11,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.model.InstalledMod;
-import de.onyxmoon.modsync.api.model.ManagedModEntry;
-import de.onyxmoon.modsync.api.model.ManagedModList;
+import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -30,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - /modsync remove        - Shows numbered list
  * - /modsync remove 1      - Removes mod at index 1
  * - /modsync remove --all  - Removes all mods
- * - /modsync remove name   - Removes mod by name/slug
+ * - /modsync remove name   - Removes mod by name/slug/identifier
  */
 public class RemoveCommand extends AbstractPlayerCommand {
     private final ModSync plugin;
@@ -55,9 +54,9 @@ public class RemoveCommand extends AbstractPlayerCommand {
             return;
         }
 
-        ManagedModList modList = plugin.getManagedModListStorage().getModList();
+        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
 
-        if (modList.isEmpty()) {
+        if (registry.isEmpty()) {
             playerRef.sendMessage(Message.raw("No mods in list.").color("yellow"));
             return;
         }
@@ -66,44 +65,41 @@ public class RemoveCommand extends AbstractPlayerCommand {
 
         if (arg.isEmpty()) {
             // Interactive: show numbered list
-            showNumberedList(playerRef, modList);
+            showNumberedList(playerRef, registry);
             return;
         }
 
         if (arg.equals("--all")) {
             // Remove all mods
-            removeAllMods(playerRef, modList);
+            removeAllMods(playerRef, registry);
             return;
         }
 
         // Try to parse as index
         try {
             int index = Integer.parseInt(arg);
-            removeByIndex(playerRef, modList, index);
+            removeByIndex(playerRef, registry, index);
             return;
         } catch (NumberFormatException ignored) {
             // Not a number, try by name
         }
 
-        // Remove by name/slug
-        removeByName(playerRef, modList, arg);
+        // Remove by name/slug/identifier
+        removeByName(playerRef, registry, arg);
     }
 
-    private void showNumberedList(PlayerRef playerRef, ManagedModList modList) {
-        List<ManagedModEntry> mods = modList.getMods();
+    private void showNumberedList(PlayerRef playerRef, ManagedModRegistry registry) {
+        List<ManagedMod> mods = registry.getAll();
 
         playerRef.sendMessage(Message.raw("=== Select mod to remove ===").color("gold"));
 
         for (int i = 0; i < mods.size(); i++) {
-            ManagedModEntry entry = mods.get(i);
-            boolean installed = plugin.getInstalledModStorage().getRegistry()
-                    .findBySourceId(entry.getSource(), entry.getModId()).isPresent();
-
-            String status = installed ? "[installed]" : "[not installed]";
-            String statusColor = installed ? "green" : "gray";
+            ManagedMod mod = mods.get(i);
+            String status = mod.isInstalled() ? "[installed]" : "[not installed]";
+            String statusColor = mod.isInstalled() ? "green" : "gray";
 
             playerRef.sendMessage(Message.raw((i + 1) + ". ").color("white")
-                    .insert(Message.raw(entry.getName()).color("yellow"))
+                    .insert(Message.raw(mod.getName()).color("yellow"))
                     .insert(Message.raw(" " + status).color(statusColor)));
         }
 
@@ -116,42 +112,39 @@ public class RemoveCommand extends AbstractPlayerCommand {
                 .insert(Message.raw(" to remove all").color("gray")));
     }
 
-    private void removeByIndex(PlayerRef playerRef, ManagedModList modList, int index) {
-        List<ManagedModEntry> mods = modList.getMods();
+    private void removeByIndex(PlayerRef playerRef, ManagedModRegistry registry, int index) {
+        List<ManagedMod> mods = registry.getAll();
 
         if (index < 1 || index > mods.size()) {
             playerRef.sendMessage(Message.raw("Invalid index. Use 1-" + mods.size()).color("red"));
             return;
         }
 
-        ManagedModEntry entry = mods.get(index - 1);
-        removeMod(playerRef, entry);
+        ManagedMod mod = mods.get(index - 1);
+        removeMod(playerRef, mod);
     }
 
-    private void removeByName(PlayerRef playerRef, ManagedModList modList, String nameOrSlug) {
-        Optional<ManagedModEntry> entryOpt = modList.findByName(nameOrSlug);
-        if (entryOpt.isEmpty()) {
-            entryOpt = modList.findBySlug(nameOrSlug);
+    private void removeByName(PlayerRef playerRef, ManagedModRegistry registry, String nameOrSlug) {
+        // Simplified lookup - directly on registry
+        Optional<ManagedMod> modOpt = registry.findByName(nameOrSlug);
+        if (modOpt.isEmpty()) {
+            modOpt = registry.findBySlug(nameOrSlug);
         }
-
         // Try by identifier (group:name) if contains colon
-        if (entryOpt.isEmpty() && nameOrSlug.contains(":")) {
-            Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage().findByIdentifier(nameOrSlug);
-            if (installedOpt.isPresent()) {
-                entryOpt = modList.findBySourceId(installedOpt.get().getSourceId());
-            }
+        if (modOpt.isEmpty() && nameOrSlug.contains(":")) {
+            modOpt = registry.findByIdentifier(nameOrSlug);
         }
 
-        if (entryOpt.isEmpty()) {
+        if (modOpt.isEmpty()) {
             playerRef.sendMessage(Message.raw("Mod not found: " + nameOrSlug).color("red"));
             return;
         }
 
-        removeMod(playerRef, entryOpt.get());
+        removeMod(playerRef, modOpt.get());
     }
 
-    private void removeAllMods(PlayerRef playerRef, ManagedModList modList) {
-        List<ManagedModEntry> mods = modList.getMods();
+    private void removeAllMods(PlayerRef playerRef, ManagedModRegistry registry) {
+        List<ManagedMod> mods = registry.getAll();
         int total = mods.size();
 
         playerRef.sendMessage(Message.raw("Removing " + total + " mod(s)...").color("yellow"));
@@ -161,7 +154,7 @@ public class RemoveCommand extends AbstractPlayerCommand {
         AtomicInteger pendingRestart = new AtomicInteger(0);
 
         CompletableFuture<?>[] futures = mods.stream()
-                .map(entry -> removeModAsyncWithStatus(entry)
+                .map(mod -> removeModAsyncWithStatus(mod)
                         .thenAccept(deletedImmediately -> {
                             removed.incrementAndGet();
                             if (!deletedImmediately) {
@@ -184,50 +177,41 @@ public class RemoveCommand extends AbstractPlayerCommand {
                 });
     }
 
-    private void removeMod(PlayerRef playerRef, ManagedModEntry entry) {
-        Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage()
-                .getRegistry()
-                .findBySourceId(entry.getSource(), entry.getModId());
-
-        if (installedOpt.isPresent()) {
-            InstalledMod installed = installedOpt.get();
+    private void removeMod(PlayerRef playerRef, ManagedMod mod) {
+        if (mod.isInstalled()) {
             playerRef.sendMessage(Message.raw("Removing installed file...").color("yellow"));
 
-            plugin.getDownloadService().deleteMod(installed)
+            plugin.getDownloadService().deleteMod(mod)
                     .thenAccept(deletedImmediately -> {
-                        plugin.getManagedModListStorage().removeMod(entry.getSourceId());
+                        plugin.getManagedModStorage().removeMod(mod.getSourceId());
                         if (deletedImmediately) {
-                            playerRef.sendMessage(Message.raw("Removed: " + entry.getName() + " (file deleted)").color("green"));
+                            playerRef.sendMessage(Message.raw("Removed: " + mod.getName() + " (file deleted)").color("green"));
                         } else {
-                            playerRef.sendMessage(Message.raw("Removed: " + entry.getName()).color("green"));
+                            playerRef.sendMessage(Message.raw("Removed: " + mod.getName()).color("green"));
                             playerRef.sendMessage(Message.raw("File is locked. Restart server to complete deletion.").color("yellow"));
                         }
                     })
                     .exceptionally(ex -> {
                         playerRef.sendMessage(Message.raw("Failed to delete file: " + ex.getMessage()).color("red"));
-                        plugin.getManagedModListStorage().removeMod(entry.getSourceId());
+                        plugin.getManagedModStorage().removeMod(mod.getSourceId());
                         playerRef.sendMessage(Message.raw("Removed from list (file may remain)").color("yellow"));
                         return null;
                     });
         } else {
-            plugin.getManagedModListStorage().removeMod(entry.getSourceId());
-            playerRef.sendMessage(Message.raw("Removed: " + entry.getName()).color("green"));
+            plugin.getManagedModStorage().removeMod(mod.getSourceId());
+            playerRef.sendMessage(Message.raw("Removed: " + mod.getName()).color("green"));
         }
     }
 
-    private CompletableFuture<Boolean> removeModAsyncWithStatus(ManagedModEntry entry) {
-        Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage()
-                .getRegistry()
-                .findBySourceId(entry.getSource(), entry.getModId());
-
-        if (installedOpt.isPresent()) {
-            return plugin.getDownloadService().deleteMod(installedOpt.get())
+    private CompletableFuture<Boolean> removeModAsyncWithStatus(ManagedMod mod) {
+        if (mod.isInstalled()) {
+            return plugin.getDownloadService().deleteMod(mod)
                     .thenApply(deletedImmediately -> {
-                        plugin.getManagedModListStorage().removeMod(entry.getSourceId());
+                        plugin.getManagedModStorage().removeMod(mod.getSourceId());
                         return deletedImmediately;
                     });
         } else {
-            plugin.getManagedModListStorage().removeMod(entry.getSourceId());
+            plugin.getManagedModStorage().removeMod(mod.getSourceId());
             return CompletableFuture.completedFuture(true);
         }
     }

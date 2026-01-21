@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.api.model;
+package de.onyxmoon.modsync.api.model.provider;
 
 import java.time.Instant;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.Objects;
 
 /**
  * Immutable model representing a mod version.
+ * This is an API response model from mod providers (e.g., CurseForge).
  */
 public final class ModVersion {
     private final String versionId;

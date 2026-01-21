@@ -13,9 +13,8 @@ import de.onyxmoon.modsync.provider.UrlParserRegistry;
 import de.onyxmoon.modsync.scheduler.UpdateScheduler;
 import de.onyxmoon.modsync.service.ModDownloadService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
-import de.onyxmoon.modsync.storage.InstalledModStorage;
 import de.onyxmoon.modsync.storage.JsonModListStorage;
-import de.onyxmoon.modsync.storage.ManagedModListStorage;
+import de.onyxmoon.modsync.storage.ManagedModStorage;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -37,8 +36,7 @@ public class ModSync extends JavaPlugin {
     private UrlParserRegistry urlParserRegistry;
     private ConfigurationStorage configStorage;
     private JsonModListStorage modListStorage;
-    private InstalledModStorage installedModStorage;
-    private ManagedModListStorage managedModListStorage;
+    private ManagedModStorage managedModStorage;
     private ModDownloadService downloadService;
     private UpdateScheduler updateScheduler;
     private PluginManager pluginManager;
@@ -55,8 +53,7 @@ public class ModSync extends JavaPlugin {
         Path dataFolder = getDataDirectory();
         this.configStorage = new ConfigurationStorage(dataFolder);
         this.modListStorage = new JsonModListStorage(dataFolder);
-        this.installedModStorage = new InstalledModStorage(dataFolder);
-        this.managedModListStorage = new ManagedModListStorage(dataFolder);
+        this.managedModStorage = new ManagedModStorage(dataFolder);
 
         // Initialize provider and parser registries
         this.providerRegistry = new ProviderRegistry();
@@ -67,7 +64,7 @@ public class ModSync extends JavaPlugin {
         // earlyplugins folder path is configurable (default: earlyplugins/ relative to server root)
         Path modsFolder = dataFolder.getParent();
         Path serverRoot = modsFolder != null ? modsFolder.getParent() : null;
-        
+
         if (serverRoot == null) {
             serverRoot = Path.of("").toAbsolutePath();
             LOGGER.atWarning().log("Could not determine server root from path hierarchy, using working directory: %s", serverRoot);
@@ -136,11 +133,8 @@ public class ModSync extends JavaPlugin {
         if (configStorage != null) {
             configStorage.save();
         }
-        if (installedModStorage != null) {
-            installedModStorage.save();
-        }
-        if (managedModListStorage != null) {
-            managedModListStorage.save();
+        if (managedModStorage != null) {
+            managedModStorage.save();
         }
 
         LOGGER.atInfo().log("ModSync shut down");
@@ -198,12 +192,8 @@ public class ModSync extends JavaPlugin {
         return modListStorage;
     }
 
-    public InstalledModStorage getInstalledModStorage() {
-        return installedModStorage;
-    }
-
-    public ManagedModListStorage getManagedModListStorage() {
-        return managedModListStorage;
+    public ManagedModStorage getManagedModStorage() {
+        return managedModStorage;
     }
 
     public ModDownloadService getDownloadService() {

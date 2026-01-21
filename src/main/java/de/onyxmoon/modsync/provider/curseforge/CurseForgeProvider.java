@@ -2,8 +2,8 @@ package de.onyxmoon.modsync.provider.curseforge;
 
 import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.ModListSource;
-import de.onyxmoon.modsync.api.model.ModEntry;
-import de.onyxmoon.modsync.api.model.ModList;
+import de.onyxmoon.modsync.api.model.provider.ModEntry;
+import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.provider.curseforge.client.CurseForgeClient;
 
 import java.util.concurrent.CompletableFuture;

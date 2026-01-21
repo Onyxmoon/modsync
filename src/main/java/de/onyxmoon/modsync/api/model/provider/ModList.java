@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.api.model;
+package de.onyxmoon.modsync.api.model.provider;
 
 import de.onyxmoon.modsync.api.ModListSource;
 
@@ -8,6 +8,7 @@ import java.util.Objects;
 
 /**
  * Immutable model representing a mod list from any source.
+ * This is an API response model from mod providers (e.g., CurseForge).
  */
 public final class ModList {
     private final ModListSource source;

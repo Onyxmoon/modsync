@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 
 /**
  * Command: /modsync reload
- * Reloads configuration.
+ * Reloads configuration and mod registry.
  */
 public class ReloadCommand extends AbstractPlayerCommand {
     private final ModSync plugin;
@@ -39,6 +39,7 @@ public class ReloadCommand extends AbstractPlayerCommand {
 
         try {
             plugin.getConfigStorage().reload();
+            plugin.getManagedModStorage().reload();
             playerRef.sendMessage(Message.raw("Configuration reloaded successfully!").color("green"));
         } catch (Exception e) {
             playerRef.sendMessage(Message.raw("Failed to reload configuration: " + e.getMessage()).color("red"));

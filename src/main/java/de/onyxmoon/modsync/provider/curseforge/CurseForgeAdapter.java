@@ -2,7 +2,10 @@ package de.onyxmoon.modsync.provider.curseforge;
 
 import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
-import de.onyxmoon.modsync.api.model.*;
+import de.onyxmoon.modsync.api.model.provider.ModAuthor;
+import de.onyxmoon.modsync.api.model.provider.ModEntry;
+import de.onyxmoon.modsync.api.model.provider.ModList;
+import de.onyxmoon.modsync.api.model.provider.ModVersion;
 import de.onyxmoon.modsync.provider.curseforge.model.CurseForgeModResponse;
 import de.onyxmoon.modsync.provider.curseforge.model.CurseForgeSearchResponse;
 

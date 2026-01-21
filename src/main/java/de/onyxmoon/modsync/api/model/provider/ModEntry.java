@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.api.model;
+package de.onyxmoon.modsync.api.model.provider;
 
 import de.onyxmoon.modsync.api.PluginType;
 
@@ -8,6 +8,7 @@ import java.util.Objects;
 
 /**
  * Immutable model representing a single mod entry.
+ * This is an API response model from mod providers (e.g., CurseForge).
  */
 public final class ModEntry {
     private final String modId;

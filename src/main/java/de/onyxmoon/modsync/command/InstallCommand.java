@@ -12,10 +12,10 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.model.InstalledMod;
-import de.onyxmoon.modsync.api.model.ManagedModEntry;
-import de.onyxmoon.modsync.api.model.ManagedModList;
-import de.onyxmoon.modsync.api.model.ModVersion;
+import de.onyxmoon.modsync.api.model.InstalledState;
+import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.api.model.ManagedModRegistry;
+import de.onyxmoon.modsync.api.model.provider.ModVersion;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -53,9 +53,9 @@ public class InstallCommand extends AbstractPlayerCommand {
 
         String name = commandContext.provided(nameArg) ? commandContext.get(nameArg) : "";
 
-        ManagedModList modList = plugin.getManagedModListStorage().getModList();
+        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
 
-        if (modList.isEmpty()) {
+        if (registry.isEmpty()) {
             playerRef.sendMessage(Message.raw("No mods in list. Use ").color("red")
                     .insert(Message.raw("/modsync add <url>").color("white"))
                     .insert(Message.raw(" first.").color("red")));
@@ -64,51 +64,44 @@ public class InstallCommand extends AbstractPlayerCommand {
 
         if (!name.isEmpty()) {
             // Install specific mod
-            installSpecificMod(playerRef, modList, name);
+            installSpecificMod(playerRef, registry, name);
         } else {
             // Install all mods
-            installAllMods(playerRef, modList);
+            installAllMods(playerRef, registry);
         }
     }
 
-    private void installSpecificMod(PlayerRef playerRef, ManagedModList modList, String nameOrSlug) {
+    private void installSpecificMod(PlayerRef playerRef, ManagedModRegistry registry, String nameOrSlug) {
         // Find by name or slug
-        Optional<ManagedModEntry> entryOpt = modList.findByName(nameOrSlug);
-        if (entryOpt.isEmpty()) {
-            entryOpt = modList.findBySlug(nameOrSlug);
+        Optional<ManagedMod> modOpt = registry.findByName(nameOrSlug);
+        if (modOpt.isEmpty()) {
+            modOpt = registry.findBySlug(nameOrSlug);
         }
 
         // Try by identifier (group:name) if contains colon
-        if (entryOpt.isEmpty() && nameOrSlug.contains(":")) {
-            Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage().findByIdentifier(nameOrSlug);
-            if (installedOpt.isPresent()) {
-                entryOpt = modList.findBySourceId(installedOpt.get().getSourceId());
-            }
+        if (modOpt.isEmpty() && nameOrSlug.contains(":")) {
+            modOpt = registry.findByIdentifier(nameOrSlug);
         }
 
-        if (entryOpt.isEmpty()) {
+        if (modOpt.isEmpty()) {
             playerRef.sendMessage(Message.raw("Mod not found in list: " + nameOrSlug).color("red"));
             return;
         }
 
-        ManagedModEntry entry = entryOpt.get();
+        ManagedMod mod = modOpt.get();
 
         // Check if already installed
-        if (plugin.getInstalledModStorage().getRegistry()
-                .findBySourceId(entry.getSource(), entry.getModId()).isPresent()) {
-            playerRef.sendMessage(Message.raw("Mod already installed: " + entry.getName()).color("yellow"));
+        if (mod.isInstalled()) {
+            playerRef.sendMessage(Message.raw("Mod already installed: " + mod.getName()).color("yellow"));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Installing " + entry.getName() + "...").color("yellow"));
-        installMod(playerRef, entry);
+        playerRef.sendMessage(Message.raw("Installing " + mod.getName() + "...").color("yellow"));
+        installMod(playerRef, mod);
     }
 
-    private void installAllMods(PlayerRef playerRef, ManagedModList modList) {
-        List<ManagedModEntry> notInstalled = modList.getMods().stream()
-                .filter(entry -> plugin.getInstalledModStorage().getRegistry()
-                        .findBySourceId(entry.getSource(), entry.getModId()).isEmpty())
-                .toList();
+    private void installAllMods(PlayerRef playerRef, ManagedModRegistry registry) {
+        List<ManagedMod> notInstalled = registry.getNotInstalled();
 
         if (notInstalled.isEmpty()) {
             playerRef.sendMessage(Message.raw("All mods are already installed.").color("green"));
@@ -122,17 +115,17 @@ public class InstallCommand extends AbstractPlayerCommand {
         AtomicInteger failed = new AtomicInteger(0);
 
         CompletableFuture<?>[] futures = notInstalled.stream()
-                .map(entry -> installModAsync(entry, playerRef, skipped)
-                        .thenAccept(installed -> {
-                            if (installed != null) {
+                .map(mod -> installModAsync(mod, playerRef, skipped)
+                        .thenAccept(installedState -> {
+                            if (installedState != null) {
                                 success.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  Installed: " + entry.getName()).color("green"));
+                                playerRef.sendMessage(Message.raw("  Installed: " + mod.getName()).color("green"));
                             }
                         })
                         .exceptionally(ex -> {
                             failed.incrementAndGet();
                             String errorMsg = extractErrorMessage(ex);
-                            playerRef.sendMessage(Message.raw("  Failed: " + entry.getName() + " - " + errorMsg).color("red"));
+                            playerRef.sendMessage(Message.raw("  Failed: " + mod.getName() + " - " + errorMsg).color("red"));
                             return null;
                         }))
                 .toArray(CompletableFuture[]::new);
@@ -166,51 +159,51 @@ public class InstallCommand extends AbstractPlayerCommand {
         return msg != null ? msg : cause.getClass().getSimpleName();
     }
 
-    private void installMod(PlayerRef playerRef, ManagedModEntry entry) {
-        installModAsync(entry, null, null)
-                .thenAccept(installed -> {
-                    if (installed != null) {
-                        playerRef.sendMessage(Message.raw("Installed: " + entry.getName() + " ").color("green")
-                                .insert(Message.raw("(" + installed.getInstalledVersionNumber() + ")").color("gray")));
+    private void installMod(PlayerRef playerRef, ManagedMod mod) {
+        installModAsync(mod, null, null)
+                .thenAccept(installedState -> {
+                    if (installedState != null) {
+                        playerRef.sendMessage(Message.raw("Installed: " + mod.getName() + " ").color("green")
+                                .insert(Message.raw("(" + installedState.getInstalledVersionNumber() + ")").color("gray")));
                         playerRef.sendMessage(Message.raw("Server restart required to load the mod.").color("gold"));
                     } else {
-                        playerRef.sendMessage(Message.raw("Skipped: " + entry.getName() + " - Download URL not available").color("yellow"));
+                        playerRef.sendMessage(Message.raw("Skipped: " + mod.getName() + " - Download URL not available").color("yellow"));
                     }
                 })
                 .exceptionally(ex -> {
                     String errorMsg = extractErrorMessage(ex);
-                    playerRef.sendMessage(Message.raw("Failed to install " + entry.getName() + ": " + errorMsg).color("red"));
+                    playerRef.sendMessage(Message.raw("Failed to install " + mod.getName() + ": " + errorMsg).color("red"));
                     return null;
                 });
     }
 
-    private CompletableFuture<de.onyxmoon.modsync.api.model.InstalledMod> installModAsync(
-            ManagedModEntry entry,
+    private CompletableFuture<InstalledState> installModAsync(
+            ManagedMod mod,
             PlayerRef playerRef,
             AtomicInteger skippedCounter) {
 
-        if (!plugin.getProviderRegistry().hasProvider(entry.getSource())) {
+        if (!plugin.getProviderRegistry().hasProvider(mod.getSource())) {
             return CompletableFuture.failedFuture(
-                    new UnsupportedOperationException("No provider for source: " + entry.getSource())
+                    new UnsupportedOperationException("No provider for source: " + mod.getSource())
             );
         }
 
-        ModListProvider provider = plugin.getProviderRegistry().getProvider(entry.getSource());
-        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(entry.getSource());
+        ModListProvider provider = plugin.getProviderRegistry().getProvider(mod.getSource());
+        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No API key set for " + entry.getSource().getDisplayName())
+                    new IllegalStateException("No API key set for " + mod.getSource().getDisplayName())
             );
         }
 
-        return provider.fetchMod(apiKey, entry.getModId())
+        return provider.fetchMod(apiKey, mod.getModId())
                 .thenCompose(modEntry -> {
                     ModVersion version = modEntry.getLatestVersion();
 
                     if (version == null) {
                         return CompletableFuture.failedFuture(
-                                new IllegalStateException("No version available for " + entry.getName())
+                                new IllegalStateException("No version available for " + mod.getName())
                         );
                     }
 
@@ -219,14 +212,22 @@ public class InstallCommand extends AbstractPlayerCommand {
                             skippedCounter.incrementAndGet();
                         }
                         if (playerRef != null) {
-                            playerRef.sendMessage(Message.raw("  Skipped: " + entry.getName() + " - Download URL not available").color("yellow"));
+                            playerRef.sendMessage(Message.raw("  Skipped: " + mod.getName() + " - Download URL not available").color("yellow"));
                         }
                         // Return null to indicate skipped (not failed)
                         return CompletableFuture.completedFuture(null);
                     }
 
                     // Download and install
-                    return plugin.getDownloadService().downloadAndInstall(entry, version);
+                    return plugin.getDownloadService().downloadAndInstall(mod, version)
+                            .thenApply(installedState -> {
+                                // Update the mod with the installed state
+                                ManagedMod updatedMod = mod.toBuilder()
+                                        .installedState(installedState)
+                                        .build();
+                                plugin.getManagedModStorage().updateMod(updatedMod);
+                                return installedState;
+                            });
                 });
     }
 }

@@ -15,7 +15,7 @@ import de.onyxmoon.modsync.api.InvalidModUrlException;
 import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.ModUrlParser;
 import de.onyxmoon.modsync.api.ParsedModUrl;
-import de.onyxmoon.modsync.api.model.ManagedModEntry;
+import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -73,7 +73,7 @@ public class AddCommand extends AbstractPlayerCommand {
         }
 
         // Check if already in list
-        if (parsed.hasSlug() && plugin.getManagedModListStorage().getModList().findBySlug(parsed.slug()).isPresent()) {
+        if (parsed.hasSlug() && plugin.getManagedModStorage().getRegistry().findBySlug(parsed.slug()).isPresent()) {
             playerRef.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color("red"));
             return;
         }
@@ -96,8 +96,8 @@ public class AddCommand extends AbstractPlayerCommand {
 
         provider.fetchModBySlug(apiKey, parsed.slug())
             .thenAccept(modEntry -> {
-                // Create managed mod entry
-                ManagedModEntry entry = ManagedModEntry.builder()
+                // Create managed mod (without installedState - will be set on install)
+                ManagedMod managedMod = ManagedMod.builder()
                         .modId(modEntry.getModId())
                         .source(parsed.source())
                         .slug(modEntry.getSlug())
@@ -108,8 +108,8 @@ public class AddCommand extends AbstractPlayerCommand {
                         .addedViaUrl(url)
                         .build();
 
-                // Add to managed list
-                plugin.getManagedModListStorage().addMod(entry);
+                // Add to managed storage
+                plugin.getManagedModStorage().addMod(managedMod);
 
                 playerRef.sendMessage(Message.raw("Added: ").color("green")
                         .insert(Message.raw(modEntry.getName()).color("white"))

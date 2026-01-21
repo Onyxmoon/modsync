@@ -1,9 +1,10 @@
-package de.onyxmoon.modsync.api.model;
+package de.onyxmoon.modsync.api.model.provider;
 
 import java.util.Objects;
 
 /**
  * Immutable model representing a mod author.
+ * This is an API response model from mod providers (e.g., CurseForge).
  */
 public final class ModAuthor {
     private final String name;

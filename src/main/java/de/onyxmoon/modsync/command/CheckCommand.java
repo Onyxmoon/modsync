@@ -10,15 +10,14 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.model.InstalledMod;
-import de.onyxmoon.modsync.api.model.ManagedModEntry;
-import de.onyxmoon.modsync.api.model.ManagedModList;
-import de.onyxmoon.modsync.api.model.ModVersion;
+import de.onyxmoon.modsync.api.model.InstalledState;
+import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.api.model.ManagedModRegistry;
+import de.onyxmoon.modsync.api.model.provider.ModVersion;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,38 +43,33 @@ public class CheckCommand extends AbstractPlayerCommand {
             return;
         }
 
-        ManagedModList modList = plugin.getManagedModListStorage().getModList();
+        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
 
-        if (modList.isEmpty()) {
+        if (registry.isEmpty()) {
             playerRef.sendMessage(Message.raw("No mods in list to check.").color("red"));
             return;
         }
 
         // Only check installed mods
-        List<ManagedModEntry> installedEntries = modList.getMods().stream()
-                .filter(entry -> plugin.getInstalledModStorage()
-                        .getRegistry()
-                        .findBySourceId(entry.getSource(), entry.getModId())
-                        .isPresent())
-                .toList();
+        List<ManagedMod> installedMods = registry.getInstalled();
 
-        if (installedEntries.isEmpty()) {
+        if (installedMods.isEmpty()) {
             playerRef.sendMessage(Message.raw("No installed mods to check.").color("yellow"));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Checking " + installedEntries.size() + " mod(s) for updates...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Checking " + installedMods.size() + " mod(s) for updates...").color("yellow"));
 
         AtomicInteger updatesAvailable = new AtomicInteger(0);
         AtomicInteger upToDate = new AtomicInteger(0);
         AtomicInteger failed = new AtomicInteger(0);
 
-        CompletableFuture<?>[] futures = installedEntries.stream()
-                .map(entry -> checkForUpdate(entry)
+        CompletableFuture<?>[] futures = installedMods.stream()
+                .map(mod -> checkForUpdate(mod)
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  " + entry.getName()).color("yellow")
+                                playerRef.sendMessage(Message.raw("  " + mod.getName()).color("yellow")
                                         .insert(Message.raw(": ").color("gray"))
                                         .insert(Message.raw(result.installedVersion()).color("red"))
                                         .insert(Message.raw(" -> ").color("gray"))
@@ -108,44 +102,40 @@ public class CheckCommand extends AbstractPlayerCommand {
                 });
     }
 
-    private CompletableFuture<CheckResult> checkForUpdate(ManagedModEntry entry) {
-        Optional<InstalledMod> installedOpt = plugin.getInstalledModStorage()
-                .getRegistry()
-                .findBySourceId(entry.getSource(), entry.getModId());
-
-        if (installedOpt.isEmpty()) {
+    private CompletableFuture<CheckResult> checkForUpdate(ManagedMod mod) {
+        if (!mod.isInstalled()) {
             return CompletableFuture.completedFuture(CheckResult.upToDate("", ""));
         }
 
-        InstalledMod installed = installedOpt.get();
+        InstalledState installedState = mod.getInstalledState().orElseThrow();
 
-        if (!plugin.getProviderRegistry().hasProvider(entry.getSource())) {
-            return CompletableFuture.completedFuture(CheckResult.upToDate(installed.getInstalledVersionNumber(), ""));
+        if (!plugin.getProviderRegistry().hasProvider(mod.getSource())) {
+            return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), ""));
         }
 
-        ModListProvider provider = plugin.getProviderRegistry().getProvider(entry.getSource());
-        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(entry.getSource());
+        ModListProvider provider = plugin.getProviderRegistry().getProvider(mod.getSource());
+        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No API key for " + entry.getSource().getDisplayName())
+                    new IllegalStateException("No API key for " + mod.getSource().getDisplayName())
             );
         }
 
-        return provider.fetchMod(apiKey, entry.getModId())
+        return provider.fetchMod(apiKey, mod.getModId())
                 .thenApply(modEntry -> {
                     ModVersion latestVersion = modEntry.getLatestVersion();
                     if (latestVersion == null) {
-                        return CheckResult.upToDate(installed.getInstalledVersionNumber(), "");
+                        return CheckResult.upToDate(installedState.getInstalledVersionNumber(), "");
                     }
 
                     String latestVersionId = latestVersion.getVersionId();
-                    String installedVersionId = installed.getInstalledVersionId();
+                    String installedVersionId = installedState.getInstalledVersionId();
 
                     boolean hasUpdate = !latestVersionId.equals(installedVersionId);
                     return new CheckResult(
                             hasUpdate,
-                            installed.getInstalledVersionNumber(),
+                            installedState.getInstalledVersionNumber(),
                             latestVersion.getVersionNumber()
                     );
                 });

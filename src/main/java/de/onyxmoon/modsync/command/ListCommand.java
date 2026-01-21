@@ -9,14 +9,13 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.model.InstalledMod;
-import de.onyxmoon.modsync.api.model.ManagedModEntry;
-import de.onyxmoon.modsync.api.model.ManagedModList;
+import de.onyxmoon.modsync.api.model.InstalledState;
+import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Command: /modsync list
@@ -40,8 +39,8 @@ public class ListCommand extends AbstractPlayerCommand {
             return;
         }
 
-        ManagedModList modList = plugin.getManagedModListStorage().getModList();
-        List<ManagedModEntry> mods = modList.getMods();
+        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
+        List<ManagedMod> mods = registry.getAll();
 
         if (mods.isEmpty()) {
             playerRef.sendMessage(Message.raw("=== Managed Mods ===").color("gold"));
@@ -53,41 +52,40 @@ public class ListCommand extends AbstractPlayerCommand {
 
         playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color("gold"));
 
-        for (ManagedModEntry entry : mods) {
-            Optional<InstalledMod> installed = plugin.getInstalledModStorage()
-                    .getRegistry()
-                    .findBySourceId(entry.getSource(), entry.getModId());
-
-            Message status = getStatusMessage(installed);
+        for (ManagedMod mod : mods) {
+            Message status = getStatusMessage(mod);
 
             // Show installed version if available, otherwise show desired version
             String versionInfo;
-            if (installed.isPresent()) {
-                versionInfo = installed.get().getInstalledVersionNumber();
+            if (mod.isInstalled()) {
+                versionInfo = mod.getInstalledState()
+                        .map(InstalledState::getInstalledVersionNumber)
+                        .orElse("?");
             } else {
-                versionInfo = entry.wantsLatestVersion() ? "latest" : entry.getDesiredVersionId();
+                versionInfo = mod.wantsLatestVersion() ? "latest" : mod.getDesiredVersionId();
             }
 
             Message line = status
-                    .insert(Message.raw(" " + entry.getName()).color("white"));
+                    .insert(Message.raw(" " + mod.getName()).color("white"));
 
             // Show identifier for installed mods
-            if (installed.isPresent()) {
-                line = line.insert(Message.raw(" [" + installed.get().getIdentifier().toString() + "]").color("aqua"));
+            if (mod.isInstalled()) {
+                String identifier = mod.getIdentifierString().orElse("?");
+                line = line.insert(Message.raw(" [" + identifier + "]").color("aqua"));
             }
 
             // Show plugin type
-            String typeAbbrev = entry.getPluginType().getDisplayName();
+            String typeAbbrev = mod.getPluginType().getDisplayName();
             line = line.insert(Message.raw(" [" + typeAbbrev + "]").color("light_purple"))
-                    .insert(Message.raw(" (" + entry.getSource().getDisplayName() + ")").color("gray"))
+                    .insert(Message.raw(" (" + mod.getSource().getDisplayName() + ")").color("gray"))
                     .insert(Message.raw(" [" + versionInfo + "]").color("dark_gray"));
 
             playerRef.sendMessage(line);
         }
 
         // Summary
-        int installed = countInstalled(mods);
-        int notInstalled = mods.size() - installed;
+        int installed = registry.getInstalled().size();
+        int notInstalled = registry.getNotInstalled().size();
 
         playerRef.sendMessage(Message.raw(""));
         playerRef.sendMessage(Message.raw("Installed: ").color("gray")
@@ -96,22 +94,13 @@ public class ListCommand extends AbstractPlayerCommand {
                 .insert(Message.raw(String.valueOf(notInstalled)).color("red")));
     }
 
-    private Message getStatusMessage(Optional<InstalledMod> installed) {
-        if (installed.isEmpty()) {
+    private Message getStatusMessage(ManagedMod mod) {
+        if (!mod.isInstalled()) {
             return Message.raw("[NOT INSTALLED]").color("red");
         }
 
         // TODO: Check for updates (compare installed version with latest available)
         // For now, just show installed
         return Message.raw("[INSTALLED]").color("green");
-    }
-
-    private int countInstalled(List<ManagedModEntry> mods) {
-        return (int) mods.stream()
-                .filter(entry -> plugin.getInstalledModStorage()
-                        .getRegistry()
-                        .findBySourceId(entry.getSource(), entry.getModId())
-                        .isPresent())
-                .count();
     }
 }

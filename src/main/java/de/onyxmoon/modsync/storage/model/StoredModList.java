@@ -1,6 +1,6 @@
 package de.onyxmoon.modsync.storage.model;
 
-import de.onyxmoon.modsync.api.model.ModList;
+import de.onyxmoon.modsync.api.model.provider.ModList;
 
 import java.time.Instant;
 

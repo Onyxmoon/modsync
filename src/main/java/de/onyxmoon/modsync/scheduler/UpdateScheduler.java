@@ -3,7 +3,7 @@ package de.onyxmoon.modsync.scheduler;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.model.ModList;
+import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 
 import java.util.concurrent.CompletableFuture;

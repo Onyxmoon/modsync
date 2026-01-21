@@ -1,0 +1,177 @@
+package de.onyxmoon.modsync.storage.model;
+
+import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.PluginType;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * JSON structure for mods.json - the mod list file.
+ * This file is versionable and can be shared across servers.
+ * Does NOT contain installation state (that's in mods.lock.json).
+ *
+ * @see de.onyxmoon.modsync.storage.ManagedModStorage#SCHEMA_VERSION
+ */
+public class ModListFile {
+    private int version;
+    private String name;
+    private Instant createdAt;
+    private Instant lastModifiedAt;
+    private List<ModListEntry> mods;
+
+    public ModListFile() {
+        this.mods = new ArrayList<>();
+    }
+
+    public ModListFile(int version, String name, Instant createdAt, Instant lastModifiedAt, List<ModListEntry> mods) {
+        this.version = version;
+        this.name = name;
+        this.createdAt = createdAt;
+        this.lastModifiedAt = lastModifiedAt;
+        this.mods = mods != null ? mods : new ArrayList<>();
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getLastModifiedAt() {
+        return lastModifiedAt;
+    }
+
+    public void setLastModifiedAt(Instant lastModifiedAt) {
+        this.lastModifiedAt = lastModifiedAt;
+    }
+
+    public List<ModListEntry> getMods() {
+        return mods;
+    }
+
+    public void setMods(List<ModListEntry> mods) {
+        this.mods = mods;
+    }
+
+    /**
+     * A single mod entry in mods.json.
+     * Contains only the "intent" - what the user wants to track.
+     */
+    public static class ModListEntry {
+        private String modId;
+        private String name;
+        private String slug;
+        private ModListSource source;
+        private PluginType pluginType;
+        private String desiredVersionId;
+        private Instant addedAt;
+        private String addedViaUrl;
+
+        public ModListEntry() {
+        }
+
+        public ModListEntry(String modId, String name, String slug, ModListSource source,
+                           PluginType pluginType, String desiredVersionId,
+                           Instant addedAt, String addedViaUrl) {
+            this.modId = modId;
+            this.name = name;
+            this.slug = slug;
+            this.source = source;
+            this.pluginType = pluginType;
+            this.desiredVersionId = desiredVersionId;
+            this.addedAt = addedAt;
+            this.addedViaUrl = addedViaUrl;
+        }
+
+        public String getModId() {
+            return modId;
+        }
+
+        public void setModId(String modId) {
+            this.modId = modId;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getSlug() {
+            return slug;
+        }
+
+        public void setSlug(String slug) {
+            this.slug = slug;
+        }
+
+        public ModListSource getSource() {
+            return source;
+        }
+
+        public void setSource(ModListSource source) {
+            this.source = source;
+        }
+
+        public PluginType getPluginType() {
+            return pluginType;
+        }
+
+        public void setPluginType(PluginType pluginType) {
+            this.pluginType = pluginType;
+        }
+
+        public String getDesiredVersionId() {
+            return desiredVersionId;
+        }
+
+        public void setDesiredVersionId(String desiredVersionId) {
+            this.desiredVersionId = desiredVersionId;
+        }
+
+        public Instant getAddedAt() {
+            return addedAt;
+        }
+
+        public void setAddedAt(Instant addedAt) {
+            this.addedAt = addedAt;
+        }
+
+        public String getAddedViaUrl() {
+            return addedViaUrl;
+        }
+
+        public void setAddedViaUrl(String addedViaUrl) {
+            this.addedViaUrl = addedViaUrl;
+        }
+
+        /**
+         * Get the source ID for this entry (e.g., "curseforge:12345").
+         */
+        public String getSourceId() {
+            return source.name().toLowerCase() + ":" + modId;
+        }
+    }
+}

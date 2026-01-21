@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.model.ModList;
+import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.StoredModList;
 
 import java.io.IOException;

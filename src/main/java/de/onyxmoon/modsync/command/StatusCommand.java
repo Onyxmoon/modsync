@@ -9,7 +9,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.model.ModList;
+import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 import de.onyxmoon.modsync.util.PermissionHelper;
 

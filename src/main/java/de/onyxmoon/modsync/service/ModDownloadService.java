@@ -9,9 +9,9 @@ import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
 import com.hypixel.hytale.server.core.plugin.PluginManager;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.PluginType;
-import de.onyxmoon.modsync.api.model.InstalledMod;
-import de.onyxmoon.modsync.api.model.ManagedModEntry;
-import de.onyxmoon.modsync.api.model.ModVersion;
+import de.onyxmoon.modsync.api.model.InstalledState;
+import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.api.model.provider.ModVersion;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,24 +64,25 @@ public class ModDownloadService {
 
     /**
      * Download and install a mod.
+     * Returns the InstalledState which should be added to the ManagedMod by the caller.
      */
-    public CompletableFuture<InstalledMod> downloadAndInstall(
-            ManagedModEntry entry,
+    public CompletableFuture<InstalledState> downloadAndInstall(
+            ManagedMod mod,
             ModVersion version) {
 
         String downloadUrl = version.getDownloadUrl();
         if (downloadUrl == null || downloadUrl.isEmpty()) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No download URL available for " + entry.getName())
+                    new IllegalStateException("No download URL available for " + mod.getName())
             );
         }
 
         String fileName = version.getFileName();
-        PluginType pluginType = entry.getPluginType();
+        PluginType pluginType = mod.getPluginType();
         Path targetFolder = getTargetFolder(pluginType);
         Path targetPath = targetFolder.resolve(fileName);
 
-        LOGGER.atInfo().log("Downloading {} ({}) to {}", entry.getName(), pluginType.getDisplayName(), targetPath);
+        LOGGER.atInfo().log("Downloading {} ({}) to {}", mod.getName(), pluginType.getDisplayName(), targetPath);
 
         return downloadFile(downloadUrl, targetPath)
                 .thenApply(filePath -> {
@@ -91,13 +92,8 @@ public class ModDownloadService {
                         var manifest = readManifest(filePath);
                         var identifier = new PluginIdentifier(manifest.getGroup(), manifest.getName());
 
-                        InstalledMod installed = InstalledMod.builder()
-                                .modId(entry.getModId())
-                                .name(entry.getName())
-                                .slug(entry.getSlug())
+                        InstalledState installedState = InstalledState.builder()
                                 .identifier(identifier)
-                                .source(entry.getSource())
-                                .pluginType(pluginType)
                                 .installedVersionId(version.getVersionId())
                                 .installedVersionNumber(version.getVersionNumber())
                                 .filePath(filePath.toString())
@@ -108,10 +104,9 @@ public class ModDownloadService {
                                 .lastChecked(Instant.now())
                                 .build();
 
-                        modSync.getInstalledModStorage().addMod(installed);
-
-                        LOGGER.atInfo().log("Successfully installed {} ({}) as {}", entry.getName(), version.getVersionNumber(), pluginType.getDisplayName());
-                        return installed;
+                        LOGGER.atInfo().log("Successfully installed {} ({}) as {}",
+                                mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
+                        return installedState;
                     } catch (IOException e) {
                         throw new RuntimeException("Failed to process downloaded file", e);
                     }
@@ -163,17 +158,25 @@ public class ModDownloadService {
      * Delete an installed mod. Unloads if loaded, then deletes or schedules for deletion on next startup.
      * @return true if file was deleted immediately, false if restart is required
      */
-    public CompletableFuture<Boolean> deleteMod(InstalledMod mod) {
+    public CompletableFuture<Boolean> deleteMod(ManagedMod mod) {
+        if (!mod.isInstalled()) {
+            return CompletableFuture.completedFuture(true);
+        }
+
+        InstalledState state = mod.getInstalledState().orElseThrow();
+        PluginIdentifier identifier = state.getIdentifier();
+
         return CompletableFuture.supplyAsync(() -> {
             // Unload if currently loaded
-            if (modSync.getPluginManager().getPlugin(mod.getIdentifier()) != null &&
-                    Objects.requireNonNull(modSync.getPluginManager().getPlugin(mod.getIdentifier())).isEnabled()) {
-                if (!modSync.getPluginManager().unload(mod.getIdentifier())) {
+            if (identifier != null &&
+                    modSync.getPluginManager().getPlugin(identifier) != null &&
+                    Objects.requireNonNull(modSync.getPluginManager().getPlugin(identifier)).isEnabled()) {
+                if (!modSync.getPluginManager().unload(identifier)) {
                     throw new RuntimeException("Failed to unload mod");
                 }
             }
 
-            Path filePath = Path.of(mod.getFilePath());
+            Path filePath = Path.of(state.getFilePath());
             boolean deletedImmediately = true;
 
             // Try to delete immediately
@@ -189,8 +192,6 @@ public class ModDownloadService {
                 }
             }
 
-            // Remove from storage
-            modSync.getInstalledModStorage().removeMod(mod.getSourceId());
             return deletedImmediately;
         });
     }
