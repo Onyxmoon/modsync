@@ -53,16 +53,16 @@ public final class ManagedModList {
     }
 
     /**
-     * Find a mod by its slug.
+     * Find a mod by its slug
      */
     public Optional<ManagedModEntry> findBySlug(String slug) {
         return mods.values().stream()
-                .filter(mod -> slug.equals(mod.getSlug()))
+                .filter(mod -> mod.getSlug() != null && mod.getSlug().equalsIgnoreCase(slug))
                 .findFirst();
     }
 
     /**
-     * Find a mod by its name (case-insensitive).
+     * Find a mod by its name
      */
     public Optional<ManagedModEntry> findByName(String name) {
         return mods.values().stream()
