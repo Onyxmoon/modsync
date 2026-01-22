@@ -14,7 +14,9 @@ A Hytale server plugin for managing server-side mods. ModSync allows server admi
 - **Mod Management** - Track, install, update, and remove mods via commands
 - **Version Tracking** - Check for updates and upgrade mods to latest versions
 - **Identifier Support** - Reference mods by `group:name` format (e.g., `Onyxmoon:SimplyTrash`)
+- **Self-Upgrade** - Update ModSync itself via `/modsync selfupgrade`
 - **Bootstrap Plugin** - Handles Windows file locking for seamless mod updates
+- **Resilient Downloads** - Automatic retries with exponential backoff
 
 ## Quick Start (Using the mod)
 
