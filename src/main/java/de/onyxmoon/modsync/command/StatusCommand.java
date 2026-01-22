@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.onyxmoon.modsync.BuildInfo;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
@@ -48,6 +49,8 @@ public class StatusCommand extends AbstractPlayerCommand {
         PluginConfig config = plugin.getConfigStorage().getConfig();
 
         playerRef.sendMessage(Message.raw("=== ModSync Status ===").color("gold"));
+        playerRef.sendMessage(Message.raw("Version: ").color("gray")
+                .insert(Message.raw("v" + BuildInfo.VERSION).color("white")));
         playerRef.sendMessage(Message.raw("Current Source: ").color("gray")
                 .insert(Message.raw(config.getCurrentSource().getDisplayName()).color("white")));
         playerRef.sendMessage(Message.raw("Update Mode: ").color("gray")
