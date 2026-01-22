@@ -5,6 +5,15 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-01-22
+
+### Fixed
+- **Self-upgrade crash**: Fixed crash when trying to upgrade to the same version (now skips with "already at target version")
+- **Bootstrap auto-update disabled**: Bootstrap plugin can no longer be auto-updated due to file locking issues (both old and new would be loaded). If a bootstrap update is available, a hint is shown for manual update.
+
+### tl;dr
+> Fixed self-upgrade crashes when target files are locked. Bootstrap updates now require manual installation.
+
 ## [0.4.0] - 2026-01-22
 
 ### Added
