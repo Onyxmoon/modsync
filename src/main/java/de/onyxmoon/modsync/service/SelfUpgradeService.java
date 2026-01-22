@@ -156,12 +156,10 @@ public class SelfUpgradeService {
 
                 // Bootstrap: Cannot auto-update due to file locking on Windows
                 // (both old and new would be loaded, and old cannot delete itself)
-                if (bootstrapAsset != null) {
+                // Only show hint if bootstrap IS installed and an update is available
+                if (bootstrapAsset != null && currentBootstrapPath != null) {
                     Path newBootstrapPath = earlyPluginsFolder.resolve(bootstrapAsset.getName());
-                    if (currentBootstrapPath == null) {
-                        resultMessage.append("Bootstrap available (").append(bootstrapAsset.getName())
-                                .append(") - manual installation required. ");
-                    } else if (!currentBootstrapPath.equals(newBootstrapPath)) {
+                    if (!currentBootstrapPath.equals(newBootstrapPath)) {
                         resultMessage.append("Bootstrap update available (")
                                 .append(currentBootstrapPath.getFileName())
                                 .append(" -> ").append(bootstrapAsset.getName())
