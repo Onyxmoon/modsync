@@ -11,6 +11,7 @@ import de.onyxmoon.modsync.command.*;
 import de.onyxmoon.modsync.provider.ProviderRegistry;
 import de.onyxmoon.modsync.provider.UrlParserRegistry;
 import de.onyxmoon.modsync.scheduler.UpdateScheduler;
+import de.onyxmoon.modsync.service.SelfUpgradeService;
 import de.onyxmoon.modsync.service.ModDownloadService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
 import de.onyxmoon.modsync.storage.JsonModListStorage;
@@ -38,6 +39,7 @@ public class ModSync extends JavaPlugin {
     private JsonModListStorage modListStorage;
     private ManagedModStorage managedModStorage;
     private ModDownloadService downloadService;
+    private SelfUpgradeService selfUpgradeService;
     private UpdateScheduler updateScheduler;
     private PluginManager pluginManager;
 
@@ -76,6 +78,9 @@ public class ModSync extends JavaPlugin {
         LOGGER.atInfo().log("Mods folder: %s", modsFolder);
         LOGGER.atInfo().log("Early plugins folder: %s", earlyPluginsFolder);
 
+        // Initialize self-update service
+        this.selfUpgradeService = new SelfUpgradeService(this);
+
         // Initialize update scheduler
         this.updateScheduler = new UpdateScheduler(this);
 
@@ -87,7 +92,7 @@ public class ModSync extends JavaPlugin {
 
     @Override
     public void start() {
-        LOGGER.atInfo().log("Starting ModSync...");
+        LOGGER.atInfo().log("Starting ModSync %s...", BuildInfo.VERSION);
 
         // Register commands
         registerCommands();
@@ -95,7 +100,7 @@ public class ModSync extends JavaPlugin {
         // Initialize scheduler (handles startup updates if configured)
         updateScheduler.initialize();
 
-        LOGGER.atInfo().log("ModSync started");
+        LOGGER.atInfo().log("ModSync %s started", BuildInfo.VERSION);
     }
 
     private void registerCommands() {
@@ -106,13 +111,16 @@ public class ModSync extends JavaPlugin {
         rootCommand.addSubCommand(new StatusCommand(this));
         rootCommand.addSubCommand(new ReloadCommand(this));
 
-        // New commands for mod management
+        // Commands for mod management
         rootCommand.addSubCommand(new AddCommand(this));
         rootCommand.addSubCommand(new ListCommand(this));
         rootCommand.addSubCommand(new RemoveCommand(this));
         rootCommand.addSubCommand(new InstallCommand(this));
         rootCommand.addSubCommand(new CheckCommand(this));
         rootCommand.addSubCommand(new UpgradeCommand(this));
+
+        // Self-update command
+        rootCommand.addSubCommand(new SelfUpgradeCommand(this));
 
         // Register only the root command
         getCommandRegistry().registerCommand(rootCommand);
@@ -198,6 +206,10 @@ public class ModSync extends JavaPlugin {
 
     public ModDownloadService getDownloadService() {
         return downloadService;
+    }
+
+    public SelfUpgradeService getSelfUpdateService() {
+        return selfUpgradeService;
     }
 
     public UpdateScheduler getUpdateScheduler() {
