@@ -25,13 +25,32 @@ ext {
     }
 }
 
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+def patchline = rootProject.findProperty('patchline') ?: ''
+def launcherJar = file("$hytaleHome/install/${patchline}/package/game/latest/Server/HytaleServer.jar")
+def dedicatedJar = file("$hytaleHome/Server/HytaleServer.jar")
+
+def hytaleServerJar = launcherJar.exists() ? launcherJar : dedicatedJar
+
+if (!hytaleServerJar.exists()) {
+    throw new GradleException("""
+    Could not find HytaleServer.jar for bootstrap compileOnly.
+
+    Tried:
+    - ${launcherJar}
+    - ${dedicatedJar}
+
+    Fix:
+    - set -Phytale_home=/path/to/hytale (CI: .hytale)
+    """.stripIndent())
 }
 
 dependencies {
     // HytaleServer for ClassTransformer interface (compileOnly - not included in jar)
-    compileOnly(files("$hytaleHome/install/${rootProject.findProperty('patchline')}/package/game/latest/Server/HytaleServer.jar"))
+    compileOnly(files(hytaleServerJar))
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
 }
 
 jar {

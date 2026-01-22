@@ -21,27 +21,58 @@ jobs:
         distribution: 'temurin'
     
     - name: Cache Gradle Dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
+
+    - name: Download Hytale Server Files
+      env:
+        HYTALE_DOWNLOADER_CREDENTIALS: ${{ secrets.HYTALE_DOWNLOADER_CREDENTIALS }}
+      run: |
+        set -euo pipefail
+        mkdir -p .hytale
+        cd .hytale
+
+        printf "%s" "$HYTALE_DOWNLOADER_CREDENTIALS" > "$HOME/.hytale-downloader-credentials.json"
+        printf "%s" "$HYTALE_DOWNLOADER_CREDENTIALS" > ".hytale-downloader-credentials.json"
+
+        wget -q https://downloader.hytale.com/hytale-downloader.zip
+        unzip -q hytale-downloader.zip
+
+        chmod +x hytale-downloader-linux-amd64
+
+        ./hytale-downloader-linux-amd64 -download-path game.zip
+
+        unzip -q game.zip
+
+        rm -f game.zip hytale-downloader.zip
+        
+        pwd
+        
+        ls -la
     
     - name: Grant Execute Permission for Gradlew
       run: chmod +x gradlew
-    
+
+    - name: Set Hytale Home for Gradle
+      run: echo "ORG_GRADLE_PROJECT_hytale_home=${GITHUB_WORKSPACE}/.hytale" >> $GITHUB_ENV
+
     - name: Build with Gradle
-      run: ./gradlew shadowJar
+      run: ./gradlew build
     
     - name: Run Tests
       run: ./gradlew test
-    
-    - name: Upload Artifact
+
+    - name: Upload Artifact (all)
       uses: actions/upload-artifact@v4
       with:
-        name: plugin-jar
-        path: build/libs/*.jar
+        name: modsync-jars
+        path: |
+          build/libs/*.jar
+          bootstrap/build/libs/*.jar
         
   release:
     needs: build
@@ -60,13 +91,18 @@ jobs:
     
     - name: Grant Execute Permission for Gradlew
       run: chmod +x gradlew
-    
+
+    - name: Set Hytale Home for Gradle
+      run: echo "ORG_GRADLE_PROJECT_hytale_home=${GITHUB_WORKSPACE}/.hytale" >> $GITHUB_ENV
+
     - name: Build with Gradle
-      run: ./gradlew shadowJar
-    
+      run: ./gradlew build
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: build/libs/*.jar
+        files: |
+          build/libs/*.jar
+          bootstrap/build/libs/*.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

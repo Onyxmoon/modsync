@@ -5,6 +5,14 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-22
+
+### Fixed
+- **CurseForge download reliability**: Improved handling of temporary download errors by adding a fallback strategy to increase robustness
+
+### tl;dr
+> ModSync handles failed CurseForge downloads more gracefully, resulting in fewer missing mods. More mods can now be downloaded successfully with ModSync.
+
 ## [0.2.0] - 2026-01-21
 
 ### Added
