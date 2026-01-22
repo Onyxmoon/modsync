@@ -32,9 +32,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * Usage:
  * - /modsync install               - Installs all uninstalled mods
- * - /modsync install <name>        - Installs mod by name
- * - /modsync install <slug>        - Installs mod by slug
- * - /modsync install <group:name>  - Installs mod by identifier
+ * - /modsync install [name]        - Installs mod by name
+ * - /modsync install [slug]        - Installs mod by slug
+ * - /modsync install [group:name]  - Installs mod by identifier
  */
 public class InstallCommand extends AbstractPlayerCommand {
     private final ModSync plugin;
