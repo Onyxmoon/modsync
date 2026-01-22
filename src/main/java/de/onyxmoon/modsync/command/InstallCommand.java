@@ -218,7 +218,7 @@ public class InstallCommand extends AbstractPlayerCommand {
 
                     if (version == null) {
                         return CompletableFuture.failedFuture(
-                                new IllegalStateException("No version available for " + CommandUtils.formatModLine(mod).getAnsiMessage())
+                                new IllegalStateException("No version available for " + mod)
                         );
                     }
 
