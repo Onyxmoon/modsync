@@ -48,7 +48,7 @@ public class CurseForgeAdapter {
                 .slug(cfMod.getSlug())
                 .summary(cfMod.getSummary())
                 .authors(adaptAuthors(cfMod.getAuthors()))
-                .latestVersion(adaptLatestFile(cfMod.getLatestFiles()))
+                .latestVersion(adaptLatestFile(cfMod.getLatestFiles(), cfMod.getId()))
                 .categories(adaptCategories(cfMod.getCategories()))
                 .pluginType(adaptPluginType(cfMod.getClassId()))
                 .downloadCount(cfMod.getDownloadCount())
@@ -58,19 +58,28 @@ public class CurseForgeAdapter {
                 .build();
     }
 
-    private ModVersion adaptLatestFile(List<CurseForgeModResponse.FileData> files) {
+    private ModVersion adaptLatestFile(List<CurseForgeModResponse.FileData> files, int modId) {
         if (files == null || files.isEmpty()) {
             return null;
         }
 
         CurseForgeModResponse.FileData latest = files.get(0);
 
+        String downloadUrl = latest.getDownloadUrl();
+        if (downloadUrl == null || downloadUrl.isEmpty()) {
+            // Fallback
+            downloadUrl = String.format(
+                    "https://www.curseforge.com/api/v1/mods/%d/files/%d/download",
+                    modId, latest.getId()
+            );
+        }
+
         return ModVersion.builder()
                 .versionId(String.valueOf(latest.getId()))
                 .versionNumber(latest.getDisplayName() != null ? latest.getDisplayName() : latest.getFileName())
                 .fileName(latest.getFileName())
                 .fileSize(latest.getFileLength())
-                .downloadUrl(latest.getDownloadUrl())
+                .downloadUrl(downloadUrl)
                 .gameVersions(latest.getGameVersions() != null ? latest.getGameVersions() : List.of())
                 .releaseType(latest.getReleaseType())
                 .uploadedAt(latest.getFileDate())
