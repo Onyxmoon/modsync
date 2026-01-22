@@ -6,13 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ModSync is a Hytale server plugin for managing server-side mods. It allows server administrators to add mods via CurseForge URLs, track them in a managed list, and install/update them via in-game commands.
 
+## Project Structure
+
+This is a **multi-project Gradle build** with two subprojects:
+- **Root project** (`modsync`) - The main plugin
+- **Bootstrap subproject** (`bootstrap/`) - Early plugin for file deletion on startup
+
 ## Build Commands
 
 ```bash
-# Build the project (Windows)
+# Build both projects (Windows)
 gradlew.bat build
 
-# Build the project (Unix)
+# Build both projects (Unix)
 ./gradlew build
 
 # Clean build
@@ -26,6 +32,8 @@ The build system automatically:
 - Detects Hytale installation path from `%appdata%/Hytale` (Windows)
 - Updates `manifest.json` version from `gradle.properties`
 - Creates IntelliJ run configuration for HytaleServer
+- Builds the bootstrap plugin and copies it to `run/earlyplugins/`
+- Adds `--early-plugins` and `--accept-early-plugins` flags to run configuration
 
 ## Running the Server
 
@@ -42,6 +50,22 @@ Connect via Hytale client to `127.0.0.1`.
 ### Plugin Lifecycle
 `ModSyncPlugin` (entry point) → `setup()` initializes storage/registry → `start()` registers commands → `shutdown()` saves config
 
+### Bootstrap Plugin (Early Plugin)
+The bootstrap plugin (`bootstrap/`) runs **before** normal plugins load:
+- Implements `ClassTransformer` interface (no-op transformer)
+- Reads `pending_deletions.json` from the ModSync data directory
+- Deletes files that were locked during runtime (because they were loaded as plugins)
+- Located in `run/earlyplugins/modsync-bootstrap-<version>.jar`
+
+**Why needed:** On Windows, JAR files loaded as plugins are locked and cannot be deleted while the server is running. The bootstrap plugin deletes them on the next server start, before the PluginManager loads mods.
+
+### Pending Deletions System
+When a mod file cannot be deleted (locked):
+1. `ModDownloadService.deleteMod()` catches the IOException
+2. Calls `ModSync.addPendingDeletion(path)` to queue the file
+3. Path is written to `mods/Onyxmoon_ModSync/pending_deletions.json`
+4. On next server start, bootstrap plugin deletes the files
+
 ### Provider System (SPI-based)
 - `ModListProvider` interface defines the contract for mod sources (fetchMod, fetchModBySlug, validateApiKey)
 - `ProviderRegistry` loads providers via `ServiceLoader` (META-INF/services)
@@ -50,27 +74,38 @@ Connect via Hytale client to `127.0.0.1`.
 
 ### Storage Layer
 - `ConfigurationStorage` - plugin config (API keys per source)
-- `ManagedModListStorage` - user's mod list (mods added via URLs)
-- `InstalledModStorage` - tracks installed mods with file paths
+- `ManagedModStorage` - unified storage using two files:
+  - `mods.json` - mod list (versionable, shareable)
+  - `mods.lock.json` - installation state (machine-specific)
 - All use Gson with custom `InstantTypeAdapter`
 
 ### Data Models
-- `ManagedModEntry` - immutable, represents a mod the user wants to track (use `toBuilder()` for updates)
-- `ManagedModList` - immutable collection of managed mods
-- `InstalledMod` - tracks an installed mod file
-- `ModEntry` / `ModVersion` - API response models from providers
+- `ManagedMod` - immutable, unified model with optional `InstalledState` (use `toBuilder()` for updates)
+- `InstalledState` - embedded state when mod is installed (identifier, version, file path, hash)
+- `ManagedModRegistry` - immutable collection with lookup methods (findByName, findByIdentifier, etc.)
+- `ModEntry` / `ModVersion` / `ModAuthor` / `ModList` - API response models from providers (in `api.model.provider` package)
 
 ### Commands
 All commands are subcommands of `/modsync`:
 - `add <url>` - Add mod from CurseForge URL
-- `remove [index|--all|name]` - Remove mod(s) interactively or by index/name
-- `list` - Show all managed mods with install status
-- `install [name]` - Install all or specific mod
-- `check` - Check for available updates
-- `update` - Refresh metadata for all mods
+- `remove <target>` - Remove mod by name/slug/identifier, or `--all` for all
+- `list` - Show all managed mods with install status, version, and identifier
+- `install <target>` - Install mod by name/slug/identifier, or `--all` for all
+- `check` - Check for available updates (shows version comparison)
+- `upgrade <target>` - Upgrade mod by name/slug/identifier, or `--all` for all
 - `setkey <key>` - Set CurseForge API key
 - `status` - Show current configuration
 - `reload` - Reload configuration from disk
+
+**Identifier format:** `group:name` (e.g., `Onyxmoon:SimplyTrash`) - can be used in remove/install/upgrade commands.
+
+**Command argument pattern:** Commands use `RequiredArg` for positional arguments. Without argument, Hytale shows usage help.
+
+### Version Comparison
+- CurseForge File-ID is used as `versionId`
+- `InstalledState.installedVersionId` stores the installed file ID
+- `ModVersion.versionId` contains the latest file ID from CurseForge
+- Comparison: `latestVersion.getVersionId().equals(installedState.getInstalledVersionId())`
 
 ### Message Formatting
 Use Hytale's Message API with `.color("colorname")`:
@@ -91,6 +126,14 @@ Available colors: black, dark_blue, dark_green, dark_aqua, dark_red, dark_purple
 
 `manifest.json`:
 - `Main` must match entry point class: `de.onyxmoon.modsync.ModSync`
+
+## Data Files
+
+Located in `mods/Onyxmoon_ModSync/`:
+- `config.json` - API keys and settings
+- `mods.json` - Mod list (versionable, shareable, schema version in file)
+- `mods.lock.json` - Installation state (machine-specific, schema version in file)
+- `pending_deletions.json` - Files to delete on next startup
 
 ## Dependencies
 
