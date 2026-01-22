@@ -2,6 +2,7 @@
 
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![Status](https://img.shields.io/badge/Status-Alpha-yellow)
+[![Build Plugin](https://github.com/Onyxmoon/modsync/actions/workflows/build.yml/badge.svg)](https://github.com/Onyxmoon/modsync/actions/workflows/build.yml)
 ![License](https://img.shields.io/badge/License-Polyform%20NC-blue)
 ![Hytale](https://img.shields.io/badge/Hytale-Plugin-purple)
 
