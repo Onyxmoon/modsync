@@ -8,7 +8,9 @@
       "WebFetch(domain:britakee-studios.gitbook.io)",
       "WebFetch(domain:hytalemodding.dev)",
       "WebFetch(domain:hytale-docs.pages.dev)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:cfwidget.com)"
     ]
   }
 }

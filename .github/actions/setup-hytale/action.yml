@@ -1,0 +1,33 @@
+name: "Setup Hytale (download + gradle prop)"
+description: "Downloads Hytale server files and sets Gradle property hytale_home"
+inputs:
+  credentials:
+    description: "Downloader credentials JSON"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download Hytale Server Files
+      shell: bash
+      env:
+        HYTALE_DOWNLOADER_CREDENTIALS: ${{ inputs.credentials }}
+      run: |
+        set -euo pipefail
+        mkdir -p .hytale
+        cd .hytale
+
+        printf "%s" "$HYTALE_DOWNLOADER_CREDENTIALS" > "$HOME/.hytale-downloader-credentials.json"
+        printf "%s" "$HYTALE_DOWNLOADER_CREDENTIALS" > ".hytale-downloader-credentials.json"
+
+        wget -q https://downloader.hytale.com/hytale-downloader.zip
+        unzip -q hytale-downloader.zip
+        chmod +x hytale-downloader-linux-amd64
+        ./hytale-downloader-linux-amd64 -download-path game.zip
+        unzip -q game.zip
+
+        rm -f game.zip hytale-downloader.zip
+
+    - name: Set Hytale Home for Gradle
+      shell: bash
+      run: echo "ORG_GRADLE_PROJECT_hytale_home=${GITHUB_WORKSPACE}/.hytale" >> $GITHUB_ENV
