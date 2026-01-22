@@ -29,9 +29,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * Usage:
  * - /modsync remove --all           - Removes all mods
- * - /modsync remove <name>          - Removes mod by name
- * - /modsync remove <slug>          - Removes mod by slug
- * - /modsync remove <group:name>    - Removes mod by identifier
+ * - /modsync remove [name]          - Removes mod by name
+ * - /modsync remove [slug]          - Removes mod by slug
+ * - /modsync remove [group:name]    - Removes mod by identifier
  */
 public class RemoveCommand extends AbstractPlayerCommand {
     private final ModSync plugin;

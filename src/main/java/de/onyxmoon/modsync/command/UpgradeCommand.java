@@ -33,9 +33,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * Usage:
  * - /modsync upgrade --all          - Upgrades all installed mods
- * - /modsync upgrade <name>         - Upgrades mod by name
- * - /modsync upgrade <slug>         - Upgrades mod by slug
- * - /modsync upgrade <group:name>   - Upgrades mod by identifier
+ * - /modsync upgrade [name]         - Upgrades mod by name
+ * - /modsync upgrade [slug]         - Upgrades mod by slug
+ * - /modsync upgrade [group:name]   - Upgrades mod by identifier
  */
 public class UpgradeCommand extends AbstractPlayerCommand {
     private final ModSync plugin;

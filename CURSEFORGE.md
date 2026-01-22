@@ -15,25 +15,28 @@ A server-side mod management plugin for Hytale that lets you easily add, install
 *   **Persistent tracking** - Your mod list is saved and persists across server restarts
 *   **Smart file handling** - Locked files are automatically queued for deletion on next server restart
 *   **Configurable paths** - Early plugins folder path is configurable
+*   **Self-upgrade** - Update ModSync itself directly from in-game commands
 
 ## Commands
 
 All commands use the `/modsync` prefix:
 
-| Command                              | Description                                                        |
-|--------------------------------------|--------------------------------------------------------------------|
-| <code>/modsync add [url]</code>      | Add a mod from a CurseForge URL                                    |
-| <code>/modsync list</code>           | Show all managed mods with install status, version, and identifier |
-| <code>/modsync install</code>        | Install all mods from your list                                    |
-| <code>/modsync install [name]</code> | Install a specific mod by name, slug, or identifier                |
-| <code>/modsync remove all</code>     | Remove all mods                                                    |
-| <code>/modsync remove [name]</code>  | Remove mod by name, slug, or identifier                            |
-| <code>/modsync check</code>          | Check for available updates (shows installed vs. latest version)   |
-| <code>/modsync upgrade</code>        | Upgrade all installed mods to latest version                       |
-| <code>/modsync upgrade [name]</code> | Upgrade a specific mod by name, slug, or identifier                |
-| <code>/modsync setkey [key]</code>   | Set your CurseForge API key                                        |
-| <code>/modsync status</code>         | Show current configuration                                         |
-| <code>/modsync reload</code>         | Reload configuration                                               |
+| Command                                 | Description                                                        |
+|-----------------------------------------|--------------------------------------------------------------------|
+| <code>/modsync add [url]</code>         | Add a mod from a CurseForge URL                                    |
+| <code>/modsync list</code>              | Show all managed mods with install status, version, and identifier |
+| <code>/modsync install</code>           | Install all mods from your list                                    |
+| <code>/modsync install [name]</code>    | Install a specific mod by name, slug, or identifier                |
+| <code>/modsync remove all</code>        | Remove all mods                                                    |
+| <code>/modsync remove [name]</code>     | Remove mod by name, slug, or identifier                            |
+| <code>/modsync check</code>             | Check for available updates (shows installed vs. latest version)   |
+| <code>/modsync upgrade</code>           | Upgrade all installed mods to latest version                       |
+| <code>/modsync upgrade [name]</code>    | Upgrade a specific mod by name, slug, or identifier                |
+| <code>/modsync status</code>            | Show current configuration and version                             |
+| <code>/modsync setkey [key]</code>      | Set your CurseForge API key                                        |
+| <code>/modsync selfupgrade</code>       | Check for ModSync plugin updates                                   |
+| <code>/modsync selfupgrade apply</code> | Download and install the latest ModSync version                    |
+| <code>/modsync reload</code>            | Reload configuration                                               |
 
 > **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 

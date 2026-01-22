@@ -23,6 +23,10 @@ public class PluginConfig {
     private boolean updateOnStartup;
     private String earlyPluginsPath;
 
+    // Self-update configuration
+    private boolean checkForPluginUpdates;
+    private boolean includePrereleases;
+
     public PluginConfig() {
         this.apiKeys = new HashMap<>();
         this.currentSource = ModListSource.CURSEFORGE;
@@ -30,6 +34,8 @@ public class PluginConfig {
         this.updateIntervalMinutes = 60;
         this.updateOnStartup = false;
         this.earlyPluginsPath = DEFAULT_EARLY_PLUGINS_PATH;
+        this.checkForPluginUpdates = true;
+        this.includePrereleases = false;
     }
 
     public Map<ModListSource, String> getApiKeys() {
@@ -100,5 +106,31 @@ public class PluginConfig {
 
     public void setEarlyPluginsPath(String earlyPluginsPath) {
         this.earlyPluginsPath = earlyPluginsPath;
+    }
+
+    /**
+     * Whether to check for ModSync plugin updates on startup.
+     *
+     * @return true if plugin update checks are enabled
+     */
+    public boolean isCheckForPluginUpdates() {
+        return checkForPluginUpdates;
+    }
+
+    public void setCheckForPluginUpdates(boolean checkForPluginUpdates) {
+        this.checkForPluginUpdates = checkForPluginUpdates;
+    }
+
+    /**
+     * Whether to include prerelease versions in update checks.
+     *
+     * @return true if prereleases should be included
+     */
+    public boolean isIncludePrereleases() {
+        return includePrereleases;
+    }
+
+    public void setIncludePrereleases(boolean includePrereleases) {
+        this.includePrereleases = includePrereleases;
     }
 }

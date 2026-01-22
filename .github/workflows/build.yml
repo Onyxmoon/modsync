@@ -2,7 +2,6 @@ name: Build Plugin
 
 on:
   push:
-    branches: [ main, develop ]
     tags:
       - '*.*.*'       # Matches 0.1.0, 1.2.3, etc.
       - '*.*.*-*'     # Matches 0.1.0-alpha, 0.1.0-beta.1, etc.

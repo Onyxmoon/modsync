@@ -65,6 +65,10 @@ public class ModDownloadService {
     /**
      * Download and install a mod.
      * Returns the InstalledState which should be added to the ManagedMod by the caller.
+     *
+     * The download is atomic: the file only appears at the final location after
+     * successful validation (manifest readable, hash calculated). If any step fails,
+     * the temp file is cleaned up and no orphan files remain.
      */
     public CompletableFuture<InstalledState> downloadAndInstall(
             ManagedMod mod,
@@ -81,22 +85,33 @@ public class ModDownloadService {
         PluginType pluginType = mod.getPluginType();
         Path targetFolder = getTargetFolder(pluginType);
         Path targetPath = targetFolder.resolve(fileName);
+        Path tempPath = targetFolder.resolve(fileName + ".tmp");
 
         LOGGER.atInfo().log("Downloading %s (%s) to %s", mod.getName(), pluginType.getDisplayName(), targetPath);
 
-        return downloadFile(downloadUrl, targetPath)
-                .thenApply(filePath -> {
+        return downloadToTemp(downloadUrl, tempPath)
+                .thenApply(downloadedTempPath -> {
                     try {
-                        String hash = calculateHash(filePath);
-                        long fileSize = Files.size(filePath);
-                        var manifest = readManifest(filePath);
+                        // Validate BEFORE moving to final location
+                        String hash = calculateHash(downloadedTempPath);
+                        long fileSize = Files.size(downloadedTempPath);
+                        var manifest = readManifest(downloadedTempPath);
+
+                        if (manifest == null) {
+                            cleanupTempFile(downloadedTempPath);
+                            throw new RuntimeException("Failed to read manifest from downloaded file");
+                        }
+
                         var identifier = new PluginIdentifier(manifest.getGroup(), manifest.getName());
+
+                        // All validation passed - now move to final location
+                        moveFileWithFallback(downloadedTempPath, targetPath);
 
                         InstalledState installedState = InstalledState.builder()
                                 .identifier(identifier)
                                 .installedVersionId(version.getVersionId())
                                 .installedVersionNumber(version.getVersionNumber())
-                                .filePath(filePath.toString())
+                                .filePath(targetPath.toString())
                                 .fileName(fileName)
                                 .fileSize(fileSize)
                                 .fileHash(hash)
@@ -108,7 +123,11 @@ public class ModDownloadService {
                                 mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
                         return installedState;
                     } catch (IOException e) {
+                        cleanupTempFile(downloadedTempPath);
                         throw new RuntimeException("Failed to process downloaded file", e);
+                    } catch (RuntimeException e) {
+                        cleanupTempFile(downloadedTempPath);
+                        throw e;
                     }
                 });
     }
@@ -120,27 +139,106 @@ public class ModDownloadService {
         return pluginType == PluginType.EARLY_PLUGIN ? earlyPluginsFolder : modsFolder;
     }
 
-    private CompletableFuture<Path> downloadFile(String url, Path targetPath) {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
+    /**
+     * Downloads a file to a temp location with retry logic.
+     * Does NOT move to final location - caller must do that after validation.
+     */
+    private CompletableFuture<Path> downloadToTemp(String url, Path tempPath) {
+        return CompletableFuture.supplyAsync(() -> {
+            IOException lastException = null;
 
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
-                .thenApply(response -> {
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(url))
+                            .GET()
+                            .build();
+
+                    HttpResponse<InputStream> response = httpClient.send(request,
+                            HttpResponse.BodyHandlers.ofInputStream());
+
                     if (response.statusCode() != 200) {
-                        throw new RuntimeException("Download failed with status: " + response.statusCode());
+                        throw new IOException("Download failed with status: " + response.statusCode());
                     }
 
                     try (InputStream inputStream = response.body()) {
-                        Path tempPath = targetPath.getParent().resolve(targetPath.getFileName() + ".tmp");
                         Files.copy(inputStream, tempPath, StandardCopyOption.REPLACE_EXISTING);
-                        Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                        return targetPath;
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to save downloaded file", e);
                     }
-                });
+
+                    // Verify download completed
+                    if (!Files.exists(tempPath) || Files.size(tempPath) == 0) {
+                        throw new IOException("Downloaded file is empty or missing");
+                    }
+
+                    return tempPath; // Success
+                } catch (IOException e) {
+                    lastException = e;
+                    LOGGER.atWarning().log("Download attempt %d failed: %s", attempt, e.getMessage());
+                    cleanupTempFile(tempPath);
+                    if (attempt < 3) {
+                        try {
+                            Thread.sleep(1000L * attempt); // Exponential backoff
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Download interrupted", ie);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Download interrupted", e);
+                }
+            }
+
+            throw new RuntimeException("Download failed after 3 attempts: " +
+                    lastException.getMessage(), lastException);
+        });
+    }
+
+    /**
+     * Moves a file with fallback to copy+delete if atomic move fails.
+     */
+    private void moveFileWithFallback(Path source, Path target) throws IOException {
+        // First, try to delete existing target if it exists
+        if (Files.exists(target)) {
+            try {
+                Files.delete(target);
+            } catch (IOException e) {
+                // Target is locked, queue for deletion
+                LOGGER.atWarning().log("Target file locked, will be replaced on restart: %s", target);
+                modSync.addPendingDeletion(target.toString());
+            }
+        }
+
+        // Try atomic move first
+        try {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+            return;
+        } catch (IOException e) {
+            LOGGER.atWarning().log("Atomic move failed, trying copy+delete: %s", e.getMessage());
+        }
+
+        // Fallback: copy then delete source
+        try {
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                Files.delete(source);
+            } catch (IOException e) {
+                LOGGER.atWarning().log("Could not delete temp file: %s", source);
+            }
+        } catch (IOException e) {
+            throw new IOException("Both move and copy failed for " + source + " -> " + target, e);
+        }
+    }
+
+    /**
+     * Safely cleans up a temporary file.
+     */
+    private void cleanupTempFile(Path tempPath) {
+        try {
+            Files.deleteIfExists(tempPath);
+        } catch (IOException e) {
+            LOGGER.atWarning().log("Could not cleanup temp file %s: %s", tempPath, e.getMessage());
+        }
     }
 
     private String calculateHash(Path filePath) throws IOException {
