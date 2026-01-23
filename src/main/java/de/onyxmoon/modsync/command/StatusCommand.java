@@ -15,6 +15,7 @@ import de.onyxmoon.modsync.storage.model.PluginConfig;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -29,11 +30,11 @@ public class StatusCommand extends AbstractPlayerCommand {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.systemDefault());
 
-    private final ModSync plugin;
+    private final ModSync modSync;
 
-    public StatusCommand(ModSync plugin) {
+    public StatusCommand(ModSync modSync) {
         super("status", "View ModSync status");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -46,38 +47,38 @@ public class StatusCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PluginConfig config = plugin.getConfigStorage().getConfig();
+        PluginConfig config = modSync.getConfigStorage().getConfig();
 
-        playerRef.sendMessage(Message.raw("=== ModSync Status ===").color("gold"));
-        playerRef.sendMessage(Message.raw("Version: ").color("gray")
-                .insert(Message.raw("v" + BuildInfo.VERSION).color("white")));
-        playerRef.sendMessage(Message.raw("Current Source: ").color("gray")
-                .insert(Message.raw(config.getCurrentSource().getDisplayName()).color("white")));
-        playerRef.sendMessage(Message.raw("Update Mode: ").color("gray")
-                .insert(Message.raw(config.getUpdateMode().toString()).color("white")));
+        playerRef.sendMessage(Message.raw("=== ModSync Status ===").color(Color.CYAN));
+        playerRef.sendMessage(Message.raw("Version: ").color(Color.GRAY)
+                .insert(Message.raw("v" + BuildInfo.VERSION).color(Color.WHITE)));
+        playerRef.sendMessage(Message.raw("Current Source: ").color(Color.GRAY)
+                .insert(Message.raw(config.getCurrentSource().getDisplayName()).color(Color.WHITE)));
+        playerRef.sendMessage(Message.raw("Update Mode: ").color(Color.GRAY)
+                .insert(Message.raw(config.getUpdateMode().toString()).color(Color.WHITE)));
 
         if (config.getCurrentProjectId() != null) {
-            playerRef.sendMessage(Message.raw("Project ID: ").color("gray")
-                    .insert(Message.raw(config.getCurrentProjectId()).color("white")));
+            playerRef.sendMessage(Message.raw("Project ID: ").color(Color.GRAY)
+                    .insert(Message.raw(config.getCurrentProjectId()).color(Color.WHITE)));
         }
 
-        Optional<Instant> lastUpdate = plugin.getModListStorage().getLastUpdateTime();
+        Optional<Instant> lastUpdate = modSync.getModListStorage().getLastUpdateTime();
         if (lastUpdate.isPresent()) {
-            playerRef.sendMessage(Message.raw("Last Update: ").color("gray")
-                    .insert(Message.raw(FORMATTER.format(lastUpdate.get())).color("white")));
+            playerRef.sendMessage(Message.raw("Last Update: ").color(Color.GRAY)
+                    .insert(Message.raw(FORMATTER.format(lastUpdate.get())).color(Color.WHITE)));
 
-            Optional<ModList> modList = plugin.getModListStorage().load();
+            Optional<ModList> modList = modSync.getModListStorage().load();
             modList.ifPresent(list ->
-                playerRef.sendMessage(Message.raw("Mods Loaded: ").color("gray")
-                        .insert(Message.raw(String.valueOf(list.getMods().size())).color("white")))
+                playerRef.sendMessage(Message.raw("Mods Loaded: ").color(Color.GRAY)
+                        .insert(Message.raw(String.valueOf(list.getMods().size())).color(Color.WHITE)))
             );
         } else {
-            playerRef.sendMessage(Message.raw("Last Update: ").color("gray")
+            playerRef.sendMessage(Message.raw("Last Update: ").color(Color.GRAY)
                     .insert(Message.raw("Never").color("red")));
         }
 
         boolean hasApiKey = config.getApiKey(config.getCurrentSource()) != null;
-        playerRef.sendMessage(Message.raw("API Key Configured: ").color("gray")
-                .insert(Message.raw(hasApiKey ? "Yes" : "No").color("white")));
+        playerRef.sendMessage(Message.raw("API Key Configured: ").color(Color.GRAY)
+                .insert(Message.raw(hasApiKey ? "Yes" : "No").color(Color.WHITE)));
     }
 }

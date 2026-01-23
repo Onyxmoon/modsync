@@ -1,6 +1,7 @@
 package de.onyxmoon.modsync.storage.model;
 
 import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ReleaseChannel;
 import de.onyxmoon.modsync.scheduler.UpdateMode;
 
 import java.util.HashMap;
@@ -16,12 +17,21 @@ public class PluginConfig {
     public static final String DEFAULT_EARLY_PLUGINS_PATH = "earlyplugins";
 
     private Map<ModListSource, String> apiKeys;
+    
     private String currentProjectId;
+    
     private ModListSource currentSource;
+    
+    // Paths
+    private String earlyPluginsPath;
+    
+    // Upgrade config
     private UpdateMode updateMode;
     private int updateIntervalMinutes;
     private boolean updateOnStartup;
-    private String earlyPluginsPath;
+
+    // Release channel configuration
+    private ReleaseChannel defaultReleaseChannel;
 
     // Self-update configuration
     private boolean checkForPluginUpdates;
@@ -132,5 +142,18 @@ public class PluginConfig {
 
     public void setIncludePrereleases(boolean includePrereleases) {
         this.includePrereleases = includePrereleases;
+    }
+
+    /**
+     * Gets the default release channel for managed mods.
+     *
+     * @return the default release channel, or RELEASE if not set
+     */
+    public ReleaseChannel getDefaultReleaseChannel() {
+        return defaultReleaseChannel != null ? defaultReleaseChannel : ReleaseChannel.RELEASE;
+    }
+
+    public void setDefaultReleaseChannel(ReleaseChannel defaultReleaseChannel) {
+        this.defaultReleaseChannel = defaultReleaseChannel;
     }
 }

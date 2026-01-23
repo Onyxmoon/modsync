@@ -110,6 +110,7 @@ public class ModSync extends JavaPlugin {
         rootCommand.addSubCommand(new SetKeyCommand(this));
         rootCommand.addSubCommand(new StatusCommand(this));
         rootCommand.addSubCommand(new ReloadCommand(this));
+        rootCommand.addSubCommand(new ConfigCommand(this));
 
         // Commands for mod management
         rootCommand.addSubCommand(new AddCommand(this));
@@ -118,7 +119,7 @@ public class ModSync extends JavaPlugin {
         rootCommand.addSubCommand(new InstallCommand(this));
         rootCommand.addSubCommand(new CheckCommand(this));
         rootCommand.addSubCommand(new UpgradeCommand(this));
-
+        rootCommand.addSubCommand(new SetChannelCommand(this));
         // Self-update command
         rootCommand.addSubCommand(new SelfUpgradeCommand(this));
 

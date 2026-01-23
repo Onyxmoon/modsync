@@ -16,8 +16,10 @@ import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
 import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.PermissionHelper;
+import de.onyxmoon.modsync.util.VersionSelector;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,11 +29,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Checks all managed mods for available updates.
  */
 public class CheckCommand extends AbstractPlayerCommand {
-    private final ModSync plugin;
+    private final ModSync modSync;
 
-    public CheckCommand(ModSync plugin) {
+    public CheckCommand(ModSync modSync) {
         super("check", "Check for mod updates");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -44,10 +46,10 @@ public class CheckCommand extends AbstractPlayerCommand {
             return;
         }
 
-        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
+        ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No mods in list to check.").color("red"));
+            playerRef.sendMessage(Message.raw("No mods in list to check.").color(Color.red));
             return;
         }
 
@@ -55,11 +57,11 @@ public class CheckCommand extends AbstractPlayerCommand {
         List<ManagedMod> installedMods = registry.getInstalled();
 
         if (installedMods.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No installed mods to check.").color("yellow"));
+            playerRef.sendMessage(Message.raw("No installed mods to check.").color(Color.YELLOW));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Checking " + installedMods.size() + " mod(s) for updates...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Checking " + installedMods.size() + " mod(s) for updates...").color(Color.YELLOW));
 
         AtomicInteger updatesAvailable = new AtomicInteger(0);
         AtomicInteger upToDate = new AtomicInteger(0);
@@ -70,11 +72,11 @@ public class CheckCommand extends AbstractPlayerCommand {
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  ").insert(CommandUtils.formatModLine(mod)).color("yellow")
-                                        .insert(Message.raw(": ").color("gray"))
-                                        .insert(Message.raw(result.installedVersion()).color("red"))
-                                        .insert(Message.raw(" -> ").color("gray"))
-                                        .insert(Message.raw(result.latestVersion()).color("green")));
+                                playerRef.sendMessage(Message.raw("  ").insert(CommandUtils.formatModLine(mod)).color(Color.YELLOW)
+                                        .insert(Message.raw(": ").color(Color.gray))
+                                        .insert(Message.raw(result.installedVersion()).color(Color.red))
+                                        .insert(Message.raw(" -> ").color(Color.gray))
+                                        .insert(Message.raw(result.latestVersion()).color(Color.green)));
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -87,18 +89,18 @@ public class CheckCommand extends AbstractPlayerCommand {
 
         CompletableFuture.allOf(futures)
                 .thenRun(() -> {
-                    playerRef.sendMessage(Message.raw("=== Update Check Complete ===").color("gold"));
-                    playerRef.sendMessage(Message.raw("Updates available: ").color("gray")
-                            .insert(Message.raw(String.valueOf(updatesAvailable.get())).color("yellow"))
-                            .insert(Message.raw(" | Up to date: ").color("gray"))
-                            .insert(Message.raw(String.valueOf(upToDate.get())).color("green"))
-                            .insert(Message.raw(" | Failed: ").color("gray"))
-                            .insert(Message.raw(String.valueOf(failed.get())).color("red")));
+                    playerRef.sendMessage(Message.raw("=== Update Check Complete ===").color(Color.CYAN));
+                    playerRef.sendMessage(Message.raw("Updates available: ").color(Color.gray)
+                            .insert(Message.raw(String.valueOf(updatesAvailable.get())).color(Color.YELLOW))
+                            .insert(Message.raw(" | Up to date: ").color(Color.gray))
+                            .insert(Message.raw(String.valueOf(upToDate.get())).color(Color.green))
+                            .insert(Message.raw(" | Failed: ").color(Color.gray))
+                            .insert(Message.raw(String.valueOf(failed.get())).color(Color.red)));
 
                     if (updatesAvailable.get() > 0) {
-                        playerRef.sendMessage(Message.raw("Use ").color("gray")
-                                .insert(Message.raw("/modsync upgrade").color("white"))
-                                .insert(Message.raw(" to update.").color("gray")));
+                        playerRef.sendMessage(Message.raw("Use ").color(Color.gray)
+                                .insert(Message.raw("/modsync upgrade").color(Color.white))
+                                .insert(Message.raw(" to update.").color(Color.gray)));
                     }
                 });
     }
@@ -110,12 +112,12 @@ public class CheckCommand extends AbstractPlayerCommand {
 
         InstalledState installedState = mod.getInstalledState().orElseThrow();
 
-        if (!plugin.getProviderRegistry().hasProvider(mod.getSource())) {
+        if (!modSync.getProviderRegistry().hasProvider(mod.getSource())) {
             return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), ""));
         }
 
-        ModListProvider provider = plugin.getProviderRegistry().getProvider(mod.getSource());
-        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(mod.getSource());
+        ModListProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
@@ -125,7 +127,8 @@ public class CheckCommand extends AbstractPlayerCommand {
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenApply(modEntry -> {
-                    ModVersion latestVersion = modEntry.getLatestVersion();
+                    ModVersion latestVersion = VersionSelector.selectVersion(
+                            mod, modEntry, modSync.getConfigStorage().getConfig());
                     if (latestVersion == null) {
                         return CheckResult.upToDate(installedState.getInstalledVersionNumber(), "");
                     }

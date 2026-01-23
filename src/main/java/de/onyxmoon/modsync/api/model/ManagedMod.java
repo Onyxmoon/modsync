@@ -3,6 +3,7 @@ package de.onyxmoon.modsync.api.model;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
+import de.onyxmoon.modsync.api.ReleaseChannel;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -28,6 +29,9 @@ public final class ManagedMod {
     // Installed state (optional - null means not installed)
     private final InstalledState installedState;
 
+    // Release channel override (optional - null means use global default)
+    private final ReleaseChannel releaseChannelOverride;
+
     private ManagedMod(Builder builder) {
         this.modId = builder.modId;
         this.name = builder.name;
@@ -38,6 +42,7 @@ public final class ManagedMod {
         this.addedAt = builder.addedAt;
         this.addedViaUrl = builder.addedViaUrl;
         this.installedState = builder.installedState;
+        this.releaseChannelOverride = builder.releaseChannelOverride;
     }
 
     /**
@@ -130,6 +135,15 @@ public final class ManagedMod {
         return addedViaUrl;
     }
 
+    /**
+     * Gets the release channel override for this mod.
+     *
+     * @return the release channel override, or null if using global default
+     */
+    public ReleaseChannel getReleaseChannelOverride() {
+        return releaseChannelOverride;
+    }
+
     public Builder toBuilder() {
         return new Builder()
                 .modId(this.modId)
@@ -140,7 +154,8 @@ public final class ManagedMod {
                 .desiredVersionId(this.desiredVersionId)
                 .addedAt(this.addedAt)
                 .addedViaUrl(this.addedViaUrl)
-                .installedState(this.installedState);
+                .installedState(this.installedState)
+                .releaseChannelOverride(this.releaseChannelOverride);
     }
 
     public static Builder builder() {
@@ -181,6 +196,7 @@ public final class ManagedMod {
                 ", addedAt=" + addedAt +
                 ", addedViaUrl='" + addedViaUrl + '\'' +
                 ", installedState=" + installedState +
+                ", releaseChannelOverride=" + releaseChannelOverride +
                 '}';
     }
 
@@ -194,6 +210,7 @@ public final class ManagedMod {
         private Instant addedAt;
         private String addedViaUrl;
         private InstalledState installedState;
+        private ReleaseChannel releaseChannelOverride;
 
         private Builder() {
         }
@@ -240,6 +257,11 @@ public final class ManagedMod {
 
         public Builder installedState(InstalledState installedState) {
             this.installedState = installedState;
+            return this;
+        }
+
+        public Builder releaseChannelOverride(ReleaseChannel releaseChannelOverride) {
+            this.releaseChannelOverride = releaseChannelOverride;
             return this;
         }
 

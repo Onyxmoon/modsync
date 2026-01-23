@@ -5,6 +5,24 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-23
+
+### Added
+- **Release Channel System**: Control which release types (Release, Beta, Alpha) are considered for installation and updates
+  - Global default channel via `/modsync config channel <release|beta|alpha>`
+  - Per-mod override via `/modsync setchannel <mod> <release|beta|alpha|default>`
+- **Config command**: New `/modsync config` shows all configuration at a glance
+- **Version selection**: Install and upgrade commands now respect release channel settings
+- **Channel display**: `list` and `check` commands show effective channel when not using default
+
+### Changed
+- **Provider architecture**: CurseForge adapter now fetches all available versions instead of just the latest, enabling channel-based filtering
+- **ModEntry model**: Now includes `availableVersions` list for version selection
+- **Storage format**: `mods.json` now stores per-mod `releaseChannelOverride` (backwards compatible)
+
+### tl;dr
+> New release channel system lets you choose between stable releases, beta, or alpha versions. Set a global default with `/modsync config channel beta` or override per-mod with `/modsync setchannel MyMod alpha`.
+
 ## [0.4.1] - 2026-01-22
 
 ### Fixed

@@ -12,17 +12,18 @@ import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 
 /**
  * Command: /modsync reload
  * Reloads configuration and mod registry.
  */
 public class ReloadCommand extends AbstractPlayerCommand {
-    private final ModSync plugin;
+    private final ModSync modSync;
 
-    public ReloadCommand(ModSync plugin) {
+    public ReloadCommand(ModSync modSync) {
         super("reload", "Reload configuration");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -35,14 +36,14 @@ public class ReloadCommand extends AbstractPlayerCommand {
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Reloading configuration...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Reloading configuration...").color(Color.YELLOW));
 
         try {
-            plugin.getConfigStorage().reload();
-            plugin.getManagedModStorage().reload();
-            playerRef.sendMessage(Message.raw("Configuration reloaded successfully!").color("green"));
+            modSync.getConfigStorage().reload();
+            modSync.getManagedModStorage().reload();
+            playerRef.sendMessage(Message.raw("Configuration reloaded successfully!").color(Color.GREEN));
         } catch (Exception e) {
-            playerRef.sendMessage(Message.raw("Failed to reload configuration: " + e.getMessage()).color("red"));
+            playerRef.sendMessage(Message.raw("Failed to reload configuration: " + e.getMessage()).color(Color.RED));
         }
     }
 }

@@ -2,6 +2,7 @@ package de.onyxmoon.modsync.storage.model;
 
 import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
+import de.onyxmoon.modsync.api.ReleaseChannel;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -86,13 +87,14 @@ public class ModListFile {
         private String desiredVersionId;
         private Instant addedAt;
         private String addedViaUrl;
+        private ReleaseChannel releaseChannelOverride;
 
         public ModListEntry() {
         }
 
         public ModListEntry(String modId, String name, String slug, ModListSource source,
                            PluginType pluginType, String desiredVersionId,
-                           Instant addedAt, String addedViaUrl) {
+                           Instant addedAt, String addedViaUrl, ReleaseChannel releaseChannelOverride) {
             this.modId = modId;
             this.name = name;
             this.slug = slug;
@@ -101,6 +103,7 @@ public class ModListFile {
             this.desiredVersionId = desiredVersionId;
             this.addedAt = addedAt;
             this.addedViaUrl = addedViaUrl;
+            this.releaseChannelOverride = releaseChannelOverride;
         }
 
         public String getModId() {
@@ -165,6 +168,14 @@ public class ModListFile {
 
         public void setAddedViaUrl(String addedViaUrl) {
             this.addedViaUrl = addedViaUrl;
+        }
+
+        public ReleaseChannel getReleaseChannelOverride() {
+            return releaseChannelOverride;
+        }
+
+        public void setReleaseChannelOverride(ReleaseChannel releaseChannelOverride) {
+            this.releaseChannelOverride = releaseChannelOverride;
         }
 
         /**

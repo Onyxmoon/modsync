@@ -20,8 +20,10 @@ import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.ModSelector;
 import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
 import de.onyxmoon.modsync.util.PermissionHelper;
+import de.onyxmoon.modsync.util.VersionSelector;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,16 +39,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - /modsync install [group:name]  - Installs mod by identifier
  */
 public class InstallCommand extends AbstractPlayerCommand {
-    private final ModSync plugin;
+    private final ModSync modSync;
     private final OptionalArg<String> targetArg = this.withOptionalArg(
             "target",
             "name | slug | identifier",
             ArgTypes.STRING
     );
 
-    public InstallCommand(ModSync plugin) {
+    public InstallCommand(ModSync modSync) {
         super("install", "Install mods from list");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -59,11 +61,11 @@ public class InstallCommand extends AbstractPlayerCommand {
             return;
         }
 
-        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
+        ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
             playerRef.sendMessage(Message.raw("No mods in list. Use ").color("red")
-                    .insert(Message.raw("/modsync add <url>").color("white"))
+                    .insert(Message.raw("/modsync add <url>").color(Color.WHITE))
                     .insert(Message.raw(" first.").color("red")));
             return;
         }
@@ -78,14 +80,14 @@ public class InstallCommand extends AbstractPlayerCommand {
     }
 
     private void showHelp(PlayerRef playerRef, ManagedModRegistry registry) {
-        playerRef.sendMessage(Message.raw("Usage: ").color("gold")
-                .insert(Message.raw("/modsync install <name|slug|identifier>").color("white")));
-        playerRef.sendMessage(Message.raw("       ").color("gold")
-                .insert(Message.raw("/modsync install all").color("white"))
-                .insert(Message.raw(" to install all").color("gray")));
-        playerRef.sendMessage(Message.raw("Tip: ").color("gray")
-                .insert(Message.raw("Use quotes for names with spaces: ").color("gray"))
-                .insert(Message.raw("\"My Mod\"").color("yellow")));
+        playerRef.sendMessage(Message.raw("Usage: ").color(Color.CYAN)
+                .insert(Message.raw("/modsync install <name|slug|identifier>").color(Color.WHITE)));
+        playerRef.sendMessage(Message.raw("       ").color(Color.CYAN)
+                .insert(Message.raw("/modsync install all").color(Color.WHITE))
+                .insert(Message.raw(" to install all").color(Color.GRAY)));
+        playerRef.sendMessage(Message.raw("Tip: ").color(Color.GRAY)
+                .insert(Message.raw("Use quotes for names with spaces: ").color(Color.GRAY))
+                .insert(Message.raw("\"My Mod\"").color(Color.YELLOW)));
         playerRef.sendMessage(Message.raw(""));
 
         // Show not installed mods
@@ -93,7 +95,7 @@ public class InstallCommand extends AbstractPlayerCommand {
         if (notInstalled.isEmpty()) {
             playerRef.sendMessage(Message.raw("All mods are already installed.").color("green"));
         } else {
-            playerRef.sendMessage(Message.raw("=== Not Installed (" + notInstalled.size() + ") ===").color("gold"));
+            playerRef.sendMessage(Message.raw("=== Not Installed (" + notInstalled.size() + ") ===").color(Color.CYAN));
             for (ManagedMod mod : notInstalled) {
                 playerRef.sendMessage(CommandUtils.formatModLine(mod));
             }
@@ -107,10 +109,10 @@ public class InstallCommand extends AbstractPlayerCommand {
             case SelectionResult.Found found -> {
                 ManagedMod mod = found.mod();
                 if (mod.isInstalled()) {
-                    playerRef.sendMessage(Message.raw("Mod already installed: " + CommandUtils.formatModLine(mod)).color("yellow"));
+                    playerRef.sendMessage(Message.raw("Mod already installed: " + CommandUtils.formatModLine(mod)).color(Color.YELLOW));
                     return;
                 }
-                playerRef.sendMessage(Message.raw("Installing " + mod.getName() + "...").color("yellow"));
+                playerRef.sendMessage(Message.raw("Installing " + mod.getName() + "...").color(Color.YELLOW));
                 installMod(playerRef, mod);
             }
             case SelectionResult.NotFound notFound -> {
@@ -133,7 +135,7 @@ public class InstallCommand extends AbstractPlayerCommand {
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Installing " + notInstalled.size() + " mod(s)...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Installing " + notInstalled.size() + " mod(s)...").color(Color.YELLOW));
 
         AtomicInteger success = new AtomicInteger(0);
         AtomicInteger skipped = new AtomicInteger(0);
@@ -157,19 +159,19 @@ public class InstallCommand extends AbstractPlayerCommand {
 
         CompletableFuture.allOf(futures)
                 .thenRun(() -> {
-                    Message summary = Message.raw("Installation complete. ").color("gray")
+                    Message summary = Message.raw("Installation complete. ").color(Color.GRAY)
                             .insert(Message.raw("Success: " + success.get()).color("green"));
                     if (skipped.get() > 0) {
-                        summary = summary.insert(Message.raw(" | ").color("gray"))
-                                .insert(Message.raw("Skipped: " + skipped.get()).color("yellow"));
+                        summary = summary.insert(Message.raw(" | ").color(Color.GRAY))
+                                .insert(Message.raw("Skipped: " + skipped.get()).color(Color.YELLOW));
                     }
                     if (failed.get() > 0) {
-                        summary = summary.insert(Message.raw(" | ").color("gray"))
+                        summary = summary.insert(Message.raw(" | ").color(Color.GRAY))
                                 .insert(Message.raw("Failed: " + failed.get()).color("red"));
                     }
                     playerRef.sendMessage(summary);
                     if (success.get() > 0) {
-                        playerRef.sendMessage(Message.raw("Server restart required to load mods.").color("gold"));
+                        playerRef.sendMessage(Message.raw("Server restart required to load mods.").color(Color.CYAN));
                     }
                 });
     }
@@ -179,10 +181,10 @@ public class InstallCommand extends AbstractPlayerCommand {
                 .thenAccept(installedState -> {
                     if (installedState != null) {
                         playerRef.sendMessage(Message.raw("Installed: ").insert(CommandUtils.formatModLine(mod)).color("green")
-                                .insert(Message.raw(" (" + installedState.getInstalledVersionNumber() + ")").color("gray")));
-                        playerRef.sendMessage(Message.raw("Server restart required to load the mod.").color("gold"));
+                                .insert(Message.raw(" (" + installedState.getInstalledVersionNumber() + ")").color(Color.GRAY)));
+                        playerRef.sendMessage(Message.raw("Server restart required to load the mod.").color(Color.CYAN));
                     } else {
-                        playerRef.sendMessage(Message.raw("Skipped: ").insert(CommandUtils.formatModLine(mod)).insert(" - Download URL not available").color("yellow"));
+                        playerRef.sendMessage(Message.raw("Skipped: ").insert(CommandUtils.formatModLine(mod)).insert(" - Download URL not available").color(Color.YELLOW));
                     }
                 })
                 .exceptionally(ex -> {
@@ -197,14 +199,14 @@ public class InstallCommand extends AbstractPlayerCommand {
             PlayerRef playerRef,
             AtomicInteger skippedCounter) {
 
-        if (!plugin.getProviderRegistry().hasProvider(mod.getSource())) {
+        if (!modSync.getProviderRegistry().hasProvider(mod.getSource())) {
             return CompletableFuture.failedFuture(
                     new UnsupportedOperationException("No provider for source: " + mod.getSource())
             );
         }
 
-        ModListProvider provider = plugin.getProviderRegistry().getProvider(mod.getSource());
-        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(mod.getSource());
+        ModListProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
@@ -214,7 +216,8 @@ public class InstallCommand extends AbstractPlayerCommand {
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenCompose(modEntry -> {
-                    ModVersion version = modEntry.getLatestVersion();
+                    ModVersion version = VersionSelector.selectVersion(
+                            mod, modEntry, modSync.getConfigStorage().getConfig());
 
                     if (version == null) {
                         return CompletableFuture.failedFuture(
@@ -227,17 +230,17 @@ public class InstallCommand extends AbstractPlayerCommand {
                             skippedCounter.incrementAndGet();
                         }
                         if (playerRef != null) {
-                            playerRef.sendMessage(Message.raw("  Skipped: ").insert(CommandUtils.formatModLine(mod)).insert(" - Download URL not available").color("yellow"));
+                            playerRef.sendMessage(Message.raw("  Skipped: ").insert(CommandUtils.formatModLine(mod)).insert(" - Download URL not available").color(Color.YELLOW));
                         }
                         return CompletableFuture.completedFuture(null);
                     }
 
-                    return plugin.getDownloadService().downloadAndInstall(mod, version)
+                    return modSync.getDownloadService().downloadAndInstall(mod, version)
                             .thenApply(installedState -> {
                                 ManagedMod updatedMod = mod.toBuilder()
                                         .installedState(installedState)
                                         .build();
-                                plugin.getManagedModStorage().updateMod(updatedMod);
+                                modSync.getManagedModStorage().updateMod(updatedMod);
                                 return installedState;
                             });
                 });
