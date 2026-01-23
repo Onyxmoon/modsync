@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.plugin.PluginManager;
@@ -16,13 +19,17 @@ import de.onyxmoon.modsync.service.ModDownloadService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
 import de.onyxmoon.modsync.storage.JsonModListStorage;
 import de.onyxmoon.modsync.storage.ManagedModStorage;
+import de.onyxmoon.modsync.util.CommandUtils;
+import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Main plugin class for ModSync.
@@ -101,6 +108,9 @@ public class ModSync extends JavaPlugin {
         updateScheduler.initialize();
 
         LOGGER.atInfo().log("ModSync %s started", BuildInfo.VERSION);
+
+        // Show update notification
+        this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::sendWelcomeMessage);
     }
 
     private void registerCommands() {
@@ -127,6 +137,28 @@ public class ModSync extends JavaPlugin {
         getCommandRegistry().registerCommand(rootCommand);
 
         LOGGER.atInfo().log("Commands registered");
+    }
+
+    private void sendWelcomeMessage(PlayerReadyEvent event) {
+        Player player = event.getPlayer();
+
+        if (PermissionHelper.hasAdminPermission(player)) {
+            player.sendMessage((Message.raw("[ModSync] ").color(Color.CYAN))
+                    .insert(Message.raw("This server mods are managed with ModSync.").color(Color.WHITE)));
+
+            var message = Message.raw("[ModSync] ").color(Color.CYAN);
+            try {
+                var result = selfUpgradeService.checkForUpgrade().get();
+
+                if (result.hasUpdate()) {
+                    player.sendMessage(message.insert(Message.raw("There is an upgrade -> " + result.latestVersion().toString()).color(Color.YELLOW)));
+                } else  {
+                    player.sendMessage(message.insert(Message.raw("ModSync is up to date -> " + BuildInfo.VERSION).color(Color.GREEN)));
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                player.sendMessage(message.insert(Message.raw("Couldn't check for updates: " + CommandUtils.extractErrorMessage(e)).color(Color.RED)));
+            }
+        }
     }
 
     @Override
