@@ -14,6 +14,7 @@ import de.onyxmoon.modsync.command.*;
 import de.onyxmoon.modsync.provider.ProviderRegistry;
 import de.onyxmoon.modsync.provider.UrlParserRegistry;
 import de.onyxmoon.modsync.scheduler.UpdateScheduler;
+import de.onyxmoon.modsync.service.ModScanService;
 import de.onyxmoon.modsync.service.SelfUpgradeService;
 import de.onyxmoon.modsync.service.ModDownloadService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
@@ -46,6 +47,7 @@ public class ModSync extends JavaPlugin {
     private JsonModListStorage modListStorage;
     private ManagedModStorage managedModStorage;
     private ModDownloadService downloadService;
+    private ModScanService scanService;
     private SelfUpgradeService selfUpgradeService;
     private UpdateScheduler updateScheduler;
     private PluginManager pluginManager;
@@ -81,6 +83,7 @@ public class ModSync extends JavaPlugin {
 
         Path earlyPluginsFolder = resolveEarlyPluginsPath(serverRoot);
         this.downloadService = new ModDownloadService(this, modsFolder, earlyPluginsFolder);
+        this.scanService = new ModScanService(this);
 
         LOGGER.atInfo().log("Mods folder: %s", modsFolder);
         LOGGER.atInfo().log("Early plugins folder: %s", earlyPluginsFolder);
@@ -130,6 +133,9 @@ public class ModSync extends JavaPlugin {
         rootCommand.addSubCommand(new CheckCommand(this));
         rootCommand.addSubCommand(new UpgradeCommand(this));
         rootCommand.addSubCommand(new SetChannelCommand(this));
+        // Import commands
+        rootCommand.addSubCommand(new ScanCommand(this));
+        rootCommand.addSubCommand(new ImportCommand(this));
         // Self-update command
         rootCommand.addSubCommand(new SelfUpgradeCommand(this));
 
@@ -193,7 +199,8 @@ public class ModSync extends JavaPlugin {
         if (Files.exists(pendingFile)) {
             try {
                 String json = Files.readString(pendingFile);
-                List<String> existing = GSON.fromJson(json, new TypeToken<List<String>>(){}.getType());
+                List<String> existing = GSON.fromJson(json, new TypeToken<List<String>>() {
+                }.getType());
                 if (existing != null) {
                     pendingPaths.addAll(existing);
                 }
@@ -241,6 +248,10 @@ public class ModSync extends JavaPlugin {
         return downloadService;
     }
 
+    public ModScanService getScanService() {
+        return scanService;
+    }
+
     public SelfUpgradeService getSelfUpdateService() {
         return selfUpgradeService;
     }
@@ -253,7 +264,8 @@ public class ModSync extends JavaPlugin {
         return pluginManager;
     }
 
-    // Internal methods
+// Internal methods
+
     /**
      * Resolves the early plugins folder path from configuration.
      * Supports both absolute and relative paths.

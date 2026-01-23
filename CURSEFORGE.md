@@ -11,6 +11,7 @@ A server-side mod management plugin for Hytale that lets you easily add, install
 *   **Update checking** - Check for available updates with version comparison display
 *   **One-click upgrades** - Upgrade mods to their latest versions
 *   **Release channels** - Choose between Release, Beta, or Alpha versions (global default + per-mod override)
+*   **Import existing mods** - Import unmanaged mods into ModSync with auto-matching
 *   **Flexible removal** - Remove mods by name, slug, or plugin identifier
 *   **Persistent tracking** - Your mod list is saved and persists across server restarts
 *   **Smart file handling** - Locked files are automatically queued for deletion on next server restart (with the optional bootstrap plugin)
@@ -28,12 +29,15 @@ All commands use the `/modsync` prefix:
 | <code>/modsync install [name]</code>       | Install a specific mod by name, slug, or identifier                |
 | <code>/modsync remove all</code>           | Remove all mods                                                    |
 | <code>/modsync remove [name]</code>        | Remove mod by name, slug, or identifier                            |
-| <code>/modsync setchannel [mod] [channel]</code> | Set per-mod release channel override                           |
 | <code>/modsync check</code>                | Check for available updates (shows installed vs. latest version)   |
 | <code>/modsync upgrade</code>              | Upgrade all installed mods to latest version                       |
 | <code>/modsync upgrade [name]</code>       | Upgrade a specific mod by name, slug, or identifier                |
+| <code>/modsync scan</code>                 | List unmanaged mods in the mods folder                             |
+| <code>/modsync import [target]</code>      | Auto-match and import an unmanaged mod                             |
+| <code>/modsync import [target] [url]</code> | Import an unmanaged mod with a CurseForge URL                     |
 | <code>/modsync config</code>               | Show all configuration settings                                    |
 | <code>/modsync config channel [value]</code> | View or set default release channel (release/beta/alpha)         |
+| <code>/modsync setchannel [mod] [channel]</code> | Set per-mod release channel override                           |
 | <code>/modsync status</code>               | Show current configuration and version                             |
 | <code>/modsync setkey [key]</code>         | Set your CurseForge API key                                        |
 | <code>/modsync selfupgrade</code>          | Check for ModSync plugin updates                                   |
@@ -45,11 +49,9 @@ All commands use the `/modsync` prefix:
 ### Examples
 
 ```
-# Adding regular mods
+# Adding mods
 /modsync add https://www.curseforge.com/hytale/mods/example
 
-# Adding bootstrap/early plugins
-/modsync add https://www.curseforge.com/hytale/bootstrap/example
 
 # Managing mods
 /modsync install
@@ -76,9 +78,9 @@ All commands use the `/modsync` prefix:
 ## Requirements
 
 *   Hytale Server (release patchline)
-*   Server must be started with `--early-plugins` and `--accept-early-plugins` flags
 *   CurseForge API key
-*   Bootstrap plugin for proper file deletion
+*   (Optional) Server must be started with `--early-plugins` and `--accept-early-plugins` flags
+*   (Optional) Bootstrap plugin for proper file deletion
 
 ## How It Works
 
@@ -95,7 +97,7 @@ When you install a mod, the plugin:
 
 **Note:** A server restart is required to load newly installed mods.
 
-### Bootstrap/Early Plugins
+### Bootstrap/Early Plugins (ALPHA)
 
 ModSync automatically detects Bootstrap/Early Plugins from CurseForge and installs them to the correct folder. When you add a mod:
 
@@ -111,7 +113,7 @@ When you remove a mod, the plugin:
 1.  Unloads the mod if currently loaded
 2.  Attempts to delete the JAR file
 3.  If the file is locked (Windows), it queues the file for deletion on next restart
-4.  The bootstrap plugin handles queued deletions before the server loads mods
+4.  (Optional) The bootstrap plugin handles queued deletions before the server loads mods
 
 **Note:** If a file is locked, you will see a message indicating a restart is required.
 
