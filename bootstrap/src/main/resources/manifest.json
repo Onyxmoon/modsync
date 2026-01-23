@@ -1,7 +1,7 @@
 {
     "Group": "Onyxmoon",
     "Name": "ModSyncBootstrap",
-    "Version": "0.4.1",
+    "Version": "0.5.0",
     "Description": "Bootstrap plugin for ModSync - deletes pending mod files before server loads them",
     "Authors": [
         {
