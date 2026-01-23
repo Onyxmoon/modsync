@@ -19,6 +19,7 @@ import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -27,16 +28,16 @@ import java.util.Optional;
  * Adds a mod to the managed mod list by URL.
  */
 public class AddCommand extends AbstractPlayerCommand {
-    private final ModSync plugin;
+    private final ModSync modSync;
     private final RequiredArg<String> urlArg = this.withRequiredArg(
             "url",
             "URL to the mod (e.g., https://www.curseforge.com/hytale/mods/example-mod)",
             ArgTypes.STRING
     );
 
-    public AddCommand(ModSync plugin) {
+    public AddCommand(ModSync modSync) {
         super("add", "Add a mod by URL");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -57,7 +58,7 @@ public class AddCommand extends AbstractPlayerCommand {
         }
 
         // Find a parser for this URL
-        Optional<ModUrlParser> parserOpt = plugin.getUrlParserRegistry().findParser(url);
+        Optional<ModUrlParser> parserOpt = modSync.getUrlParserRegistry().findParser(url);
         if (parserOpt.isEmpty()) {
             playerRef.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color("red"));
             return;
@@ -73,26 +74,26 @@ public class AddCommand extends AbstractPlayerCommand {
         }
 
         // Check if already in list
-        if (parsed.hasSlug() && plugin.getManagedModStorage().getRegistry().findBySlug(parsed.slug()).isPresent()) {
+        if (parsed.hasSlug() && modSync.getManagedModStorage().getRegistry().findBySlug(parsed.slug()).isPresent()) {
             playerRef.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color("red"));
             return;
         }
 
         // Check if we have a provider for this source
-        if (!plugin.getProviderRegistry().hasProvider(parsed.source())) {
+        if (!modSync.getProviderRegistry().hasProvider(parsed.source())) {
             playerRef.sendMessage(Message.raw("Source not yet supported: " + parsed.source().getDisplayName()).color("red"));
             return;
         }
 
-        ModListProvider provider = plugin.getProviderRegistry().getProvider(parsed.source());
-        String apiKey = plugin.getConfigStorage().getConfig().getApiKey(parsed.source());
+        ModListProvider provider = modSync.getProviderRegistry().getProvider(parsed.source());
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(parsed.source());
 
         if (provider.requiresApiKey() && apiKey == null) {
             playerRef.sendMessage(Message.raw("No API key set for " + parsed.source().getDisplayName() + ". Use: /modsync setkey <key>").color("red"));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Fetching mod info...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Fetching mod info...").color(Color.YELLOW));
 
         provider.fetchModBySlug(apiKey, parsed.slug())
             .thenAccept(modEntry -> {
@@ -109,9 +110,9 @@ public class AddCommand extends AbstractPlayerCommand {
                         .build();
 
                 // Add to managed storage
-                plugin.getManagedModStorage().addMod(managedMod);
+                modSync.getManagedModStorage().addMod(managedMod);
 
-                playerRef.sendMessage(Message.raw("Added: ").color("green")
+                playerRef.sendMessage(Message.raw("Added: ").color(Color.green)
                         .insert(Message.raw(modEntry.getName()).color("white"))
                         .insert(Message.raw(" (" + modEntry.getSlug() + ")").color("gray"))
                         .insert(Message.raw(" [" + modEntry.getPluginType().getDisplayName() + "]").color("aqua")));

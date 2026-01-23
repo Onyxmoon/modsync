@@ -89,7 +89,8 @@ public class ManagedModStorage {
                         mod.getPluginType(),
                         mod.getDesiredVersionId(),
                         mod.getAddedAt(),
-                        mod.getAddedViaUrl()
+                        mod.getAddedViaUrl(),
+                        mod.getReleaseChannelOverride()
                 );
                 entries.add(entry);
             }
@@ -183,7 +184,8 @@ public class ManagedModStorage {
                         .pluginType(entry.getPluginType() != null ? entry.getPluginType() : PluginType.PLUGIN)
                         .desiredVersionId(entry.getDesiredVersionId())
                         .addedAt(entry.getAddedAt())
-                        .addedViaUrl(entry.getAddedViaUrl());
+                        .addedViaUrl(entry.getAddedViaUrl())
+                        .releaseChannelOverride(entry.getReleaseChannelOverride());
 
                 // Check if there's a corresponding lock entry
                 String sourceId = entry.getSourceId();

@@ -42,13 +42,17 @@ public class CurseForgeAdapter {
     }
 
     public ModEntry adaptToModEntry(CurseForgeModResponse.ModData cfMod) {
+        List<ModVersion> allVersions = adaptAllFiles(cfMod.getLatestFiles(), cfMod.getId());
+        ModVersion latestVersion = allVersions.isEmpty() ? null : allVersions.get(0);
+
         return ModEntry.builder()
                 .modId(String.valueOf(cfMod.getId()))
                 .name(cfMod.getName())
                 .slug(cfMod.getSlug())
                 .summary(cfMod.getSummary())
                 .authors(adaptAuthors(cfMod.getAuthors()))
-                .latestVersion(adaptLatestFile(cfMod.getLatestFiles(), cfMod.getId()))
+                .latestVersion(latestVersion)
+                .availableVersions(allVersions)
                 .categories(adaptCategories(cfMod.getCategories()))
                 .pluginType(adaptPluginType(cfMod.getClassId()))
                 .downloadCount(cfMod.getDownloadCount())
@@ -58,32 +62,60 @@ public class CurseForgeAdapter {
                 .build();
     }
 
-    private ModVersion adaptLatestFile(List<CurseForgeModResponse.FileData> files, int modId) {
+    /**
+     * Adapts all available files from CurseForge to ModVersion objects.
+     * Files are returned in the same order as from CurseForge (typically newest first).
+     *
+     * @param files the list of file data from CurseForge
+     * @param modId the mod ID (used for download URL fallback)
+     * @return list of ModVersion objects
+     */
+    private List<ModVersion> adaptAllFiles(List<CurseForgeModResponse.FileData> files, int modId) {
         if (files == null || files.isEmpty()) {
-            return null;
+            return List.of();
         }
 
-        CurseForgeModResponse.FileData latest = files.get(0);
+        return files.stream()
+                .map(file -> adaptSingleFile(file, modId))
+                .collect(Collectors.toList());
+    }
 
-        String downloadUrl = latest.getDownloadUrl();
+    /**
+     * Adapts a single CurseForge file to a ModVersion.
+     */
+    private ModVersion adaptSingleFile(CurseForgeModResponse.FileData file, int modId) {
+        String downloadUrl = file.getDownloadUrl();
         if (downloadUrl == null || downloadUrl.isEmpty()) {
             // Fallback
             downloadUrl = String.format(
                     "https://www.curseforge.com/api/v1/mods/%d/files/%d/download",
-                    modId, latest.getId()
+                    modId, file.getId()
             );
         }
 
         return ModVersion.builder()
-                .versionId(String.valueOf(latest.getId()))
-                .versionNumber(latest.getDisplayName() != null ? latest.getDisplayName() : latest.getFileName())
-                .fileName(latest.getFileName())
-                .fileSize(latest.getFileLength())
+                .versionId(String.valueOf(file.getId()))
+                .versionNumber(file.getDisplayName() != null ? file.getDisplayName() : file.getFileName())
+                .fileName(file.getFileName())
+                .fileSize(file.getFileLength())
                 .downloadUrl(downloadUrl)
-                .gameVersions(latest.getGameVersions() != null ? latest.getGameVersions() : List.of())
-                .releaseType(latest.getReleaseType())
-                .uploadedAt(latest.getFileDate())
+                .gameVersions(file.getGameVersions() != null ? file.getGameVersions() : List.of())
+                .releaseType(convertReleaseType(file.getReleaseType()))
+                .uploadedAt(file.getFileDate())
                 .build();
+    }
+
+    /**
+     * Converts CurseForge numeric release type to string.
+     * CurseForge uses: 1=Release, 2=Beta, 3=Alpha
+     */
+    private String convertReleaseType(int releaseType) {
+        return switch (releaseType) {
+            case 1 -> "release";
+            case 2 -> "beta";
+            case 3 -> "alpha";
+            default -> "release"; // Safe default
+        };
     }
 
     private List<ModAuthor> adaptAuthors(List<CurseForgeModResponse.AuthorData> cfAuthors) {

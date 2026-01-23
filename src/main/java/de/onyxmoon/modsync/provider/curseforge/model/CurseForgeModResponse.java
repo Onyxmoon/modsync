@@ -157,7 +157,7 @@ public class CurseForgeModResponse {
         private long fileLength;
         private String downloadUrl;
         private List<String> gameVersions;
-        private String releaseType;
+        private int releaseType;  // CurseForge uses: 1=Release, 2=Beta, 3=Alpha
         private Instant fileDate;
 
         public int getId() {
@@ -208,11 +208,11 @@ public class CurseForgeModResponse {
             this.gameVersions = gameVersions;
         }
 
-        public String getReleaseType() {
+        public int getReleaseType() {
             return releaseType;
         }
 
-        public void setReleaseType(String releaseType) {
+        public void setReleaseType(int releaseType) {
             this.releaseType = releaseType;
         }
 

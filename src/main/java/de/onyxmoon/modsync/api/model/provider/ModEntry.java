@@ -17,6 +17,7 @@ public final class ModEntry {
     private final String summary;
     private final List<ModAuthor> authors;
     private final ModVersion latestVersion;
+    private final List<ModVersion> availableVersions;
     private final List<String> categories;
     private final PluginType pluginType;
     private final int downloadCount;
@@ -31,6 +32,7 @@ public final class ModEntry {
         this.summary = builder.summary;
         this.authors = builder.authors != null ? List.copyOf(builder.authors) : List.of();
         this.latestVersion = builder.latestVersion;
+        this.availableVersions = builder.availableVersions != null ? List.copyOf(builder.availableVersions) : List.of();
         this.categories = builder.categories != null ? List.copyOf(builder.categories) : List.of();
         this.pluginType = builder.pluginType != null ? builder.pluginType : PluginType.PLUGIN;
         this.downloadCount = builder.downloadCount;
@@ -61,6 +63,16 @@ public final class ModEntry {
 
     public ModVersion getLatestVersion() {
         return latestVersion;
+    }
+
+    /**
+     * Gets all available versions from the provider.
+     * Versions are typically sorted by upload date (newest first).
+     *
+     * @return list of available versions, empty if not provided
+     */
+    public List<ModVersion> getAvailableVersions() {
+        return availableVersions;
     }
 
     public List<String> getCategories() {
@@ -135,6 +147,7 @@ public final class ModEntry {
         private String summary;
         private List<ModAuthor> authors;
         private ModVersion latestVersion;
+        private List<ModVersion> availableVersions;
         private List<String> categories;
         private PluginType pluginType;
         private int downloadCount;
@@ -169,6 +182,11 @@ public final class ModEntry {
 
         public Builder latestVersion(ModVersion latestVersion) {
             this.latestVersion = latestVersion;
+            return this;
+        }
+
+        public Builder availableVersions(List<ModVersion> availableVersions) {
+            this.availableVersions = availableVersions;
             return this;
         }
 

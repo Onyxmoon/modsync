@@ -19,6 +19,7 @@ import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,16 +35,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - /modsync remove [group:name]    - Removes mod by identifier
  */
 public class RemoveCommand extends AbstractPlayerCommand {
-    private final ModSync plugin;
+    private final ModSync modSync;
     private final RequiredArg<String> targetArg = this.withRequiredArg(
             "target",
             "all | name | slug | identifier",
             ArgTypes.STRING
     );
 
-    public RemoveCommand(ModSync plugin) {
+    public RemoveCommand(ModSync modSync) {
         super("remove", "Remove mod(s) from list");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -56,10 +57,10 @@ public class RemoveCommand extends AbstractPlayerCommand {
             return;
         }
 
-        ManagedModRegistry registry = plugin.getManagedModStorage().getRegistry();
+        ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No mods in list.").color("yellow"));
+            playerRef.sendMessage(Message.raw("No mods in list.").color(Color.YELLOW));
             return;
         }
 
@@ -84,28 +85,28 @@ public class RemoveCommand extends AbstractPlayerCommand {
         switch (result) {
             case SelectionResult.Found found -> removeMod(playerRef, found.mod());
             case SelectionResult.NotFound notFound ->
-                playerRef.sendMessage(Message.raw("Mod not found: " + notFound.query()).color("red"));
+                playerRef.sendMessage(Message.raw("Mod not found: " + notFound.query()).color(Color.RED));
             case SelectionResult.InvalidIndex invalid ->
-                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to remove mods.").color("red"));
+                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to remove mods.").color(Color.RED));
             case SelectionResult.EmptyRegistry ignored ->
-                playerRef.sendMessage(Message.raw("No mods in list.").color("yellow"));
+                playerRef.sendMessage(Message.raw("No mods in list.").color(Color.YELLOW));
         }
     }
 
     private void showHelp(PlayerRef playerRef, ManagedModRegistry registry) {
-        playerRef.sendMessage(Message.raw("Usage: ").color("gold")
-                .insert(Message.raw("/modsync remove <name|slug|identifier>").color("white")));
-        playerRef.sendMessage(Message.raw("       ").color("gold")
-                .insert(Message.raw("/modsync remove all").color("white"))
-                .insert(Message.raw(" to remove all").color("gray")));
-        playerRef.sendMessage(Message.raw("Tip: ").color("gray")
-                .insert(Message.raw("Use quotes for names with spaces: ").color("gray"))
-                .insert(Message.raw("\"My Mod\"").color("yellow")));
+        playerRef.sendMessage(Message.raw("Usage: ").color(Color.CYAN)
+                .insert(Message.raw("/modsync remove <name|slug|identifier>").color(Color.WHITE)));
+        playerRef.sendMessage(Message.raw("       ").color(Color.CYAN)
+                .insert(Message.raw("/modsync remove all").color(Color.WHITE))
+                .insert(Message.raw(" to remove all").color(Color.GRAY)));
+        playerRef.sendMessage(Message.raw("Tip: ").color(Color.GRAY)
+                .insert(Message.raw("Use quotes for names with spaces: ").color(Color.GRAY))
+                .insert(Message.raw("\"My Mod\"").color(Color.YELLOW)));
         playerRef.sendMessage(Message.raw(""));
 
         // Show current mods (like ListCommand)
         List<ManagedMod> mods = registry.getAll();
-        playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color("gold"));
+        playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color(Color.CYAN));
 
         for (ManagedMod mod : mods) {
             playerRef.sendMessage(CommandUtils.formatModLineWithStatus(mod));
@@ -116,7 +117,7 @@ public class RemoveCommand extends AbstractPlayerCommand {
         List<ManagedMod> mods = registry.getAll();
         int total = mods.size();
 
-        playerRef.sendMessage(Message.raw("Removing " + total + " mod(s)...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Removing " + total + " mod(s)...").color(Color.YELLOW));
 
         AtomicInteger removed = new AtomicInteger(0);
         AtomicInteger failed = new AtomicInteger(0);
@@ -138,53 +139,54 @@ public class RemoveCommand extends AbstractPlayerCommand {
 
         CompletableFuture.allOf(futures)
                 .thenRun(() -> {
-                    playerRef.sendMessage(Message.raw("Removed: " + removed.get()).color("green")
-                            .insert(Message.raw(" | Failed: " + failed.get()).color(failed.get() > 0 ? "red" : "gray")));
+                    playerRef.sendMessage(Message.raw("Removed: " + removed.get()).color(Color.GREEN));
+                    playerRef.sendMessage(Message.raw("Removed: " + removed.get()).color(Color.GREEN)
+                            .insert(Message.raw(" | Failed: " + failed.get()).color(failed.get() > 0 ? Color.RED : Color.GRAY)));
                     if (pendingRestart.get() > 0) {
-                        playerRef.sendMessage(Message.raw(pendingRestart.get() + " file(s) locked. Restart server to complete deletion.").color("yellow"));
+                        playerRef.sendMessage(Message.raw(pendingRestart.get() + " file(s) locked. Restart server to complete deletion.").color(Color.YELLOW));
                     }
                     if (removed.get() > 0) {
-                        playerRef.sendMessage(Message.raw("Server restart required to fully unload mods.").color("gold"));
+                        playerRef.sendMessage(Message.raw("Server restart required to fully unload mods.").color(Color.CYAN));
                     }
                 });
     }
 
     private void removeMod(PlayerRef playerRef, ManagedMod mod) {
         if (mod.isInstalled()) {
-            playerRef.sendMessage(Message.raw("Removing installed file...").color("yellow"));
+            playerRef.sendMessage(Message.raw("Removing installed file...").color(Color.YELLOW));
 
-            plugin.getDownloadService().deleteMod(mod)
+            modSync.getDownloadService().deleteMod(mod)
                     .thenAccept(deletedImmediately -> {
-                        plugin.getManagedModStorage().removeMod(mod.getSourceId());
+                        modSync.getManagedModStorage().removeMod(mod.getSourceId());
                         if (deletedImmediately) {
-                            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).insert(" (file deleted)").color("green"));
-                            playerRef.sendMessage(Message.raw("Server restart required to fully unload the mod.").color("gold"));
+                            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).insert(" (file deleted)").color(Color.GREEN));
+                            playerRef.sendMessage(Message.raw("Server restart required to fully unload the mod.").color(Color.CYAN));
                         } else {
-                            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).insert(" (file deleted)").color("green"));
-                            playerRef.sendMessage(Message.raw("File is locked. Restart server to complete deletion.").color("yellow"));
+                            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).insert(" (file deleted)").color(Color.GREEN));
+                            playerRef.sendMessage(Message.raw("File is locked. Restart server to complete deletion.").color(Color.YELLOW));
                         }
                     })
                     .exceptionally(ex -> {
-                        playerRef.sendMessage(Message.raw("Failed to delete file: " + ex.getMessage()).color("red"));
-                        plugin.getManagedModStorage().removeMod(mod.getSourceId());
-                        playerRef.sendMessage(Message.raw("Removed from list (file may remain)").color("yellow"));
+                        playerRef.sendMessage(Message.raw("Failed to delete file: " + ex.getMessage()).color(Color.RED));
+                        modSync.getManagedModStorage().removeMod(mod.getSourceId());
+                        playerRef.sendMessage(Message.raw("Removed from list (file may remain)").color(Color.YELLOW));
                         return null;
                     });
         } else {
-            plugin.getManagedModStorage().removeMod(mod.getSourceId());
-            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).color("green"));
+            modSync.getManagedModStorage().removeMod(mod.getSourceId());
+            playerRef.sendMessage(Message.raw("Removed: ").insert(CommandUtils.formatModLine(mod)).color(Color.GREEN));
         }
     }
 
     private CompletableFuture<Boolean> removeModAsync(ManagedMod mod) {
         if (mod.isInstalled()) {
-            return plugin.getDownloadService().deleteMod(mod)
+            return modSync.getDownloadService().deleteMod(mod)
                     .thenApply(deletedImmediately -> {
-                        plugin.getManagedModStorage().removeMod(mod.getSourceId());
+                        modSync.getManagedModStorage().removeMod(mod.getSourceId());
                         return deletedImmediately;
                     });
         } else {
-            plugin.getManagedModStorage().removeMod(mod.getSourceId());
+            modSync.getManagedModStorage().removeMod(mod.getSourceId());
             return CompletableFuture.completedFuture(true);
         }
     }

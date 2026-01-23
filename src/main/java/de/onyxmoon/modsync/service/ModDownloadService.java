@@ -223,7 +223,8 @@ public class ModDownloadService {
             try {
                 Files.delete(source);
             } catch (IOException e) {
-                LOGGER.atWarning().log("Could not delete temp file: %s", source);
+                LOGGER.atWarning().log("Could not delete temp file, scheduling for deletion on restart: %s", source);
+                modSync.addPendingDeletion(source.toString());
             }
         } catch (IOException e) {
             throw new IOException("Both move and copy failed for " + source + " -> " + target, e);
@@ -232,12 +233,14 @@ public class ModDownloadService {
 
     /**
      * Safely cleans up a temporary file.
+     * If deletion fails, schedules for deletion on next startup.
      */
     private void cleanupTempFile(Path tempPath) {
         try {
             Files.deleteIfExists(tempPath);
         } catch (IOException e) {
-            LOGGER.atWarning().log("Could not cleanup temp file %s: %s", tempPath, e.getMessage());
+            LOGGER.atWarning().log("Could not cleanup temp file, scheduling for deletion on restart: %s", tempPath);
+            modSync.addPendingDeletion(tempPath.toString());
         }
     }
 

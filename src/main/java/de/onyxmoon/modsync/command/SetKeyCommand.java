@@ -15,22 +15,23 @@ import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 
 /**
  * Command: /modsync setkey <key>
  * Sets the API key for the current source.
  */
 public class SetKeyCommand extends AbstractPlayerCommand {
-    private final ModSync plugin;
+    private final ModSync modSync;
     private final RequiredArg<String> keyArg = this.withRequiredArg(
             "key",
             "API key for mod source",
             ArgTypes.STRING
     );
 
-    public SetKeyCommand(ModSync plugin) {
+    public SetKeyCommand(ModSync modSync) {
         super("setkey", "Set API key for mod source");
-        this.plugin = plugin;
+        this.modSync = modSync;
     }
 
     @Override
@@ -46,32 +47,32 @@ public class SetKeyCommand extends AbstractPlayerCommand {
         String key = commandContext.get(keyArg);
 
         if (key.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Usage: /modsync setkey <key>").color("red"));
+            playerRef.sendMessage(Message.raw("Usage: /modsync setkey <key>").color(Color.RED));
             return;
         }
 
-        ModListSource currentSource = plugin.getConfigStorage()
+        ModListSource currentSource = modSync.getConfigStorage()
             .getConfig()
             .getCurrentSource();
 
         // Validate key asynchronously
-        playerRef.sendMessage(Message.raw("Validating API key...").color("yellow"));
+        playerRef.sendMessage(Message.raw("Validating API key...").color(Color.YELLOW));
 
-        plugin.getProviderRegistry()
+        modSync.getProviderRegistry()
             .getProvider(currentSource)
             .validateApiKey(key)
             .thenAccept(valid -> {
                 if (valid) {
-                    plugin.getConfigStorage().getConfig()
+                    modSync.getConfigStorage().getConfig()
                         .setApiKey(currentSource, key);
-                    plugin.getConfigStorage().save();
-                    playerRef.sendMessage(Message.raw("API key set successfully for " + currentSource.getDisplayName()).color("green"));
+                    modSync.getConfigStorage().save();
+                    playerRef.sendMessage(Message.raw("API key set successfully for " + currentSource.getDisplayName()).color(Color.GREEN));
                 } else {
-                    playerRef.sendMessage(Message.raw("Invalid API key for " + currentSource.getDisplayName()).color("red"));
+                    playerRef.sendMessage(Message.raw("Invalid API key for " + currentSource.getDisplayName()).color(Color.RED));
                 }
             })
             .exceptionally(ex -> {
-                playerRef.sendMessage(Message.raw("Error validating API key: " + ex.getMessage()).color("red"));
+                playerRef.sendMessage(Message.raw("Error validating API key: " + ex.getMessage()).color(Color.RED));
                 return null;
             });
     }

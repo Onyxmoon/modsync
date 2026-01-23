@@ -13,6 +13,7 @@ A Hytale server plugin for managing server-side mods. ModSync allows server admi
 - **CurseForge Integration** - Add mods directly from CurseForge URLs
 - **Mod Management** - Track, install, update, and remove mods via commands
 - **Version Tracking** - Check for updates and upgrade mods to latest versions
+- **Release Channels** - Choose between Release, Beta, or Alpha versions (global default + per-mod override)
 - **Identifier Support** - Reference mods by `group:name` format (e.g., `Onyxmoon:SimplyTrash`)
 - **Self-Upgrade** - Update ModSync itself via `/modsync selfupgrade`
 - **Bootstrap Plugin** - Handles Windows file locking for seamless mod updates
@@ -45,8 +46,11 @@ All commands are subcommands of `/modsync`:
 | `list` | Show all managed mods with install status and version |
 | `install [target]` | Install mod by name/slug/identifier (no argument = install all) |
 | `remove <target>` | Remove mod by name/slug/identifier, or `all` for all |
+| `setchannel <mod> <channel>` | Set per-mod release channel override |
 | `check` | Check for available updates (shows version comparison) |
 | `upgrade [target]` | Upgrade mod by name/slug/identifier (no argument = upgrade all) |
+| `config` | Show all configuration settings |
+| `config channel [value]` | View or set default release channel (release/beta/alpha) |
 | `setkey <key>` | Set your CurseForge API key |
 | `status` | Show current configuration |
 | `reload` | Reload configuration from disk |
@@ -76,6 +80,27 @@ ModSync requires a CurseForge API key to fetch mod information. Get your key fro
 
 ```
 /modsync setkey <your-api-key>
+```
+
+### Release Channels
+
+Control which release types are considered for installation and updates:
+
+| Channel | Installs |
+|---------|----------|
+| `release` | Only stable releases (default) |
+| `beta` | Beta and release versions |
+| `alpha` | All versions including alpha |
+
+```
+# Set global default
+/modsync config channel beta
+
+# Override for a specific mod
+/modsync setchannel MyMod alpha
+
+# Remove override (use global default)
+/modsync setchannel MyMod default
 ```
 
 ### Data Files
