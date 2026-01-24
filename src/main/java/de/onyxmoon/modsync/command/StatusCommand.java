@@ -74,7 +74,7 @@ public class StatusCommand extends AbstractPlayerCommand {
             );
         } else {
             playerRef.sendMessage(Message.raw("Last Update: ").color(Color.GRAY)
-                    .insert(Message.raw("Never").color("red")));
+                    .insert(Message.raw("Never").color(Color.RED)));
         }
 
         boolean hasApiKey = config.getApiKey(config.getCurrentSource()) != null;

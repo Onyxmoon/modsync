@@ -5,6 +5,16 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-01-24
+
+### Changed
+- **Console output layout**: Output formatting refined across commands for consistent, terminal-friendly lines
+- **Check/upgrade output layout**: Status line now keeps only mod name + status, with identifier and versions on their own lines
+- **Version display extraction**: Prefer semver-like values for compact `old -> new` output, with raw fallback when unavailable
+
+### tl;dr
+> Console output is cleaner and more consistent across commands; update versions show as `1.0.1 -> 1.0.19` when detectable, otherwise raw filenames.
+
 ## [0.6.0] - 2026-01-23
 
 ### Added

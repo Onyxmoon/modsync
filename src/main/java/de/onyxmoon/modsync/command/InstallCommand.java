@@ -64,9 +64,9 @@ public class InstallCommand extends AbstractPlayerCommand {
         ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No mods in list. Use ").color("red")
+            playerRef.sendMessage(Message.raw("No mods in list. Use ").color(Color.RED)
                     .insert(Message.raw("/modsync add <url>").color(Color.WHITE))
-                    .insert(Message.raw(" first.").color("red")));
+                    .insert(Message.raw(" first.").color(Color.RED)));
             return;
         }
 
@@ -93,7 +93,7 @@ public class InstallCommand extends AbstractPlayerCommand {
         // Show not installed mods
         List<ManagedMod> notInstalled = registry.getNotInstalled();
         if (notInstalled.isEmpty()) {
-            playerRef.sendMessage(Message.raw("All mods are already installed.").color("green"));
+            playerRef.sendMessage(Message.raw("All mods are already installed.").color(Color.GREEN));
         } else {
             playerRef.sendMessage(Message.raw("=== Not Installed (" + notInstalled.size() + ") ===").color(Color.CYAN));
             for (ManagedMod mod : notInstalled) {
@@ -116,14 +116,14 @@ public class InstallCommand extends AbstractPlayerCommand {
                 installMod(playerRef, mod);
             }
             case SelectionResult.NotFound notFound -> {
-                playerRef.sendMessage(Message.raw("Mod not found: " + notFound.query()).color("red"));
+                playerRef.sendMessage(Message.raw("Mod not found: " + notFound.query()).color(Color.RED));
                 playerRef.sendMessage(Message.raw(""));
                 showHelp(playerRef, registry);
             }
             case SelectionResult.InvalidIndex ignored ->
-                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to install mods.").color("red"));
+                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to install mods.").color(Color.RED));
             case SelectionResult.EmptyRegistry ignored ->
-                playerRef.sendMessage(Message.raw("No mods in list.").color("red"));
+                playerRef.sendMessage(Message.raw("No mods in list.").color(Color.RED));
         }
     }
 
@@ -131,7 +131,7 @@ public class InstallCommand extends AbstractPlayerCommand {
         List<ManagedMod> notInstalled = registry.getNotInstalled();
 
         if (notInstalled.isEmpty()) {
-            playerRef.sendMessage(Message.raw("All mods are already installed.").color("green"));
+            playerRef.sendMessage(Message.raw("All mods are already installed.").color(Color.GREEN));
             return;
         }
 
@@ -146,13 +146,13 @@ public class InstallCommand extends AbstractPlayerCommand {
                         .thenAccept(installedState -> {
                             if (installedState != null) {
                                 success.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  Installed: ").insert(CommandUtils.formatModLine(mod)).color("green"));
+                                playerRef.sendMessage(Message.raw("  Installed: ").insert(CommandUtils.formatModLine(mod)).color(Color.GREEN));
                             }
                         })
                         .exceptionally(ex -> {
                             failed.incrementAndGet();
                             String errorMsg = CommandUtils.extractErrorMessage(ex);
-                            playerRef.sendMessage(Message.raw("  Failed: " + CommandUtils.formatModLine(mod).getRawText() + " - " + errorMsg).color("red"));
+                            playerRef.sendMessage(Message.raw("  Failed: " + CommandUtils.formatModLine(mod).getRawText() + " - " + errorMsg).color(Color.RED));
                             return null;
                         }))
                 .toArray(CompletableFuture[]::new);
@@ -160,14 +160,14 @@ public class InstallCommand extends AbstractPlayerCommand {
         CompletableFuture.allOf(futures)
                 .thenRun(() -> {
                     Message summary = Message.raw("Installation complete. ").color(Color.GRAY)
-                            .insert(Message.raw("Success: " + success.get()).color("green"));
+                            .insert(Message.raw("Success: " + success.get()).color(Color.GREEN));
                     if (skipped.get() > 0) {
                         summary = summary.insert(Message.raw(" | ").color(Color.GRAY))
                                 .insert(Message.raw("Skipped: " + skipped.get()).color(Color.YELLOW));
                     }
                     if (failed.get() > 0) {
                         summary = summary.insert(Message.raw(" | ").color(Color.GRAY))
-                                .insert(Message.raw("Failed: " + failed.get()).color("red"));
+                                .insert(Message.raw("Failed: " + failed.get()).color(Color.RED));
                     }
                     playerRef.sendMessage(summary);
                     if (success.get() > 0) {
@@ -180,7 +180,7 @@ public class InstallCommand extends AbstractPlayerCommand {
         installModAsync(mod, null, null)
                 .thenAccept(installedState -> {
                     if (installedState != null) {
-                        playerRef.sendMessage(Message.raw("Installed: ").insert(CommandUtils.formatModLine(mod)).color("green")
+                        playerRef.sendMessage(Message.raw("Installed: ").insert(CommandUtils.formatModLine(mod)).color(Color.GREEN)
                                 .insert(Message.raw(" (" + installedState.getInstalledVersionNumber() + ")").color(Color.GRAY)));
                         playerRef.sendMessage(Message.raw("Server restart required to load the mod.").color(Color.CYAN));
                     } else {
@@ -189,7 +189,7 @@ public class InstallCommand extends AbstractPlayerCommand {
                 })
                 .exceptionally(ex -> {
                     String errorMsg = CommandUtils.extractErrorMessage(ex);
-                    playerRef.sendMessage(Message.raw("Failed to install ").insert(CommandUtils.formatModLine(mod)).insert(": " + errorMsg).color("red"));
+                    playerRef.sendMessage(Message.raw("Failed to install ").insert(CommandUtils.formatModLine(mod)).insert(": " + errorMsg).color(Color.RED));
                     return null;
                 });
     }

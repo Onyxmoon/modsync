@@ -5,6 +5,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 
+import java.awt.*;
 import java.util.UUID;
 
 /**
@@ -30,7 +31,7 @@ public final class PermissionHelper {
      */
     public static boolean checkAdminPermission(PlayerRef playerRef) {
         if (!hasAdminPermission(playerRef)) {
-            playerRef.sendMessage(Message.raw("You don't have permission to use this command.").color("red"));
+            playerRef.sendMessage(Message.raw("You don't have permission to use this command.").color(Color.RED));
             return false;
         }
         return true;

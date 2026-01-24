@@ -75,7 +75,7 @@ public class ScanCommand extends AbstractPlayerCommand {
                         .insert(Message.raw(identifierStr).color(Color.YELLOW)));
             } else {
                 playerRef.sendMessage(Message.raw("   Identifier: ").color(Color.GRAY)
-                        .insert(Message.raw("(unknown)").color(Color.DARK_GRAY)));
+                        .insert(Message.raw("(unknown)").color(Color.GRAY)));
             }
         }
 
