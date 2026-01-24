@@ -42,7 +42,7 @@ runs:
       run: |
         set -euo pipefail
         cd .hytale
-        version="$(grep -Eo '[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-[0-9a-f]+' game-version.txt | head -n 1 || true)"
+        version="$(grep -Eo '[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-[0-9a-fA-F]{7,}' game-version.txt | head -n 1 || true)"
         if [ -z "$version" ]; then
           echo "WARNING: Could not parse game version, falling back to full output hash."
           version_hash="$(sha256sum game-version.txt | awk '{print $1}')"
