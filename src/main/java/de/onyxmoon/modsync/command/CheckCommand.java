@@ -49,7 +49,7 @@ public class CheckCommand extends AbstractPlayerCommand {
         ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No mods in list to check.").color(Color.red));
+            playerRef.sendMessage(Message.raw("No mods in list to check.").color(Color.RED));
             return;
         }
 
@@ -72,11 +72,7 @@ public class CheckCommand extends AbstractPlayerCommand {
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                playerRef.sendMessage(Message.raw("  ").insert(CommandUtils.formatModLine(mod)).color(Color.YELLOW)
-                                        .insert(Message.raw(": ").color(Color.gray))
-                                        .insert(Message.raw(result.installedVersion()).color(Color.red))
-                                        .insert(Message.raw(" -> ").color(Color.gray))
-                                        .insert(Message.raw(result.latestVersion()).color(Color.green)));
+                                sendModStatusWithVersion(playerRef, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -90,17 +86,17 @@ public class CheckCommand extends AbstractPlayerCommand {
         CompletableFuture.allOf(futures)
                 .thenRun(() -> {
                     playerRef.sendMessage(Message.raw("=== Update Check Complete ===").color(Color.CYAN));
-                    playerRef.sendMessage(Message.raw("Updates available: ").color(Color.gray)
+                    playerRef.sendMessage(Message.raw("Updates available: ").color(Color.GRAY)
                             .insert(Message.raw(String.valueOf(updatesAvailable.get())).color(Color.YELLOW))
-                            .insert(Message.raw(" | Up to date: ").color(Color.gray))
-                            .insert(Message.raw(String.valueOf(upToDate.get())).color(Color.green))
-                            .insert(Message.raw(" | Failed: ").color(Color.gray))
-                            .insert(Message.raw(String.valueOf(failed.get())).color(Color.red)));
+                            .insert(Message.raw(" | Up to date: ").color(Color.GRAY))
+                            .insert(Message.raw(String.valueOf(upToDate.get())).color(Color.GREEN))
+                            .insert(Message.raw(" | Failed: ").color(Color.GRAY))
+                            .insert(Message.raw(String.valueOf(failed.get())).color(Color.RED)));
 
                     if (updatesAvailable.get() > 0) {
-                        playerRef.sendMessage(Message.raw("Use ").color(Color.gray)
-                                .insert(Message.raw("/modsync upgrade").color(Color.white))
-                                .insert(Message.raw(" to update.").color(Color.gray)));
+                        playerRef.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                                .insert(Message.raw("/modsync upgrade").color(Color.WHITE))
+                                .insert(Message.raw(" to update.").color(Color.GRAY)));
                     }
                 });
     }
@@ -149,5 +145,31 @@ public class CheckCommand extends AbstractPlayerCommand {
         static CheckResult upToDate(String installedVersion, String latestVersion) {
             return new CheckResult(false, installedVersion, latestVersion);
         }
+    }
+
+    // ===== Formatting Helpers =====
+
+    private void sendModStatusWithVersion(PlayerRef playerRef, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
+        Message firstLine = Message.raw("> ").color(Color.ORANGE)
+                .insert(Message.raw(mod.getName()).color(Color.WHITE))
+                .insert(Message.raw(" [" + status + "]").color(statusColor));
+        playerRef.sendMessage(firstLine);
+
+        sendIdentifierLine(playerRef, mod);
+        sendVersionLine(playerRef, oldVersion, newVersion);
+    }
+
+    private void sendIdentifierLine(PlayerRef playerRef, ManagedMod mod) {
+        String identifier = mod.getIdentifierString().orElse("-");
+        playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+                .insert(Message.raw(identifier).color(Color.CYAN)));
+    }
+
+    private void sendVersionLine(PlayerRef playerRef, String oldVersion, String newVersion) {
+        CommandUtils.formatVersionLine(oldVersion, newVersion)
+                .ifPresent(line -> playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+                        .insert(Message.raw(line.oldDisplay()).color(Color.RED))
+                        .insert(Message.raw(" -> ").color(Color.GRAY))
+                        .insert(Message.raw(line.newDisplay()).color(Color.GREEN))));
     }
 }

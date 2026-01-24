@@ -2,6 +2,7 @@ package de.onyxmoon.modsync.command;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.FormattedMessage;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -45,19 +46,17 @@ public class ListCommand extends AbstractPlayerCommand {
         List<ManagedMod> mods = registry.getAll();
 
         if (mods.isEmpty()) {
-            playerRef.sendMessage(Message.raw("=== Managed Mods ===").color("gold"));
+            playerRef.sendMessage(Message.parse("&n=== &nManaged &nMods &n===").color(Color.ORANGE));
             playerRef.sendMessage(Message.raw("No mods in list. Use ").color(Color.GRAY)
-                    .insert(Message.raw("/modsync add <url>").color("white"))
+                    .insert(Message.raw("/modsync add <url>").color(Color.WHITE))
                     .insert(Message.raw(" to add mods.").color(Color.GRAY)));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color("gold"));
+        playerRef.sendMessage(Message.raw("=== Managed Mods (" + mods.size() + ") ===").color(Color.ORANGE));
 
         for (ManagedMod mod : mods) {
-            Message status = getStatusMessage(mod);
-
-            // Show installed version if available, otherwise show desired version
+            // First line: > ModName (version) [STATUS]
             String versionInfo;
             if (mod.isInstalled()) {
                 versionInfo = mod.getInstalledState()
@@ -67,28 +66,32 @@ public class ListCommand extends AbstractPlayerCommand {
                 versionInfo = mod.wantsLatestVersion() ? "latest" : mod.getDesiredVersionId();
             }
 
-            Message line = status
-                    .insert(Message.raw(" " + mod.getName()).color("white"));
+            Message firstLine = Message.raw("> ").color(Color.ORANGE)
+                    .insert(Message.raw(mod.getName()).color(Color.WHITE))
+                    .insert(Message.raw(" (" + versionInfo + ")").color(Color.GRAY))
+                    .insert(Message.raw(" ").insert(getStatusMessage(mod)));
 
-            // Show identifier for installed mods
-            if (mod.isInstalled()) {
-                String identifier = mod.getIdentifierString().orElse("?");
-                line = line.insert(Message.raw(" [" + identifier + "]").color("aqua"));
-            }
-
-            // Show plugin type
-            String typeAbbrev = mod.getPluginType().getDisplayName();
-            line = line.insert(Message.raw(" [" + typeAbbrev + "]").color("light_purple"))
-                    .insert(Message.raw(" (" + mod.getSource().getDisplayName() + ")").color(Color.GRAY))
-                    .insert(Message.raw(" [" + versionInfo + "]").color("dark_gray"));
-
-            // Show release channel override if set
+            // Show release channel override in first line if set
             ReleaseChannel channelOverride = mod.getReleaseChannelOverride();
             if (channelOverride != null) {
-                line = line.insert(Message.raw(" – Channel overridden ").color(Color.WHITE).insert(Message.raw("[" + channelOverride.getDisplayName() + "]").color(Color.YELLOW)));
+                firstLine = firstLine.insert(Message.raw(" [" + channelOverride.getDisplayName() + "]").color(Color.YELLOW));
             }
 
-            playerRef.sendMessage(line);
+            playerRef.sendMessage(firstLine);
+
+            // Second line: Identifier | Type | Source
+            String identifier = mod.getIdentifierString().orElse("-");
+            String typeAbbrev = mod.getPluginType().getDisplayName();
+            String source = mod.getSource().getDisplayName();
+
+            Message secondLine = Message.raw("    ").color(Color.GRAY)
+                    .insert(Message.raw(identifier).color(Color.CYAN))
+                    .insert(Message.raw(" | ").color(Color.GRAY))
+                    .insert(Message.raw(typeAbbrev).color(Color.YELLOW))
+                    .insert(Message.raw(" | ").color(Color.GRAY))
+                    .insert(Message.raw(source).color(Color.GRAY));
+
+            playerRef.sendMessage(secondLine);
         }
 
         // Summary

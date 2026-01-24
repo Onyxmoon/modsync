@@ -33,6 +33,7 @@ All commands use the `/modsync` prefix:
 | <code>/modsync upgrade</code>                     | Upgrade all installed mods to latest version                       |
 | <code>/modsync upgrade [name]</code>              | Upgrade a specific mod by name, slug, or identifier                |
 | <code>/modsync scan</code>                        | List unmanaged mods in the mods folder                             |
+| <code>/modsync import</code>                      | Auto-match and try to import all unmanaged mods                    |
 | <code>/modsync import [target]</code>             | Auto-match and import an unmanaged mod                             |
 | <code>/modsync import [target] --url=[url]</code> | Import an unmanaged mod with a CurseForge URL                      |
 | <code>/modsync config</code>                      | Show all configuration settings                                    |

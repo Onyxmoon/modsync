@@ -55,7 +55,7 @@ public class ChannelCommand extends AbstractPlayerCommand {
         ReleaseChannel channel = config.getDefaultReleaseChannel();
         playerRef.sendMessage(Message.raw("Default release channel: ").color(Color.GRAY)
                 .insert(Message.raw(channel.getDisplayName()).color(Color.YELLOW)));
-        playerRef.sendMessage(Message.raw(getChannelDescription(channel)).color(Color.DARK_GRAY));
+        playerRef.sendMessage(Message.raw(getChannelDescription(channel)).color(Color.GRAY));
         playerRef.sendMessage(Message.raw(""));
         playerRef.sendMessage(Message.raw("To change: ").color(Color.GRAY)
                 .insert(Message.raw("/modsync config channel <release|beta|alpha>").color(Color.WHITE)));

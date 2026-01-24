@@ -210,7 +210,7 @@ public class ImportCommand extends AbstractPlayerCommand {
                     .insert(Message.raw(modEntry.getName()).color(Color.WHITE))
                     .insert(Message.raw(" (" + match.confidence().getDisplayName() + ")").color(Color.GRAY)));
             if (match.matchReason() != null) {
-                playerRef.sendMessage(Message.raw("Reason: " + match.matchReason()).color(Color.DARK_GRAY));
+                playerRef.sendMessage(Message.raw("Reason: " + match.matchReason()).color(Color.GRAY));
             }
             playerRef.sendMessage(Message.raw(""));
             playerRef.sendMessage(Message.raw("To confirm, use: ").color(Color.GRAY)

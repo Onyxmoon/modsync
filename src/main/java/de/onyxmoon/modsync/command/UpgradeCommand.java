@@ -64,7 +64,7 @@ public class UpgradeCommand extends AbstractPlayerCommand {
         ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No mods in list.").color("red"));
+            playerRef.sendMessage(Message.raw("No mods in list.").color(Color.RED));
             return;
         }
 
@@ -79,12 +79,12 @@ public class UpgradeCommand extends AbstractPlayerCommand {
 
     private void showHelp(PlayerRef playerRef, ManagedModRegistry registry) {
         playerRef.sendMessage(Message.raw("Usage: ").color(Color.CYAN)
-                .insert(Message.raw("/modsync upgrade <name|slug|identifier>").color("white")));
+                .insert(Message.raw("/modsync upgrade <name|slug|identifier>").color(Color.WHITE)));
         playerRef.sendMessage(Message.raw("       ").color(Color.CYAN)
-                .insert(Message.raw("/modsync upgrade all").color("white"))
-                .insert(Message.raw(" to upgrade all").color("gray")));
-        playerRef.sendMessage(Message.raw("Tip: ").color("gray")
-                .insert(Message.raw("Use quotes for names with spaces: ").color("gray"))
+                .insert(Message.raw("/modsync upgrade all").color(Color.WHITE))
+                .insert(Message.raw(" to upgrade all").color(Color.GRAY)));
+        playerRef.sendMessage(Message.raw("Tip: ").color(Color.GRAY)
+                .insert(Message.raw("Use quotes for names with spaces: ").color(Color.GRAY))
                 .insert(Message.raw("\"My Mod\"").color(Color.YELLOW)));
         playerRef.sendMessage(Message.raw(""));
 
@@ -107,10 +107,10 @@ public class UpgradeCommand extends AbstractPlayerCommand {
             case SelectionResult.Found found -> {
                 ManagedMod mod = found.mod();
                 if (!mod.isInstalled()) {
-                    playerRef.sendMessage(Message.raw("Mod is not installed: " + mod.getName()).color("red"));
-                    playerRef.sendMessage(Message.raw("Use ").color("gray")
-                            .insert(Message.raw("/modsync install " + target).color("white"))
-                            .insert(Message.raw(" to install it first.").color("gray")));
+                    playerRef.sendMessage(Message.raw("Mod is not installed: " + mod.getName()).color(Color.RED));
+                    playerRef.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                            .insert(Message.raw("/modsync install " + target).color(Color.WHITE))
+                            .insert(Message.raw(" to install it first.").color(Color.GRAY)));
                     return;
                 }
                 playerRef.sendMessage(Message.raw("Checking for update: " + mod.getName() + "...").color(Color.YELLOW));
@@ -118,38 +118,32 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                         .thenAccept(upgradeResult -> {
                             switch (upgradeResult) {
                                 case UpgradeResult.Upgraded u -> {
-                                    playerRef.sendMessage(Message.raw("Upgraded: ").color("green")
-                                            .insert(Message.raw(mod.getName()).color(Color.YELLOW))
-                                            .insert(Message.raw(" -> ").color("gray"))
-                                            .insert(Message.raw(u.newVersion()).color("white")));
+                                    sendModStatusWithVersion(playerRef, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
                                     playerRef.sendMessage(Message.raw("Server restart required to load the new version.").color(Color.CYAN));
                                 }
                                 case UpgradeResult.UpToDate ignored ->
-                                    playerRef.sendMessage(Message.raw("Already up to date: ").color("green")
-                                            .insert(Message.raw(mod.getName()).color(Color.YELLOW)));
-                                case UpgradeResult.Skipped ignored ->
-                                    playerRef.sendMessage(Message.raw("Skipped: ").color(Color.YELLOW)
-                                            .insert(Message.raw(mod.getName()).color(Color.YELLOW))
-                                            .insert(Message.raw(" - Download URL not available").color("gray")));
+                                    sendModStatus(playerRef, mod, "UP TO DATE", Color.GREEN);
+                                case UpgradeResult.Skipped ignored -> {
+                                    sendModStatus(playerRef, mod, "SKIPPED", Color.YELLOW);
+                                    sendDetailLine(playerRef, "Download URL not available", Color.GRAY);
+                                }
                             }
                         })
                         .exceptionally(ex -> {
-                            String errorMsg = CommandUtils.extractErrorMessage(ex);
-                            playerRef.sendMessage(Message.raw("Failed to upgrade: ").color("red")
-                                    .insert(Message.raw(mod.getName()).color(Color.YELLOW))
-                                    .insert(Message.raw(" - " + errorMsg).color("gray")));
+                            sendModStatus(playerRef, mod, "FAILED", Color.RED);
+                            sendDetailLine(playerRef, CommandUtils.extractErrorMessage(ex), Color.RED);
                             return null;
                         });
             }
             case SelectionResult.NotFound notFound -> {
-                playerRef.sendMessage(Message.raw("Mod not found in list: " + notFound.query()).color("red"));
+                playerRef.sendMessage(Message.raw("Mod not found in list: " + notFound.query()).color(Color.RED));
                 playerRef.sendMessage(Message.raw("     "));
                 showHelp(playerRef, registry);
             }
             case SelectionResult.InvalidIndex ignored ->
-                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to upgrade mods.").color("red"));
+                playerRef.sendMessage(Message.raw("Use name, slug, or identifier to upgrade mods.").color(Color.RED));
             case SelectionResult.EmptyRegistry ignored ->
-                playerRef.sendMessage(Message.raw("No mods in list.").color("red"));
+                playerRef.sendMessage(Message.raw("No mods in list.").color(Color.RED));
         }
     }
 
@@ -174,26 +168,20 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                             switch (result) {
                                 case UpgradeResult.Upgraded u -> {
                                     upgraded.incrementAndGet();
-                                    playerRef.sendMessage(Message.raw("  Upgraded: ").color("green")
-                                            .insert(Message.raw(mod.getName()).color(Color.YELLOW))
-                                            .insert(Message.raw(" -> ").color("gray"))
-                                            .insert(Message.raw(u.newVersion()).color("white")));
+                                    sendModStatusWithVersion(playerRef, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
                                 }
                                 case UpgradeResult.UpToDate ignored -> upToDate.incrementAndGet();
                                 case UpgradeResult.Skipped ignored -> {
                                     skipped.incrementAndGet();
-                                    playerRef.sendMessage(Message.raw("  Skipped: ").color(Color.YELLOW)
-                                            .insert(Message.raw(mod.getName()).color(Color.YELLOW))
-                                            .insert(Message.raw(" - Download URL not available").color("gray")));
+                                    sendModStatus(playerRef, mod, "SKIPPED", Color.YELLOW);
+                                    sendDetailLine(playerRef, "Download URL not available", Color.GRAY);
                                 }
                             }
                         })
                         .exceptionally(ex -> {
                             failed.incrementAndGet();
-                            String errorMsg = CommandUtils.extractErrorMessage(ex);
-                            playerRef.sendMessage(Message.raw("  Failed: ").color("red")
-                                    .insert(Message.raw(mod.getName()).color(Color.YELLOW))
-                                    .insert(Message.raw(" - " + errorMsg).color("gray")));
+                            sendModStatus(playerRef, mod, "FAILED", Color.RED);
+                            sendDetailLine(playerRef, CommandUtils.extractErrorMessage(ex), Color.RED);
                             return null;
                         }))
                 .toArray(CompletableFuture[]::new);
@@ -202,18 +190,18 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                 .thenRun(() -> {
                     playerRef.sendMessage(Message.raw("=== Upgrade Complete ===").color(Color.CYAN));
 
-                    Message summary = Message.raw("Upgraded: ").color("gray")
-                            .insert(Message.raw(String.valueOf(upgraded.get())).color("green"))
-                            .insert(Message.raw(" | Up to date: ").color("gray"))
-                            .insert(Message.raw(String.valueOf(upToDate.get())).color("white"));
+                    Message summary = Message.raw("Upgraded: ").color(Color.GRAY)
+                            .insert(Message.raw(String.valueOf(upgraded.get())).color(Color.GREEN))
+                            .insert(Message.raw(" | Up to date: ").color(Color.GRAY))
+                            .insert(Message.raw(String.valueOf(upToDate.get())).color(Color.WHITE));
 
                     if (skipped.get() > 0) {
-                        summary = summary.insert(Message.raw(" | Skipped: ").color("gray"))
+                        summary = summary.insert(Message.raw(" | Skipped: ").color(Color.GRAY))
                                 .insert(Message.raw(String.valueOf(skipped.get())).color(Color.YELLOW));
                     }
                     if (failed.get() > 0) {
-                        summary = summary.insert(Message.raw(" | Failed: ").color("gray"))
-                                .insert(Message.raw(String.valueOf(failed.get())).color("red"));
+                        summary = summary.insert(Message.raw(" | Failed: ").color(Color.GRAY))
+                                .insert(Message.raw(String.valueOf(failed.get())).color(Color.RED));
                     }
 
                     playerRef.sendMessage(summary);
@@ -222,8 +210,8 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                         playerRef.sendMessage(Message.raw("Server restart required to load updated mods.").color(Color.CYAN));
                     }
                     if (failed.get() > 0) {
-                        playerRef.sendMessage(Message.raw("There were errors while deleting old mods. ").color("red")
-                                .insert("This can encounter on windows based servers because of aggresive file locking. ").color("gray")
+                        playerRef.sendMessage(Message.raw("There were errors while deleting old mods. ").color(Color.RED)
+                                .insert("This can encounter on windows based servers because of aggresive file locking. ").color(Color.GRAY)
                                 .insert("Please check pending_deletions.json in the mod folder.").color(Color.CYAN));
                     }
                 });
@@ -272,6 +260,7 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                         return CompletableFuture.completedFuture(new UpgradeResult.Skipped());
                     }
 
+                    String oldVersionNumber = currentState.getInstalledVersionNumber();
                     String newVersionNumber = latestVersion.getVersionNumber();
 
                     // Delete old version and install new
@@ -282,14 +271,52 @@ public class UpgradeCommand extends AbstractPlayerCommand {
                                         .installedState(newInstalledState)
                                         .build();
                                 modSync.getManagedModStorage().updateMod(updatedMod);
-                                return new UpgradeResult.Upgraded(newVersionNumber);
+                                return new UpgradeResult.Upgraded(oldVersionNumber, newVersionNumber);
                             });
                 });
     }
 
     private sealed interface UpgradeResult {
-        record Upgraded(String newVersion) implements UpgradeResult {}
+        record Upgraded(String oldVersion, String newVersion) implements UpgradeResult {}
         record UpToDate() implements UpgradeResult {}
         record Skipped() implements UpgradeResult {}
+    }
+
+    // ===== Formatting Helpers =====
+
+    private void sendModStatus(PlayerRef playerRef, ManagedMod mod, String status, Color statusColor) {
+        Message firstLine = Message.raw("> ").color(Color.ORANGE)
+                .insert(Message.raw(mod.getName()).color(Color.WHITE))
+                .insert(Message.raw(" [" + status + "]").color(statusColor));
+        playerRef.sendMessage(firstLine);
+        sendIdentifierLine(playerRef, mod);
+    }
+
+    private void sendModStatusWithVersion(PlayerRef playerRef, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
+        Message firstLine = Message.raw("> ").color(Color.ORANGE)
+                .insert(Message.raw(mod.getName()).color(Color.WHITE))
+                .insert(Message.raw(" [" + status + "]").color(statusColor));
+        playerRef.sendMessage(firstLine);
+        sendIdentifierLine(playerRef, mod);
+        sendVersionLine(playerRef, oldVersion, newVersion);
+    }
+
+    private void sendIdentifierLine(PlayerRef playerRef, ManagedMod mod) {
+        String identifier = mod.getIdentifierString().orElse("-");
+        playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+                .insert(Message.raw(identifier).color(Color.CYAN)));
+    }
+
+    private void sendDetailLine(PlayerRef playerRef, String text, Color color) {
+        playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+                .insert(Message.raw(text).color(color)));
+    }
+
+    private void sendVersionLine(PlayerRef playerRef, String oldVersion, String newVersion) {
+        CommandUtils.formatVersionLine(oldVersion, newVersion)
+                .ifPresent(line -> playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+                        .insert(Message.raw(line.oldDisplay()).color(Color.RED))
+                        .insert(Message.raw(" -> ").color(Color.GRAY))
+                        .insert(Message.raw(line.newDisplay()).color(Color.GREEN))));
     }
 }

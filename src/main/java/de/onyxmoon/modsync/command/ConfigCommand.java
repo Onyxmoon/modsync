@@ -54,7 +54,7 @@ public class ConfigCommand extends AbstractPlayerCommand {
         ReleaseChannel channel = config.getDefaultReleaseChannel();
         playerRef.sendMessage(Message.raw("  Default Channel: ").color(Color.GRAY)
                 .insert(Message.raw(channel.getDisplayName()).color(Color.YELLOW))
-                .insert(Message.raw(" (" + getChannelDescription(channel) + ")").color(Color.DARK_GRAY)));
+                .insert(Message.raw(" (" + getChannelDescription(channel) + ")").color(Color.GRAY)));
 
         // Current source
         ModListSource source = config.getCurrentSource();

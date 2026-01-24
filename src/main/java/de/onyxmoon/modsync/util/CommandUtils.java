@@ -4,10 +4,17 @@ import com.hypixel.hytale.server.core.Message;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 
+import java.awt.*;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Utility methods shared across commands.
  */
 public final class CommandUtils {
+
+    private static final Pattern SEMVER_LIKE = Pattern.compile("(?i)\\bv?(\\d+\\.\\d+(?:\\.\\d+)?)");
 
     private CommandUtils() {
         // Utility class
@@ -21,14 +28,14 @@ public final class CommandUtils {
      * @return formatted Message
      */
     public static Message formatModLine(ManagedMod mod) {
-        Message line = Message.raw(mod.getName()).color("yellow");
+        Message line = Message.raw(mod.getName()).color(Color.YELLOW);
 
         // Show identifier if installed, otherwise slug
         if (mod.isInstalled() && mod.getInstalledState().isPresent()) {
             String identifier = mod.getInstalledState().get().getIdentifier().toString();
-            line = line.insert(Message.raw(" (" + identifier + ")").color("aqua"));
+            line = line.insert(Message.raw(" (" + identifier + ")").color(Color.CYAN));
         } else {
-            line = line.insert(Message.raw(" (" + mod.getSlug() + ")").color("gray"));
+            line = line.insert(Message.raw(" (" + mod.getSlug() + ")").color(Color.GRAY));
         }
 
         // Show version if installed
@@ -36,7 +43,7 @@ public final class CommandUtils {
             String version = mod.getInstalledState()
                     .map(InstalledState::getInstalledVersionNumber)
                     .orElse("?");
-            line = line.insert(Message.raw(" v" + version).color("dark_gray"));
+            line = line.insert(Message.raw(version).color(Color.GRAY));
         }
 
         return line;
@@ -53,7 +60,7 @@ public final class CommandUtils {
         Message line = formatModLine(mod);
 
         String status = mod.isInstalled() ? "[installed]" : "[not installed]";
-        String statusColor = mod.isInstalled() ? "green" : "gray";
+        Color statusColor = mod.isInstalled() ? Color.GREEN : Color.GRAY;
         line = line.insert(Message.raw(" " + status).color(statusColor));
 
         return line;
@@ -92,5 +99,45 @@ public final class CommandUtils {
         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
         String msg = cause.getMessage();
         return msg != null ? msg : cause.getClass().getSimpleName();
+    }
+
+    /**
+     * Extracts a semver-like numeric version from a raw string.
+     * Matches patterns like v1.2, 1.2.3, or 1.2.3-foo (returns 1.2.3).
+     */
+    public static Optional<String> extractSemverLike(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Optional.empty();
+        }
+        Matcher matcher = SEMVER_LIKE.matcher(raw);
+        String best = null;
+        while (matcher.find()) {
+            String match = matcher.group(1);
+            if (best == null || match.length() > best.length()) {
+                best = match;
+            }
+        }
+        return Optional.ofNullable(best);
+    }
+
+    /**
+     * Formats old/new version display values.
+     * Uses extracted semver-like values only if both sides are present.
+     */
+    public static Optional<VersionLine> formatVersionLine(String installedRaw, String latestRaw) {
+        String installed = installedRaw == null ? "" : installedRaw;
+        String latest = latestRaw == null ? "" : latestRaw;
+        if (installed.isBlank() || latest.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<String> installedExtracted = extractSemverLike(installed);
+        Optional<String> latestExtracted = extractSemverLike(latest);
+        if (installedExtracted.isPresent() && latestExtracted.isPresent()) {
+            return Optional.of(new VersionLine(installedExtracted.get(), latestExtracted.get()));
+        }
+        return Optional.of(new VersionLine(installed, latest));
+    }
+
+    public record VersionLine(String oldDisplay, String newDisplay) {
     }
 }

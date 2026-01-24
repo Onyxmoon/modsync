@@ -53,14 +53,14 @@ public class AddCommand extends AbstractPlayerCommand {
         String url = commandContext.get(urlArg);
 
         if (url.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Usage: /modsync add <url>").color("red"));
+            playerRef.sendMessage(Message.raw("Usage: /modsync add <url>").color(Color.RED));
             return;
         }
 
         // Find a parser for this URL
         Optional<ModUrlParser> parserOpt = modSync.getUrlParserRegistry().findParser(url);
         if (parserOpt.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color("red"));
+            playerRef.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color(Color.RED));
             return;
         }
 
@@ -69,19 +69,19 @@ public class AddCommand extends AbstractPlayerCommand {
         try {
             parsed = parser.parse(url);
         } catch (InvalidModUrlException e) {
-            playerRef.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color("red"));
+            playerRef.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color(Color.RED));
             return;
         }
 
         // Check if already in list
         if (parsed.hasSlug() && modSync.getManagedModStorage().getRegistry().findBySlug(parsed.slug()).isPresent()) {
-            playerRef.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color("red"));
+            playerRef.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color(Color.RED));
             return;
         }
 
         // Check if we have a provider for this source
         if (!modSync.getProviderRegistry().hasProvider(parsed.source())) {
-            playerRef.sendMessage(Message.raw("Source not yet supported: " + parsed.source().getDisplayName()).color("red"));
+            playerRef.sendMessage(Message.raw("Source not yet supported: " + parsed.source().getDisplayName()).color(Color.RED));
             return;
         }
 
@@ -89,7 +89,7 @@ public class AddCommand extends AbstractPlayerCommand {
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(parsed.source());
 
         if (provider.requiresApiKey() && apiKey == null) {
-            playerRef.sendMessage(Message.raw("No API key set for " + parsed.source().getDisplayName() + ". Use: /modsync setkey <key>").color("red"));
+            playerRef.sendMessage(Message.raw("No API key set for " + parsed.source().getDisplayName() + ". Use: /modsync setkey <key>").color(Color.RED));
             return;
         }
 
@@ -112,16 +112,16 @@ public class AddCommand extends AbstractPlayerCommand {
                 // Add to managed storage
                 modSync.getManagedModStorage().addMod(managedMod);
 
-                playerRef.sendMessage(Message.raw("Added: ").color(Color.green)
-                        .insert(Message.raw(modEntry.getName()).color("white"))
-                        .insert(Message.raw(" (" + modEntry.getSlug() + ")").color("gray"))
-                        .insert(Message.raw(" [" + modEntry.getPluginType().getDisplayName() + "]").color("aqua")));
-                playerRef.sendMessage(Message.raw("Use ").color("gray")
-                        .insert(Message.raw("/modsync install").color("white"))
-                        .insert(Message.raw(" to download").color("gray")));
+                playerRef.sendMessage(Message.raw("Added: ").color(Color.GREEN)
+                        .insert(Message.raw(modEntry.getName()).color(Color.WHITE))
+                        .insert(Message.raw(" (" + modEntry.getSlug() + ")").color(Color.GRAY))
+                        .insert(Message.raw(" [" + modEntry.getPluginType().getDisplayName() + "]").color(Color.CYAN)));
+                playerRef.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                        .insert(Message.raw("/modsync install").color(Color.WHITE))
+                        .insert(Message.raw(" to download").color(Color.GRAY)));
             })
             .exceptionally(ex -> {
-                playerRef.sendMessage(Message.raw("Failed to fetch mod: " + ex.getMessage()).color("red"));
+                playerRef.sendMessage(Message.raw("Failed to fetch mod: " + ex.getMessage()).color(Color.RED));
                 return null;
             });
     }
