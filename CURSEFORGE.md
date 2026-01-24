@@ -6,7 +6,7 @@ A server-side mod management plugin for Hytale that lets you easily add, install
 
 ## Features
 
-*   **Add mods via URL** - Simply paste a CurseForge mod URL to add it to your server's mod list
+*   **Add mods via URL** - Paste a CurseForge or CFWidget mod URL to add it to your server's mod list
 *   **Easy installation** - Install all managed mods with a single command
 *   **Update checking** - Check for available updates with version comparison display
 *   **One-click upgrades** - Upgrade mods to their latest versions
@@ -23,7 +23,7 @@ All commands use the `/modsync` prefix:
 
 | Command                                           | Description                                                        |
 |---------------------------------------------------|--------------------------------------------------------------------|
-| <code>/modsync add [url]</code>                   | Add a mod from a CurseForge URL                                    |
+| <code>/modsync add [url]</code>                   | Add a mod from a CurseForge or CFWidget URL                        |
 | <code>/modsync list</code>                        | Show all managed mods with install status, version, and identifier |
 | <code>/modsync install</code>                     | Install all mods from your list                                    |
 | <code>/modsync install [name]</code>              | Install a specific mod by name, slug, or identifier                |
@@ -35,12 +35,12 @@ All commands use the `/modsync` prefix:
 | <code>/modsync scan</code>                        | List unmanaged mods in the mods folder                             |
 | <code>/modsync import</code>                      | Auto-match and try to import all unmanaged mods                    |
 | <code>/modsync import [target]</code>             | Auto-match and import an unmanaged mod                             |
-| <code>/modsync import [target] --url=[url]</code> | Import an unmanaged mod with a CurseForge URL                      |
+| <code>/modsync import [target] --url=[url]</code> | Import an unmanaged mod with a CurseForge or CFWidget URL          |
 | <code>/modsync config</code>                      | Show all configuration settings                                    |
 | <code>/modsync config channel [value]</code>      | View or set default release channel (release/beta/alpha)           |
+| <code>/modsync config key [provider] [key]</code> | Set an API key for a provider (e.g., CurseForge)                   |
 | <code>/modsync setchannel [mod] [channel]</code>  | Set per-mod release channel override                               |
 | <code>/modsync status</code>                      | Show current configuration and version                             |
-| <code>/modsync setkey [key]</code>                | Set your CurseForge API key                                        |
 | <code>/modsync selfupgrade</code>                 | Check for ModSync plugin updates                                   |
 | <code>/modsync selfupgrade apply</code>           | Download and install the latest ModSync version                    |
 | <code>/modsync reload</code>                      | Reload configuration                                               |
@@ -72,14 +72,14 @@ All commands use the `/modsync` prefix:
 
 *   Server must be started with `--early-plugins` and `--accept-early-plugins` flags
 
-1.  Get a CurseForge API key from [CurseForge for Studios](https://console.curseforge.com/)
-2.  Set your API key: `/modsync setkey YOUR_API_KEY`
-3.  Start adding mods: `/modsync add https://www.curseforge.com/hytale/mods/your-mod`
+1.  (CurseForge provider) Get a CurseForge API key from [CurseForge for Studios](https://console.curseforge.com/)
+2.  (CurseForge provider) Set your API key: `/modsync config key curseforge YOUR_API_KEY`
+3.  Start adding mods: `/modsync add https://www.curseforge.com/hytale/mods/your-mod` or a CFWidget URL
 
 ## Requirements
 
 *   Hytale Server (release patchline)
-*   CurseForge API key
+*   CurseForge API key (required for CurseForge provider; optional for CFWidget)
 *   (Optional) Server must be started with `--early-plugins` and `--accept-early-plugins` flags
 *   (Optional) Bootstrap plugin for proper file deletion
 
@@ -163,7 +163,7 @@ Control which release types are considered for installation and updates:
 *   **Server Restart**: Installing, upgrading, or removing mods requires a server restart to take effect.
 *   **No Automatic Restart**: Currently, there is no way to trigger a server restart via the Mod API. After installing, upgrading, or removing mods, you must manually restart the server.
 *   **File Locking (Windows)**: JAR files are locked while loaded. The bootstrap plugin handles deletion on restart.
-*   **Supported Sources**: Currently CurseForge is the only supported mod source. The plugin architecture allows for additional sources to be added in the future.
+*   **Supported Sources**: CurseForge and CFWidget are supported. CFWidget uses the public widget API and does not require an API key, but does not support search-based imports.
 
 ## Configuration
 

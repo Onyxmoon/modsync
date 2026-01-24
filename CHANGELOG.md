@@ -5,6 +5,19 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **CFWidget provider**: URL-based mod lookups via the CFWidget API (no API key required)
+
+### Changed
+- **URL handling**: Providers now parse URLs directly and are tried in priority order (CurseForge first)
+- **Docs**: Added CFWidget support notes and API key requirements
+- **Config keys**: API keys are now set per provider via `/modsync config key <provider> <key>` (no global current source)
+
+### Fixed
+- **Import messaging**: Clearer errors when no provider can resolve a URL or when search is unsupported
+
 ## [0.6.3] - 2026-01-24
 
 ### Fixed

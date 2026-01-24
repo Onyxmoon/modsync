@@ -6,11 +6,11 @@
 ![License](https://img.shields.io/badge/License-Polyform%20NC-blue)
 ![Hytale](https://img.shields.io/badge/Hytale-Plugin-purple)
 
-A Hytale server plugin for managing server-side mods. ModSync allows server administrators to add mods via CurseForge URLs, track them in a managed list, and install/update them via in-game commands.
+A Hytale server plugin for managing server-side mods. ModSync allows server administrators to add mods via CurseForge or CFWidget URLs, track them in a managed list, and install/update them via in-game commands.
 
 ## Features
 
-- **CurseForge Integration** - Add mods directly from CurseForge URLs
+- **CurseForge/CFWidget Integration** - Add mods directly from CurseForge or CFWidget URLs
 - **Mod Management** - Track, install, update, and remove mods via commands
 - **Version Tracking** - Check for updates and upgrade mods to latest versions
 - **Release Channels** - Choose between Release, Beta, or Alpha versions (global default + per-mod override)
@@ -26,7 +26,7 @@ A Hytale server plugin for managing server-side mods. ModSync allows server admi
 
 - Java 25
 - Hytale Server (release patchline)
-- CurseForge API key
+- CurseForge API key (required for CurseForge provider; optional if using CFWidget only)
 
 ### Installation
 
@@ -35,7 +35,7 @@ A Hytale server plugin for managing server-side mods. ModSync allows server admi
 3. Place the main plugin JAR in your server's `mods/` directory
 4. Place the bootstrap JAR in your server's `earlyplugins/` directory
 5. Start the server with `--early-plugins` and `--accept-early-plugins` flags
-6. Set your CurseForge API key: `/modsync setkey <your-api-key>`
+6. Set your CurseForge API key: `/modsync config key curseforge <your-api-key>`
 
 ## Commands
 
@@ -43,7 +43,7 @@ All commands are subcommands of `/modsync`:
 
 | Command                      | Description                                                     |
 |------------------------------|-----------------------------------------------------------------|
-| `add <url>`                  | Add a mod from a CurseForge URL                                 |
+| `add <url>`                  | Add a mod from a CurseForge or CFWidget URL                     |
 | `list`                       | Show all managed mods with install status and version           |
 | `install [target]`           | Install mod by name/slug/identifier (no argument = install all) |
 | `remove <target>`            | Remove mod by name/slug/identifier, or `all` for all            |
@@ -54,7 +54,7 @@ All commands are subcommands of `/modsync`:
 | `config`                     | Show all configuration settings                                 |
 | `config channel [value]`     | View or set default release channel (release/beta/alpha)        |
 | `setchannel <mod> <channel>` | Set per-mod release channel override                            |
-| `setkey <key>`               | Set your CurseForge API key                                     |
+| `config key <provider> <key>`| Set API key for a provider (e.g., CurseForge)                   |
 | `status`                     | Show current configuration                                      |
 | `reload`                     | Reload configuration from disk                                  |
 
@@ -79,10 +79,10 @@ All commands are subcommands of `/modsync`:
 
 ### API Key Setup
 
-ModSync requires a CurseForge API key to fetch mod information. Get your key from the [CurseForge Console](https://console.curseforge.com/).
+ModSync requires a CurseForge API key to fetch mod information via the CurseForge provider. Get your key from the [CurseForge Console](https://console.curseforge.com/). CFWidget URLs do not require an API key but do not support search-based import matching.
 
 ```
-/modsync setkey <your-api-key>
+/modsync config key curseforge <your-api-key>
 ```
 
 ### Release Channels
@@ -164,7 +164,8 @@ ModSync uses a Service Provider Interface (SPI) for mod sources:
 
 - `ModListProvider` - Interface for mod sources
 - `ProviderRegistry` - Loads providers via `ServiceLoader`
-- `CurseForgeProvider` - Current implementation
+- `CurseForgeProvider` - CurseForge API integration
+- `CfWidgetProvider` - CFWidget API integration (URL-based, no search)
 
 To add new mod sources, implement `ModListProvider` and register in `META-INF/services`.
 

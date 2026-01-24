@@ -93,7 +93,7 @@ All commands are subcommands of `/modsync`:
 - `install <target>` - Install mod by name/slug/identifier, or `--all` for all
 - `check` - Check for available updates (shows version comparison)
 - `upgrade <target>` - Upgrade mod by name/slug/identifier, or `--all` for all
-- `setkey <key>` - Set CurseForge API key
+- `config key <provider> <key>` - Set API key for a provider (e.g., CurseForge)
 - `status` - Show current configuration
 - `reload` - Reload configuration from disk
 
