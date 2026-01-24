@@ -5,17 +5,28 @@ import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.ModListSource;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registry for mod list providers using ServiceLoader.
  */
 public class ProviderRegistry {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+
+    /**
+     * Thread-safe map of providers. Uses ConcurrentHashMap to allow
+     * safe concurrent access during provider lookups.
+     */
     private final Map<ModListSource, ModListProvider> providers;
 
     public ProviderRegistry() {
-        this.providers = new HashMap<>();
+        this.providers = new ConcurrentHashMap<>();
         loadProviders();
     }
 

@@ -21,14 +21,19 @@ import java.util.concurrent.CompletableFuture;
 public class CfWidgetClient {
     private static final String BASE_URL = "https://api.cfwidget.com";
 
-    private final HttpClient httpClient;
-    private final Gson gson;
+    /**
+     * Shared HttpClient instance for all CfWidgetClient instances.
+     * HttpClient is thread-safe and manages its own connection pool.
+     */
+    private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
+
+    private static final Gson SHARED_GSON = new GsonBuilder().create();
 
     public CfWidgetClient() {
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.gson = new GsonBuilder().create();
+        // No instance state needed - all resources are shared
     }
 
     public CompletableFuture<JsonObject> getProject(String pathOrId) {
@@ -44,11 +49,11 @@ public class CfWidgetClient {
                 .GET()
                 .build();
 
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return SHARED_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     int status = response.statusCode();
                     if (status == 200) {
-                        return gson.fromJson(response.body(), JsonObject.class);
+                        return SHARED_GSON.fromJson(response.body(), JsonObject.class);
                     }
                     throw new CfWidgetApiException(
                             "CFWidget request failed: " + status,
