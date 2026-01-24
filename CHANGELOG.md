@@ -5,7 +5,15 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.1] - 2026-01-24
+## [Unreleased]
+
+### Changed
+- **Console support**: ModSync commands can now be executed from the server console (player permissions still required in-game)
+
+### tl;dr
+> ModSync commands now work from the server console; in-game usage still requires permissions.
+
+## [0.6.1]
 
 ### Changed
 - **Console output layout**: Output formatting refined across commands for consistent, terminal-friendly lines

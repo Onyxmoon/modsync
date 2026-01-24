@@ -1,15 +1,11 @@
 package de.onyxmoon.modsync.command;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.InvalidModUrlException;
 import de.onyxmoon.modsync.api.ModListProvider;
@@ -27,7 +23,7 @@ import java.util.Optional;
  * Command: /modsync add <url>
  * Adds a mod to the managed mod list by URL.
  */
-public class AddCommand extends AbstractPlayerCommand {
+public class AddCommand extends CommandBase {
     private final ModSync modSync;
     private final RequiredArg<String> urlArg = this.withRequiredArg(
             "url",
@@ -41,26 +37,23 @@ public class AddCommand extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(@Nonnull CommandContext commandContext,
-                          @Nonnull Store<EntityStore> store,
-                          @Nonnull Ref<EntityStore> ref,
-                          @Nonnull PlayerRef playerRef,
-                          @Nonnull World world) {
-        if (!PermissionHelper.checkAdminPermission(playerRef)) {
+    protected void executeSync(@Nonnull CommandContext commandContext) {
+        if (!PermissionHelper.checkAdminPermission(commandContext)) {
             return;
         }
 
+        CommandSender sender = commandContext.sender();
         String url = commandContext.get(urlArg);
 
         if (url.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Usage: /modsync add <url>").color(Color.RED));
+            sender.sendMessage(Message.raw("Usage: /modsync add <url>").color(Color.RED));
             return;
         }
 
         // Find a parser for this URL
         Optional<ModUrlParser> parserOpt = modSync.getUrlParserRegistry().findParser(url);
         if (parserOpt.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color(Color.RED));
+            sender.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color(Color.RED));
             return;
         }
 
@@ -69,19 +62,19 @@ public class AddCommand extends AbstractPlayerCommand {
         try {
             parsed = parser.parse(url);
         } catch (InvalidModUrlException e) {
-            playerRef.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color(Color.RED));
+            sender.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color(Color.RED));
             return;
         }
 
         // Check if already in list
         if (parsed.hasSlug() && modSync.getManagedModStorage().getRegistry().findBySlug(parsed.slug()).isPresent()) {
-            playerRef.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color(Color.RED));
+            sender.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color(Color.RED));
             return;
         }
 
         // Check if we have a provider for this source
         if (!modSync.getProviderRegistry().hasProvider(parsed.source())) {
-            playerRef.sendMessage(Message.raw("Source not yet supported: " + parsed.source().getDisplayName()).color(Color.RED));
+            sender.sendMessage(Message.raw("Source not yet supported: " + parsed.source().getDisplayName()).color(Color.RED));
             return;
         }
 
@@ -89,11 +82,11 @@ public class AddCommand extends AbstractPlayerCommand {
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(parsed.source());
 
         if (provider.requiresApiKey() && apiKey == null) {
-            playerRef.sendMessage(Message.raw("No API key set for " + parsed.source().getDisplayName() + ". Use: /modsync setkey <key>").color(Color.RED));
+            sender.sendMessage(Message.raw("No API key set for " + parsed.source().getDisplayName() + ". Use: /modsync setkey <key>").color(Color.RED));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Fetching mod info...").color(Color.YELLOW));
+        sender.sendMessage(Message.raw("Fetching mod info...").color(Color.YELLOW));
 
         provider.fetchModBySlug(apiKey, parsed.slug())
             .thenAccept(modEntry -> {
@@ -112,16 +105,16 @@ public class AddCommand extends AbstractPlayerCommand {
                 // Add to managed storage
                 modSync.getManagedModStorage().addMod(managedMod);
 
-                playerRef.sendMessage(Message.raw("Added: ").color(Color.GREEN)
+                sender.sendMessage(Message.raw("Added: ").color(Color.GREEN)
                         .insert(Message.raw(modEntry.getName()).color(Color.WHITE))
                         .insert(Message.raw(" (" + modEntry.getSlug() + ")").color(Color.GRAY))
                         .insert(Message.raw(" [" + modEntry.getPluginType().getDisplayName() + "]").color(Color.CYAN)));
-                playerRef.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                sender.sendMessage(Message.raw("Use ").color(Color.GRAY)
                         .insert(Message.raw("/modsync install").color(Color.WHITE))
                         .insert(Message.raw(" to download").color(Color.GRAY)));
             })
             .exceptionally(ex -> {
-                playerRef.sendMessage(Message.raw("Failed to fetch mod: " + ex.getMessage()).color(Color.RED));
+                sender.sendMessage(Message.raw("Failed to fetch mod: " + ex.getMessage()).color(Color.RED));
                 return null;
             });
     }
