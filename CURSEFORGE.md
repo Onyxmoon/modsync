@@ -21,28 +21,28 @@ A server-side mod management plugin for Hytale that lets you easily add, install
 
 All commands use the `/modsync` prefix:
 
-| Command                                    | Description                                                        |
-|--------------------------------------------|--------------------------------------------------------------------|
-| <code>/modsync add [url]</code>            | Add a mod from a CurseForge URL                                    |
-| <code>/modsync list</code>                 | Show all managed mods with install status, version, and identifier |
-| <code>/modsync install</code>              | Install all mods from your list                                    |
-| <code>/modsync install [name]</code>       | Install a specific mod by name, slug, or identifier                |
-| <code>/modsync remove all</code>           | Remove all mods                                                    |
-| <code>/modsync remove [name]</code>        | Remove mod by name, slug, or identifier                            |
-| <code>/modsync check</code>                | Check for available updates (shows installed vs. latest version)   |
-| <code>/modsync upgrade</code>              | Upgrade all installed mods to latest version                       |
-| <code>/modsync upgrade [name]</code>       | Upgrade a specific mod by name, slug, or identifier                |
-| <code>/modsync scan</code>                 | List unmanaged mods in the mods folder                             |
-| <code>/modsync import [target]</code>      | Auto-match and import an unmanaged mod                             |
-| <code>/modsync import [target] [url]</code> | Import an unmanaged mod with a CurseForge URL                     |
-| <code>/modsync config</code>               | Show all configuration settings                                    |
-| <code>/modsync config channel [value]</code> | View or set default release channel (release/beta/alpha)         |
-| <code>/modsync setchannel [mod] [channel]</code> | Set per-mod release channel override                           |
-| <code>/modsync status</code>               | Show current configuration and version                             |
-| <code>/modsync setkey [key]</code>         | Set your CurseForge API key                                        |
-| <code>/modsync selfupgrade</code>          | Check for ModSync plugin updates                                   |
-| <code>/modsync selfupgrade apply</code>    | Download and install the latest ModSync version                    |
-| <code>/modsync reload</code>               | Reload configuration                                               |
+| Command                                           | Description                                                        |
+|---------------------------------------------------|--------------------------------------------------------------------|
+| <code>/modsync add [url]</code>                   | Add a mod from a CurseForge URL                                    |
+| <code>/modsync list</code>                        | Show all managed mods with install status, version, and identifier |
+| <code>/modsync install</code>                     | Install all mods from your list                                    |
+| <code>/modsync install [name]</code>              | Install a specific mod by name, slug, or identifier                |
+| <code>/modsync remove all</code>                  | Remove all mods                                                    |
+| <code>/modsync remove [name]</code>               | Remove mod by name, slug, or identifier                            |
+| <code>/modsync check</code>                       | Check for available updates (shows installed vs. latest version)   |
+| <code>/modsync upgrade</code>                     | Upgrade all installed mods to latest version                       |
+| <code>/modsync upgrade [name]</code>              | Upgrade a specific mod by name, slug, or identifier                |
+| <code>/modsync scan</code>                        | List unmanaged mods in the mods folder                             |
+| <code>/modsync import [target]</code>             | Auto-match and import an unmanaged mod                             |
+| <code>/modsync import [target] --url=[url]</code> | Import an unmanaged mod with a CurseForge URL                      |
+| <code>/modsync config</code>                      | Show all configuration settings                                    |
+| <code>/modsync config channel [value]</code>      | View or set default release channel (release/beta/alpha)           |
+| <code>/modsync setchannel [mod] [channel]</code>  | Set per-mod release channel override                               |
+| <code>/modsync status</code>                      | Show current configuration and version                             |
+| <code>/modsync setkey [key]</code>                | Set your CurseForge API key                                        |
+| <code>/modsync selfupgrade</code>                 | Check for ModSync plugin updates                                   |
+| <code>/modsync selfupgrade apply</code>           | Download and install the latest ModSync version                    |
+| <code>/modsync reload</code>                      | Reload configuration                                               |
 
 > **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Import Feature**: Import existing unmanaged mods into ModSync management
   - `/modsync scan` - List all unmanaged JAR/ZIP files in mods folder
   - `/modsync import <target>` - Auto-match and import a mod
-  - `/modsync import <target> <url>` - Manual import with CurseForge URL
+  - `/modsync import <target> --url=<url>` - Manual import with CurseForge URL
   - Auto-matching tries slug lookup and name search
 - **Search API**: Provider interface now supports mod search for import matching
 

@@ -41,22 +41,22 @@ A Hytale server plugin for managing server-side mods. ModSync allows server admi
 
 All commands are subcommands of `/modsync`:
 
-| Command | Description |
-|---------|-------------|
-| `add <url>` | Add a mod from a CurseForge URL |
-| `list` | Show all managed mods with install status and version |
-| `install [target]` | Install mod by name/slug/identifier (no argument = install all) |
-| `remove <target>` | Remove mod by name/slug/identifier, or `all` for all |
-| `check` | Check for available updates (shows version comparison) |
-| `upgrade [target]` | Upgrade mod by name/slug/identifier (no argument = upgrade all) |
-| `scan` | List unmanaged mods in the mods folder |
-| `import <target> [url]` | Import an unmanaged mod (auto-match or manual URL) |
-| `config` | Show all configuration settings |
-| `config channel [value]` | View or set default release channel (release/beta/alpha) |
-| `setchannel <mod> <channel>` | Set per-mod release channel override |
-| `setkey <key>` | Set your CurseForge API key |
-| `status` | Show current configuration |
-| `reload` | Reload configuration from disk |
+| Command                      | Description                                                     |
+|------------------------------|-----------------------------------------------------------------|
+| `add <url>`                  | Add a mod from a CurseForge URL                                 |
+| `list`                       | Show all managed mods with install status and version           |
+| `install [target]`           | Install mod by name/slug/identifier (no argument = install all) |
+| `remove <target>`            | Remove mod by name/slug/identifier, or `all` for all            |
+| `check`                      | Check for available updates (shows version comparison)          |
+| `upgrade [target]`           | Upgrade mod by name/slug/identifier (no argument = upgrade all) |
+| `scan`                       | List unmanaged mods in the mods folder                          |
+| `import <target> [url]`      | Import an unmanaged mod (auto-match or manual URL)              |
+| `config`                     | Show all configuration settings                                 |
+| `config channel [value]`     | View or set default release channel (release/beta/alpha)        |
+| `setchannel <mod> <channel>` | Set per-mod release channel override                            |
+| `setkey <key>`               | Set your CurseForge API key                                     |
+| `status`                     | Show current configuration                                      |
+| `reload`                     | Reload configuration from disk                                  |
 
 > **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 
