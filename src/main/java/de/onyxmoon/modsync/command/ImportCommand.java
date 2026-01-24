@@ -1,16 +1,12 @@
 package de.onyxmoon.modsync.command;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.InvalidModUrlException;
 import de.onyxmoon.modsync.api.ModListProvider;
@@ -41,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
  * - /modsync import mymod.jar --url=<url>      - Manual import with URL
  * - /modsync import MyMod:Name                 - Import by identifier
  */
-public class ImportCommand extends AbstractPlayerCommand {
+public class ImportCommand extends CommandBase {
     private final ModSync modSync;
 
     public ImportCommand(ModSync modSync) {
@@ -52,26 +48,23 @@ public class ImportCommand extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(@Nonnull CommandContext commandContext,
-                           @Nonnull Store<EntityStore> store,
-                           @Nonnull Ref<EntityStore> ref,
-                           @Nonnull PlayerRef playerRef,
-                           @Nonnull World world) {
-        if (!PermissionHelper.checkAdminPermission(playerRef)) {
+    protected void executeSync(@Nonnull CommandContext commandContext) {
+        if (!PermissionHelper.checkAdminPermission(commandContext)) {
             return;
         }
 
+        CommandSender sender = commandContext.sender();
         // Find unmanaged mods
         ModScanService scanService = modSync.getScanService();
         List<UnmanagedMod> unmanaged = scanService.scanForUnmanagedMods();
 
         if (!unmanaged.isEmpty()) {
             for (UnmanagedMod mod : unmanaged) {
-                autoMatchImport(modSync, playerRef, mod);
+                autoMatchImport(modSync, sender, mod);
             }
         } else {
-            playerRef.sendMessage(Message.raw("No unmanaged mods found.").color(Color.RED));
-            playerRef.sendMessage(Message.raw("Use /modsync scan to see unmanaged mods.").color(Color.GRAY));
+            sender.sendMessage(Message.raw("No unmanaged mods found.").color(Color.RED));
+            sender.sendMessage(Message.raw("Use /modsync scan to see unmanaged mods.").color(Color.GRAY));
         }
     }
 
@@ -110,15 +103,15 @@ public class ImportCommand extends AbstractPlayerCommand {
         return Optional.empty();
     }
 
-    private static void importWithUrl(ModSync modSync, PlayerRef playerRef, UnmanagedMod unmanagedMod, String url) {
-        playerRef.sendMessage(Message.raw("Importing ").color(Color.GRAY)
+    private static void importWithUrl(ModSync modSync, CommandSender sender, UnmanagedMod unmanagedMod, String url) {
+        sender.sendMessage(Message.raw("Importing ").color(Color.GRAY)
                 .insert(Message.raw(unmanagedMod.fileName()).color(Color.WHITE))
                 .insert(Message.raw(" with URL...").color(Color.GRAY)));
 
         // Find a parser for this URL
         Optional<ModUrlParser> parserOpt = modSync.getUrlParserRegistry().findParser(url);
         if (parserOpt.isEmpty()) {
-            playerRef.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color(Color.RED));
+            sender.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color(Color.RED));
             return;
         }
 
@@ -127,7 +120,7 @@ public class ImportCommand extends AbstractPlayerCommand {
         try {
             parsedUrl = parser.parse(url);
         } catch (InvalidModUrlException e) {
-            playerRef.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color(Color.RED));
+            sender.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color(Color.RED));
             return;
         }
 
@@ -135,13 +128,13 @@ public class ImportCommand extends AbstractPlayerCommand {
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(source);
 
         if (apiKey == null || apiKey.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No API key configured for " + source.getDisplayName()).color(Color.RED));
+            sender.sendMessage(Message.raw("No API key configured for " + source.getDisplayName()).color(Color.RED));
             return;
         }
 
         ModListProvider provider = modSync.getProviderRegistry().getProvider(source);
         if (provider == null) {
-            playerRef.sendMessage(Message.raw("No provider available for " + source.getDisplayName()).color(Color.RED));
+            sender.sendMessage(Message.raw("No provider available for " + source.getDisplayName()).color(Color.RED));
             return;
         }
 
@@ -152,42 +145,42 @@ public class ImportCommand extends AbstractPlayerCommand {
         } else if (parsedUrl.slug() != null) {
             fetchFuture = provider.fetchModBySlug(apiKey, parsedUrl.slug());
         } else {
-            playerRef.sendMessage(Message.raw("Could not extract mod ID or slug from URL").color(Color.RED));
+            sender.sendMessage(Message.raw("Could not extract mod ID or slug from URL").color(Color.RED));
             return;
         }
 
         fetchFuture
                 .thenAccept(modEntry -> {
                     modSync.getScanService().importWithEntry(unmanagedMod, modEntry);
-                    playerRef.sendMessage(Message.raw("Successfully imported as: ").color(Color.GREEN)
+                    sender.sendMessage(Message.raw("Successfully imported as: ").color(Color.GREEN)
                             .insert(Message.raw(modEntry.getName()).color(Color.YELLOW)));
                 })
                 .exceptionally(ex -> {
-                    playerRef.sendMessage(Message.raw("Import failed: " + CommandUtils.extractErrorMessage(ex)).color(Color.RED));
+                    sender.sendMessage(Message.raw("Import failed: " + CommandUtils.extractErrorMessage(ex)).color(Color.RED));
                     return null;
                 });
     }
 
-    private static void autoMatchImport(ModSync modSync, PlayerRef playerRef, UnmanagedMod unmanagedMod) {
-        playerRef.sendMessage(Message.raw("Searching for match for ").color(Color.GRAY)
+    private static void autoMatchImport(ModSync modSync, CommandSender sender, UnmanagedMod unmanagedMod) {
+        sender.sendMessage(Message.raw("Searching for match for ").color(Color.GRAY)
                 .insert(Message.raw(unmanagedMod.fileName()).color(Color.WHITE))
                 .insert(Message.raw("...").color(Color.GRAY)));
 
         modSync.getScanService().findMatch(unmanagedMod)
-                .thenAccept(match -> handleMatchResult(modSync, playerRef, match))
+                .thenAccept(match -> handleMatchResult(modSync, sender, match))
                 .exceptionally(ex -> {
-                    playerRef.sendMessage(Message.raw("Match search failed: " + CommandUtils.extractErrorMessage(ex)).color(Color.RED));
+                    sender.sendMessage(Message.raw("Match search failed: " + CommandUtils.extractErrorMessage(ex)).color(Color.RED));
                     return null;
                 });
     }
 
-    private static void handleMatchResult(ModSync modSync, PlayerRef playerRef, ImportMatch match) {
+    private static void handleMatchResult(ModSync modSync, CommandSender sender, ImportMatch match) {
         UnmanagedMod unmanagedMod = match.unmanagedMod();
 
         if (!match.hasMatch()) {
-            playerRef.sendMessage(Message.raw("No match found for: ").color(Color.YELLOW)
+            sender.sendMessage(Message.raw("No match found for: ").color(Color.YELLOW)
                     .insert(Message.raw(unmanagedMod.fileName()).color(Color.WHITE)));
-            playerRef.sendMessage(Message.raw("Use ").color(Color.GRAY)
+            sender.sendMessage(Message.raw("Use ").color(Color.GRAY)
                     .insert(Message.raw("/modsync import " + unmanagedMod.fileName() + " --url=<url>").color(Color.WHITE))
                     .insert(Message.raw(" to import manually.").color(Color.GRAY)));
             return;
@@ -199,26 +192,26 @@ public class ImportCommand extends AbstractPlayerCommand {
             // High confidence - auto import
             assert modEntry != null;
             modSync.getScanService().importWithEntry(unmanagedMod, modEntry);
-            playerRef.sendMessage(Message.raw("Match found: ").color(Color.GREEN)
+            sender.sendMessage(Message.raw("Match found: ").color(Color.GREEN)
                     .insert(Message.raw(modEntry.getName()).color(Color.YELLOW))
                     .insert(Message.raw(" (" + match.confidence().getDisplayName() + ")").color(Color.GRAY)));
-            playerRef.sendMessage(Message.raw("Successfully imported!").color(Color.GREEN));
+            sender.sendMessage(Message.raw("Successfully imported!").color(Color.GREEN));
         } else {
             // Low confidence - show match but don't auto import
             assert modEntry != null;
-            playerRef.sendMessage(Message.raw("Possible match found: ").color(Color.YELLOW)
+            sender.sendMessage(Message.raw("Possible match found: ").color(Color.YELLOW)
                     .insert(Message.raw(modEntry.getName()).color(Color.WHITE))
                     .insert(Message.raw(" (" + match.confidence().getDisplayName() + ")").color(Color.GRAY)));
             if (match.matchReason() != null) {
-                playerRef.sendMessage(Message.raw("Reason: " + match.matchReason()).color(Color.GRAY));
+                sender.sendMessage(Message.raw("Reason: " + match.matchReason()).color(Color.GRAY));
             }
-            playerRef.sendMessage(Message.raw(""));
-            playerRef.sendMessage(Message.raw("To confirm, use: ").color(Color.GRAY)
+            sender.sendMessage(Message.raw(""));
+            sender.sendMessage(Message.raw("To confirm, use: ").color(Color.GRAY)
                     .insert(Message.raw("/modsync import " + unmanagedMod.fileName() + " https://curseforge.com/hytale/mods/" + modEntry.getSlug()).color(Color.WHITE)));
         }
     }
 
-    public static class ImportSpecificModCommand extends AbstractPlayerCommand {
+    public static class ImportSpecificModCommand extends CommandBase {
         private final ModSync modSync;
         private final RequiredArg<String> targetArg = this.withRequiredArg(
                 "target",
@@ -238,16 +231,12 @@ public class ImportCommand extends AbstractPlayerCommand {
         }
 
         @Override
-        protected void execute(@NonNullDecl CommandContext commandContext,
-                               @NonNullDecl Store<EntityStore> store,
-                               @NonNullDecl Ref<EntityStore> ref,
-                               @NonNullDecl PlayerRef playerRef,
-                               @NonNullDecl World world) {
-
-            if (!PermissionHelper.checkAdminPermission(playerRef)) {
+        protected void executeSync(@NonNullDecl CommandContext commandContext) {
+            if (!PermissionHelper.checkAdminPermission(commandContext)) {
                 return;
             }
 
+            CommandSender sender = commandContext.sender();
             String target = commandContext.get(targetArg);
             String url = commandContext.get(urlArg);
 
@@ -257,8 +246,8 @@ public class ImportCommand extends AbstractPlayerCommand {
 
             Optional<UnmanagedMod> found = findUnmanagedMod(unmanaged, target);
             if (found.isEmpty()) {
-                playerRef.sendMessage(Message.raw("Unmanaged mod not found: " + target).color(Color.RED));
-                playerRef.sendMessage(Message.raw("Use /modsync scan to see unmanaged mods.").color(Color.GRAY));
+                sender.sendMessage(Message.raw("Unmanaged mod not found: " + target).color(Color.RED));
+                sender.sendMessage(Message.raw("Use /modsync scan to see unmanaged mods.").color(Color.GRAY));
                 return;
             }
 
@@ -266,10 +255,10 @@ public class ImportCommand extends AbstractPlayerCommand {
 
             if (url != null && !url.isEmpty()) {
                 // Manual import with URL
-                importWithUrl(modSync, playerRef, unmanagedMod, url);
+                importWithUrl(modSync, sender, unmanagedMod, url);
             } else {
                 // Auto-match
-                autoMatchImport(modSync, playerRef, unmanagedMod);
+                autoMatchImport(modSync, sender, unmanagedMod);
             }
 
         }

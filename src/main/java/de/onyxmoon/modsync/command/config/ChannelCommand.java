@@ -1,16 +1,11 @@
 package de.onyxmoon.modsync.command.config;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
@@ -30,7 +25,7 @@ import java.awt.*;
  * - /modsync config channel beta         - Set to beta + release
  * - /modsync config channel alpha        - Set to all versions
  */
-public class ChannelCommand extends AbstractPlayerCommand {
+public class ChannelCommand extends CommandBase {
     private final ModSync modSync;
 
     public ChannelCommand(ModSync modSync) {
@@ -40,28 +35,25 @@ public class ChannelCommand extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(@Nonnull CommandContext commandContext,
-                          @Nonnull Store<EntityStore> store,
-                          @Nonnull Ref<EntityStore> ref,
-                          @Nonnull PlayerRef playerRef,
-                          @Nonnull World world) {
-        if (!PermissionHelper.checkAdminPermission(playerRef)) {
+    protected void executeSync(@Nonnull CommandContext commandContext) {
+        if (!PermissionHelper.checkAdminPermission(commandContext)) {
             return;
         }
 
+        CommandSender sender = commandContext.sender();
         PluginConfig config = modSync.getConfigStorage().getConfig();
 
         // Show current value
         ReleaseChannel channel = config.getDefaultReleaseChannel();
-        playerRef.sendMessage(Message.raw("Default release channel: ").color(Color.GRAY)
+        sender.sendMessage(Message.raw("Default release channel: ").color(Color.GRAY)
                 .insert(Message.raw(channel.getDisplayName()).color(Color.YELLOW)));
-        playerRef.sendMessage(Message.raw(getChannelDescription(channel)).color(Color.GRAY));
-        playerRef.sendMessage(Message.raw(""));
-        playerRef.sendMessage(Message.raw("To change: ").color(Color.GRAY)
+        sender.sendMessage(Message.raw(getChannelDescription(channel)).color(Color.GRAY));
+        sender.sendMessage(Message.raw(""));
+        sender.sendMessage(Message.raw("To change: ").color(Color.GRAY)
                 .insert(Message.raw("/modsync config channel <release|beta|alpha>").color(Color.WHITE)));
     }
 
-    public static class ChannelSetCommand extends AbstractPlayerCommand {
+    public static class ChannelSetCommand extends CommandBase {
         private final ModSync modSync;
         private final RequiredArg<String> channelArg = this.withRequiredArg(
                 "channel",
@@ -75,19 +67,20 @@ public class ChannelCommand extends AbstractPlayerCommand {
         }
 
         @Override
-        protected void execute(@NonNullDecl CommandContext commandContext,
-                               @NonNullDecl Store<EntityStore> store,
-                               @NonNullDecl Ref<EntityStore> ref,
-                               @NonNullDecl PlayerRef playerRef,
-                               @NonNullDecl World world) {
+        protected void executeSync(@NonNullDecl CommandContext commandContext) {
+            if (!PermissionHelper.checkAdminPermission(commandContext)) {
+                return;
+            }
+
+            CommandSender sender = commandContext.sender();
             String channelStr = commandContext.get(channelArg);
             PluginConfig config = modSync.getConfigStorage().getConfig();
 
             // Set new value
             ReleaseChannel channel = ReleaseChannel.fromStringOrNull(channelStr);
             if (channel == null) {
-                playerRef.sendMessage(Message.raw("Invalid channel: " + channelStr).color(Color.RED));
-                playerRef.sendMessage(Message.raw("Valid options: release, beta, alpha").color(Color.GRAY));
+                sender.sendMessage(Message.raw("Invalid channel: " + channelStr).color(Color.RED));
+                sender.sendMessage(Message.raw("Valid options: release, beta, alpha").color(Color.GRAY));
                 return;
             }
 
@@ -95,12 +88,12 @@ public class ChannelCommand extends AbstractPlayerCommand {
             config.setDefaultReleaseChannel(channel);
             modSync.getConfigStorage().save();
 
-            playerRef.sendMessage(Message.raw("Default release channel set to: ").color(Color.GREEN)
+            sender.sendMessage(Message.raw("Default release channel set to: ").color(Color.GREEN)
                     .insert(Message.raw(channel.getDisplayName()).color(Color.YELLOW)));
-            playerRef.sendMessage(Message.raw(getChannelDescription(channel)).color(Color.GRAY));
+            sender.sendMessage(Message.raw(getChannelDescription(channel)).color(Color.GRAY));
 
             if (previous != channel) {
-                playerRef.sendMessage(Message.raw("Tip: ").color(Color.GRAY)
+                sender.sendMessage(Message.raw("Tip: ").color(Color.GRAY)
                         .insert(Message.raw("Use /modsync check to see if updates are available.").color(Color.WHITE)));
             }
         }

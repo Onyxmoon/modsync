@@ -1,13 +1,9 @@
 package de.onyxmoon.modsync.command;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.command.system.CommandSender;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.model.InstalledState;
@@ -28,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Command: /modsync check
  * Checks all managed mods for available updates.
  */
-public class CheckCommand extends AbstractPlayerCommand {
+public class CheckCommand extends CommandBase {
     private final ModSync modSync;
 
     public CheckCommand(ModSync modSync) {
@@ -37,19 +33,16 @@ public class CheckCommand extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(@Nonnull CommandContext commandContext,
-                          @Nonnull Store<EntityStore> store,
-                          @Nonnull Ref<EntityStore> ref,
-                          @Nonnull PlayerRef playerRef,
-                          @Nonnull World world) {
-        if (!PermissionHelper.checkAdminPermission(playerRef)) {
+    protected void executeSync(@Nonnull CommandContext commandContext) {
+        if (!PermissionHelper.checkAdminPermission(commandContext)) {
             return;
         }
 
+        CommandSender sender = commandContext.sender();
         ManagedModRegistry registry = modSync.getManagedModStorage().getRegistry();
 
         if (registry.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No mods in list to check.").color(Color.RED));
+            sender.sendMessage(Message.raw("No mods in list to check.").color(Color.RED));
             return;
         }
 
@@ -57,11 +50,11 @@ public class CheckCommand extends AbstractPlayerCommand {
         List<ManagedMod> installedMods = registry.getInstalled();
 
         if (installedMods.isEmpty()) {
-            playerRef.sendMessage(Message.raw("No installed mods to check.").color(Color.YELLOW));
+            sender.sendMessage(Message.raw("No installed mods to check.").color(Color.YELLOW));
             return;
         }
 
-        playerRef.sendMessage(Message.raw("Checking " + installedMods.size() + " mod(s) for updates...").color(Color.YELLOW));
+        sender.sendMessage(Message.raw("Checking " + installedMods.size() + " mod(s) for updates...").color(Color.YELLOW));
 
         AtomicInteger updatesAvailable = new AtomicInteger(0);
         AtomicInteger upToDate = new AtomicInteger(0);
@@ -72,7 +65,7 @@ public class CheckCommand extends AbstractPlayerCommand {
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                sendModStatusWithVersion(playerRef, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
+                                sendModStatusWithVersion(sender, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -85,8 +78,8 @@ public class CheckCommand extends AbstractPlayerCommand {
 
         CompletableFuture.allOf(futures)
                 .thenRun(() -> {
-                    playerRef.sendMessage(Message.raw("=== Update Check Complete ===").color(Color.CYAN));
-                    playerRef.sendMessage(Message.raw("Updates available: ").color(Color.GRAY)
+                    sender.sendMessage(Message.raw("=== Update Check Complete ===").color(Color.CYAN));
+                    sender.sendMessage(Message.raw("Updates available: ").color(Color.GRAY)
                             .insert(Message.raw(String.valueOf(updatesAvailable.get())).color(Color.YELLOW))
                             .insert(Message.raw(" | Up to date: ").color(Color.GRAY))
                             .insert(Message.raw(String.valueOf(upToDate.get())).color(Color.GREEN))
@@ -94,7 +87,7 @@ public class CheckCommand extends AbstractPlayerCommand {
                             .insert(Message.raw(String.valueOf(failed.get())).color(Color.RED)));
 
                     if (updatesAvailable.get() > 0) {
-                        playerRef.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                        sender.sendMessage(Message.raw("Use ").color(Color.GRAY)
                                 .insert(Message.raw("/modsync upgrade").color(Color.WHITE))
                                 .insert(Message.raw(" to update.").color(Color.GRAY)));
                     }
@@ -149,25 +142,25 @@ public class CheckCommand extends AbstractPlayerCommand {
 
     // ===== Formatting Helpers =====
 
-    private void sendModStatusWithVersion(PlayerRef playerRef, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
+    private void sendModStatusWithVersion(CommandSender sender, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
         Message firstLine = Message.raw("> ").color(Color.ORANGE)
                 .insert(Message.raw(mod.getName()).color(Color.WHITE))
                 .insert(Message.raw(" [" + status + "]").color(statusColor));
-        playerRef.sendMessage(firstLine);
+        sender.sendMessage(firstLine);
 
-        sendIdentifierLine(playerRef, mod);
-        sendVersionLine(playerRef, oldVersion, newVersion);
+        sendIdentifierLine(sender, mod);
+        sendVersionLine(sender, oldVersion, newVersion);
     }
 
-    private void sendIdentifierLine(PlayerRef playerRef, ManagedMod mod) {
+    private void sendIdentifierLine(CommandSender sender, ManagedMod mod) {
         String identifier = mod.getIdentifierString().orElse("-");
-        playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+        sender.sendMessage(Message.raw("    ").color(Color.GRAY)
                 .insert(Message.raw(identifier).color(Color.CYAN)));
     }
 
-    private void sendVersionLine(PlayerRef playerRef, String oldVersion, String newVersion) {
+    private void sendVersionLine(CommandSender sender, String oldVersion, String newVersion) {
         CommandUtils.formatVersionLine(oldVersion, newVersion)
-                .ifPresent(line -> playerRef.sendMessage(Message.raw("    ").color(Color.GRAY)
+                .ifPresent(line -> sender.sendMessage(Message.raw("    ").color(Color.GRAY)
                         .insert(Message.raw(line.oldDisplay()).color(Color.RED))
                         .insert(Message.raw(" -> ").color(Color.GRAY))
                         .insert(Message.raw(line.newDisplay()).color(Color.GREEN))));
