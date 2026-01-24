@@ -8,14 +8,12 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.ModListSource;
-import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.ImportMatch;
 import de.onyxmoon.modsync.api.model.UnmanagedMod;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.service.ModScanService;
+import de.onyxmoon.modsync.service.ProviderFetchService;
 import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.PermissionHelper;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
@@ -24,8 +22,8 @@ import javax.annotation.Nonnull;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Command: /modsync import [target] [url]
@@ -108,17 +106,17 @@ public class ImportCommand extends CommandBase {
                 .insert(Message.raw(unmanagedMod.fileName()).color(Color.WHITE))
                 .insert(Message.raw(" with URL...").color(Color.GRAY)));
 
-        List<ModListProvider> providers = modSync.getUrlParserRegistry().findProviders(url);
-        if (providers.isEmpty()) {
+        ProviderFetchService fetchService = modSync.getFetchService();
+        List<String> providerNames = fetchService.getProviderNamesForUrl(url);
+
+        if (providerNames.isEmpty()) {
             sender.sendMessage(Message.raw("No provider supports this URL.").color(Color.RED));
             return;
         }
-        List<String> missingApiKeys = new ArrayList<>();
-        List<String> providerNames = providers.stream()
-                .map(ModListProvider::getDisplayName)
-                .toList();
 
-        fetchFromProviders(modSync, url, providers, missingApiKeys, 0)
+        List<String> missingApiKeys = new ArrayList<>();
+
+        fetchService.fetchFromUrl(url, missingApiKeys::add)
                 .thenAccept(result -> {
                     if (result == null) {
                         sender.sendMessage(Message.raw("No provider could resolve the URL. Tried: " + String.join(", ", providerNames)).color(Color.RED));
@@ -138,51 +136,6 @@ public class ImportCommand extends CommandBase {
                     sender.sendMessage(Message.raw("Import failed: " + CommandUtils.extractErrorMessage(ex)).color(Color.RED));
                     return null;
                 });
-    }
-
-    private static CompletableFuture<FetchResult> fetchFromProviders(
-            ModSync modSync,
-            String url,
-            List<ModListProvider> providers,
-            List<String> missingApiKeys,
-            int index) {
-        if (index >= providers.size()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        ModListProvider provider = providers.get(index);
-        ParsedModUrl parsedUrl;
-        try {
-            parsedUrl = provider.parse(url);
-        } catch (InvalidModUrlException e) {
-            return fetchFromProviders(modSync, url, providers, missingApiKeys, index + 1);
-        }
-
-        ModListSource source = provider.getSource();
-        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(source);
-
-        if (provider.requiresApiKey() && (apiKey == null || apiKey.isEmpty())) {
-            missingApiKeys.add(source.getDisplayName());
-            return fetchFromProviders(modSync, url, providers, missingApiKeys, index + 1);
-        }
-
-        if (parsedUrl.modId() == null && parsedUrl.slug() == null) {
-            return fetchFromProviders(modSync, url, providers, missingApiKeys, index + 1);
-        }
-
-        CompletableFuture<ModEntry> fetchFuture = parsedUrl.modId() != null
-                ? provider.fetchMod(apiKey, parsedUrl.modId())
-                : provider.fetchModBySlug(apiKey, parsedUrl.slug());
-
-        return fetchFuture.handle((result, ex) -> {
-            if (ex == null) {
-                return CompletableFuture.completedFuture(new FetchResult(provider, result));
-            }
-            return fetchFromProviders(modSync, url, providers, missingApiKeys, index + 1);
-        }).thenCompose(future -> future);
-    }
-
-    private record FetchResult(ModListProvider provider, ModEntry modEntry) {
     }
 
     private static void autoMatchImport(ModSync modSync, CommandSender sender, UnmanagedMod unmanagedMod) {
@@ -217,7 +170,7 @@ public class ImportCommand extends CommandBase {
 
         if (match.isAutoImportable()) {
             // High confidence - auto import
-            assert modEntry != null;
+            Objects.requireNonNull(modEntry, "modEntry cannot be null when match is auto-importable");
             modSync.getScanService().importWithEntry(unmanagedMod, modEntry, ModListSource.CURSEFORGE);
             sender.sendMessage(Message.raw("Match found: ").color(Color.GREEN)
                     .insert(Message.raw(modEntry.getName()).color(Color.YELLOW))
@@ -225,7 +178,7 @@ public class ImportCommand extends CommandBase {
             sender.sendMessage(Message.raw("Successfully imported!").color(Color.GREEN));
         } else {
             // Low confidence - show match but don't auto import
-            assert modEntry != null;
+            Objects.requireNonNull(modEntry, "modEntry cannot be null when match has low confidence");
             sender.sendMessage(Message.raw("Possible match found: ").color(Color.YELLOW)
                     .insert(Message.raw(modEntry.getName()).color(Color.WHITE))
                     .insert(Message.raw(" (" + match.confidence().getDisplayName() + ")").color(Color.GRAY)));
@@ -253,7 +206,7 @@ public class ImportCommand extends CommandBase {
         );
 
         public ImportSpecificModCommand(ModSync modSync) {
-            super("Set default release channel");
+            super("Import a specific unmanaged mod");
             this.modSync = modSync;
         }
 

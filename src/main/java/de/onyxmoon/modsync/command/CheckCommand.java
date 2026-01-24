@@ -10,7 +10,7 @@ import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
-import de.onyxmoon.modsync.util.CommandUtils;
+import de.onyxmoon.modsync.util.CommandMessageFormatter;
 import de.onyxmoon.modsync.util.PermissionHelper;
 import de.onyxmoon.modsync.util.VersionSelector;
 
@@ -65,7 +65,7 @@ public class CheckCommand extends CommandBase {
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                sendModStatusWithVersion(sender, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
+                                CommandMessageFormatter.sendModStatusWithVersion(sender, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -138,31 +138,5 @@ public class CheckCommand extends CommandBase {
         static CheckResult upToDate(String installedVersion, String latestVersion) {
             return new CheckResult(false, installedVersion, latestVersion);
         }
-    }
-
-    // ===== Formatting Helpers =====
-
-    private void sendModStatusWithVersion(CommandSender sender, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
-        Message firstLine = Message.raw("> ").color(Color.ORANGE)
-                .insert(Message.raw(mod.getName()).color(Color.WHITE))
-                .insert(Message.raw(" [" + status + "]").color(statusColor));
-        sender.sendMessage(firstLine);
-
-        sendIdentifierLine(sender, mod);
-        sendVersionLine(sender, oldVersion, newVersion);
-    }
-
-    private void sendIdentifierLine(CommandSender sender, ManagedMod mod) {
-        String identifier = mod.getIdentifierString().orElse("-");
-        sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                .insert(Message.raw(identifier).color(Color.CYAN)));
-    }
-
-    private void sendVersionLine(CommandSender sender, String oldVersion, String newVersion) {
-        CommandUtils.formatVersionLine(oldVersion, newVersion)
-                .ifPresent(line -> sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                        .insert(Message.raw(line.oldDisplay()).color(Color.RED))
-                        .insert(Message.raw(" -> ").color(Color.GRAY))
-                        .insert(Message.raw(line.newDisplay()).color(Color.GREEN))));
     }
 }

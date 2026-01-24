@@ -7,10 +7,8 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.service.ProviderFetchService;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -18,7 +16,6 @@ import java.awt.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Command: /modsync add <url>
@@ -51,21 +48,19 @@ public class AddCommand extends CommandBase {
             return;
         }
 
-        List<ModListProvider> providers = modSync.getUrlParserRegistry().findProviders(url);
-        if (providers.isEmpty()) {
+        ProviderFetchService fetchService = modSync.getFetchService();
+        List<String> providerNames = fetchService.getProviderNamesForUrl(url);
+
+        if (providerNames.isEmpty()) {
             sender.sendMessage(Message.raw("No provider supports this URL.").color(Color.RED));
             return;
         }
 
-        List<String> missingApiKeys = new ArrayList<>();
-
         sender.sendMessage(Message.raw("Fetching mod info...").color(Color.YELLOW));
 
-        List<String> providerNames = providers.stream()
-                .map(ModListProvider::getDisplayName)
-                .toList();
+        List<String> missingApiKeys = new ArrayList<>();
 
-        fetchFromProviders(url, providers, missingApiKeys, 0)
+        fetchService.fetchFromUrl(url, missingApiKeys::add)
             .thenAccept(result -> {
                 if (result == null) {
                     sender.sendMessage(Message.raw("No provider could resolve the URL. Tried: " + String.join(", ", providerNames)).color(Color.RED));
@@ -91,7 +86,7 @@ public class AddCommand extends CommandBase {
                         .slug(modEntry.getSlug())
                         .name(modEntry.getName())
                         .pluginType(modEntry.getPluginType())
-                        .desiredVersionId(result.parsed().versionId())
+                        .desiredVersionId(result.parsedUrl().versionId())
                         .addedAt(Instant.now())
                         .addedViaUrl(url)
                         .build();
@@ -111,48 +106,5 @@ public class AddCommand extends CommandBase {
                 sender.sendMessage(Message.raw("Failed to fetch mod: " + ex.getMessage()).color(Color.RED));
                 return null;
             });
-    }
-
-    private CompletableFuture<FetchResult> fetchFromProviders(
-            String url,
-            List<ModListProvider> providers,
-            List<String> missingApiKeys,
-            int index) {
-        if (index >= providers.size()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        ModListProvider provider = providers.get(index);
-        ParsedModUrl parsed;
-        try {
-            parsed = provider.parse(url);
-        } catch (InvalidModUrlException e) {
-            return fetchFromProviders(url, providers, missingApiKeys, index + 1);
-        }
-
-        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(provider.getSource());
-        if (provider.requiresApiKey() && (apiKey == null || apiKey.isBlank())) {
-            missingApiKeys.add(provider.getDisplayName());
-            return fetchFromProviders(url, providers, missingApiKeys, index + 1);
-        }
-
-        CompletableFuture<de.onyxmoon.modsync.api.model.provider.ModEntry> fetchFuture =
-                parsed.hasModId()
-                        ? provider.fetchMod(apiKey, parsed.modId())
-                        : provider.fetchModBySlug(apiKey, parsed.slug());
-
-        return fetchFuture.handle((result, ex) -> {
-            if (ex == null) {
-                return CompletableFuture.completedFuture(new FetchResult(provider, parsed, result));
-            }
-            return fetchFromProviders(url, providers, missingApiKeys, index + 1);
-        }).thenCompose(future -> future);
-    }
-
-    private record FetchResult(
-            ModListProvider provider,
-            ParsedModUrl parsed,
-            de.onyxmoon.modsync.api.model.provider.ModEntry modEntry
-    ) {
     }
 }
