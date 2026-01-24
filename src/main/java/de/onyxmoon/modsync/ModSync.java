@@ -68,7 +68,7 @@ public class ModSync extends JavaPlugin {
 
         // Initialize provider and parser registries
         this.providerRegistry = new ProviderRegistry();
-        this.urlParserRegistry = new UrlParserRegistry();
+        this.urlParserRegistry = new UrlParserRegistry(this.providerRegistry);
 
         // Initialize download service
         // mods folder is the parent of the data folder (mods/)
@@ -120,7 +120,6 @@ public class ModSync extends JavaPlugin {
         ModSyncCommand rootCommand = new ModSyncCommand(this);
 
         // Add subcommands to root command
-        rootCommand.addSubCommand(new SetKeyCommand(this));
         rootCommand.addSubCommand(new StatusCommand(this));
         rootCommand.addSubCommand(new ReloadCommand(this));
         rootCommand.addSubCommand(new ConfigCommand(this));

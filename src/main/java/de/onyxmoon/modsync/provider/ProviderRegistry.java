@@ -69,6 +69,10 @@ public class ProviderRegistry {
         return providers.containsKey(source);
     }
 
+    public Collection<ModListProvider> getProviders() {
+        return providers.values();
+    }
+
     public Collection<ModListSource> getAvailableSources() {
         return providers.keySet();
     }
