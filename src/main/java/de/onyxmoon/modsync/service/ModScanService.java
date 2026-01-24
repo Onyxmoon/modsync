@@ -166,8 +166,18 @@ public class ModScanService {
         String searchTerm = unmanagedMod.getDisplayName();
 
         return provider.searchMods(apiKey, searchTerm)
-                .thenApply(results -> {
-                    if (results.isEmpty()) {
+                .handle((results, ex) -> {
+                    if (ex != null) {
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        if (cause instanceof UnsupportedOperationException) {
+                            return new ImportMatch(unmanagedMod, null, ImportMatchConfidence.NONE,
+                                    provider.getDisplayName() + " does not support search");
+                        }
+                        LOGGER.atFine().log("Name search failed for %s: %s", searchTerm, cause.getMessage());
+                        return ImportMatch.noMatch(unmanagedMod);
+                    }
+
+                    if (results == null || results.isEmpty()) {
                         return ImportMatch.noMatch(unmanagedMod);
                     }
 
@@ -189,10 +199,6 @@ public class ModScanService {
                     // Return first result as low confidence
                     return ImportMatch.lowConfidenceMatch(unmanagedMod, results.getFirst(),
                             "Best search result for: " + searchTerm);
-                })
-                .exceptionally(ex -> {
-                    LOGGER.atFine().log("Name search failed for %s: %s", searchTerm, ex.getMessage());
-                    return ImportMatch.noMatch(unmanagedMod);
                 });
     }
 
@@ -202,7 +208,7 @@ public class ModScanService {
      * @param unmanagedMod The unmanaged mod to import
      * @param modEntry     The matched entry from the provider
      */
-    public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry) {
+    public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry, ModListSource source) {
         // Create InstalledState from the unmanaged mod
         InstalledState installedState = InstalledState.builder()
                 .identifier(unmanagedMod.identifier())
@@ -221,9 +227,11 @@ public class ModScanService {
         // but fall back to unmanagedMod.pluginType() if not available
         PluginType pluginType = modEntry.getPluginType();
 
+        ModListSource effectiveSource = source != null ? source : ModListSource.CURSEFORGE;
+
         ManagedMod managedMod = ManagedMod.builder()
                 .modId(modEntry.getModId())
-                .source(ModListSource.CURSEFORGE)
+                .source(effectiveSource)
                 .name(modEntry.getName())
                 .slug(modEntry.getSlug())
                 .pluginType(pluginType)

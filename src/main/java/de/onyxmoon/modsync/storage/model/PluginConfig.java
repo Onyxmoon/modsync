@@ -20,8 +20,6 @@ public class PluginConfig {
     
     private String currentProjectId;
     
-    private ModListSource currentSource;
-    
     // Paths
     private String earlyPluginsPath;
     
@@ -39,7 +37,6 @@ public class PluginConfig {
 
     public PluginConfig() {
         this.apiKeys = new HashMap<>();
-        this.currentSource = ModListSource.CURSEFORGE;
         this.updateMode = UpdateMode.MANUAL;
         this.updateIntervalMinutes = 60;
         this.updateOnStartup = false;
@@ -70,14 +67,6 @@ public class PluginConfig {
 
     public void setCurrentProjectId(String currentProjectId) {
         this.currentProjectId = currentProjectId;
-    }
-
-    public ModListSource getCurrentSource() {
-        return currentSource;
-    }
-
-    public void setCurrentSource(ModListSource currentSource) {
-        this.currentSource = currentSource;
     }
 
     public UpdateMode getUpdateMode() {

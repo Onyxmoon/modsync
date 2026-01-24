@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
  * Service Provider Interface for mod list providers.
  * Implementations should be registered via META-INF/services/de.onyxmoon.modsync.api.ModListProvider
  */
-public interface ModListProvider {
+public interface ModListProvider extends ModUrlParser {
 
     /**
      * Gets the source type this provider handles.
@@ -56,6 +56,16 @@ public interface ModListProvider {
      * @return the rate limit (requests per minute)
      */
     int getRateLimit();
+
+    /**
+     * Priority used when multiple providers can parse the same URL.
+     * Higher values are tried first.
+     *
+     * @return priority value
+     */
+    default int getUrlParsePriority() {
+        return 0;
+    }
 
     /**
      * Fetches a single mod by its ID.

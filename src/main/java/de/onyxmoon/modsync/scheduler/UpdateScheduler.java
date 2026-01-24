@@ -3,9 +3,11 @@ package de.onyxmoon.modsync.scheduler;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -111,26 +113,27 @@ public class UpdateScheduler {
     public CompletableFuture<ModList> performUpdate() {
         PluginConfig config = plugin.getConfigStorage().getConfig();
 
-        String apiKey = config.getApiKey(config.getCurrentSource());
-        if (apiKey == null) {
+        Optional<ModList> storedList = plugin.getModListStorage().load();
+        if (storedList.isEmpty()) {
             return CompletableFuture.failedFuture(
-                new IllegalStateException("No API key configured for " +
-                                         config.getCurrentSource().getDisplayName())
+                new IllegalStateException("No stored mod list found. Run an update or import first.")
             );
         }
 
-        String projectId = config.getCurrentProjectId();
-        if (projectId == null) {
+        ModListSource source = storedList.get().getSource();
+        ModListProvider provider = plugin.getProviderRegistry().getProvider(source);
+
+        String apiKey = config.getApiKey(source);
+        if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                new IllegalStateException("No project ID configured")
+                new IllegalStateException("No API key configured for " + source.getDisplayName())
             );
         }
 
-        ModListProvider provider = plugin.getProviderRegistry()
-            .getProvider(config.getCurrentSource());
+        String projectId = storedList.get().getProjectId();
 
         LOGGER.atInfo().log("Starting mod list update from %s for project %s",
-                   config.getCurrentSource().getDisplayName(), projectId);
+                   source.getDisplayName(), projectId);
 
         return provider.fetchModList(apiKey, projectId)
             .thenApply(modList -> {
@@ -145,7 +148,7 @@ public class UpdateScheduler {
             })
             .exceptionally(ex -> {
                 LOGGER.atSevere().withCause(ex).log("Failed to fetch mod list from %s",
-                            config.getCurrentSource().getDisplayName());
+                            source.getDisplayName());
                 throw new RuntimeException("Update failed: " + ex.getMessage(), ex);
             });
     }

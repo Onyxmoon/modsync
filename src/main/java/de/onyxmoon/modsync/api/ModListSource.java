@@ -17,7 +17,12 @@ public enum ModListSource {
     /**
      * Custom mod source (future support)
      */
-    CUSTOM("Custom");
+    CUSTOM("Custom"),
+
+    /**
+     * CFWidget API (CurseForge widget data)
+     */
+    CFWIDGET("CFWidget");
 
     private final String displayName;
 
