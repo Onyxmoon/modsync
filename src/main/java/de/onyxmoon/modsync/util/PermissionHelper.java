@@ -1,8 +1,11 @@
 package de.onyxmoon.modsync.util;
 
 import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+
+import java.util.UUID;
 
 /**
  * Helper class for permission checks.
@@ -36,10 +39,30 @@ public final class PermissionHelper {
     /**
      * Check if a player has the ModSync admin permission.
      *
+     * @param player the player to check
+     * @return true if the player has permission
+     */
+    public static boolean hasAdminPermission(Player player) {
+        return player.hasPermission(MODSYNC_ADMIN);
+    }
+
+    /**
+     * Check if a player has the ModSync admin permission.
+     *
      * @param playerRef the player to check
      * @return true if the player has permission
      */
     public static boolean hasAdminPermission(PlayerRef playerRef) {
         return PermissionsModule.get().hasPermission(playerRef.getUuid(), MODSYNC_ADMIN);
+    }
+
+    /**
+     * Check if a player has the ModSync admin permission.
+     *
+     * @param playerUUID the uuid of the player to check
+     * @return true if the player has permission
+     */
+    public static boolean hasAdminPermission(UUID playerUUID) {
+        return PermissionsModule.get().hasPermission(playerUUID, MODSYNC_ADMIN);
     }
 }

@@ -5,6 +5,22 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-23
+
+### Added
+- **Import Feature**: Import existing unmanaged mods into ModSync management
+  - `/modsync scan` - List all unmanaged JAR/ZIP files in mods folder
+  - `/modsync import <target>` - Auto-match and import a mod
+  - `/modsync import <target> --url=<url>` - Manual import with CurseForge URL
+  - Auto-matching tries slug lookup and name search
+- **Search API**: Provider interface now supports mod search for import matching
+
+### Changed
+- **File scanning**: Now supports both JAR and ZIP files
+
+### tl;dr
+> Import existing mods with `/modsync scan` and `/modsync import`. Auto-matching tries to find your mod on CurseForge automatically.
+
 ## [0.5.0] - 2026-01-23
 
 ### Added

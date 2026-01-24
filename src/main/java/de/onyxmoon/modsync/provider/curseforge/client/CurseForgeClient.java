@@ -48,9 +48,11 @@ public class CurseForgeClient {
     public CompletableFuture<CurseForgeSearchResponse> searchMods(
             String searchFilter, int pageSize, int index) {
 
+        String encodedFilter = URLEncoder.encode(searchFilter, StandardCharsets.UTF_8);
+
         String url = String.format(
                 "%s/mods/search?gameId=%s&searchFilter=%s&pageSize=%d&index=%d",
-                BASE_URL, GAME_ID, searchFilter, pageSize, index
+                BASE_URL, GAME_ID, encodedFilter, pageSize, index
         );
 
         return executeRequest(url, CurseForgeSearchResponse.class);
@@ -69,13 +71,40 @@ public class CurseForgeClient {
 
     /**
      * Get mod details by slug (URL-friendly name).
-     * Uses the search API with slug filter to find the mod.
+     * <p>
+     * The lookup is performed using the search API with a slug filter.
+     * If no result is found, the lookup is retried once with all hyphens ('-')
+     * removed from the slug.
      *
-     * @param slug Mod slug (e.g., "example-mod")
-     * @return CompletableFuture containing mod details
-     * @throws CurseForgeApiException if mod not found
+     * @param slug Mod slug (e.g., {@code "example-mod"})
+     * @return {@link CompletableFuture} containing mod details
+     * @throws CurseForgeApiException if the mod cannot be found after all attempts
      */
     public CompletableFuture<CurseForgeModResponse> getModBySlug(String slug) {
+        String normalized = slug == null ? "" : slug.toLowerCase();
+
+        return fetchFirstBySlug(normalized)
+                .thenCompose(opt ->
+                        opt.map(CompletableFuture::completedFuture)
+                                .orElseGet(() -> retryWithoutHyphensOrFail(slug, normalized))
+                );
+    }
+
+    private CompletableFuture<CurseForgeModResponse> retryWithoutHyphensOrFail(String originalInput, String normalized) {
+        String noHyphens = normalized.replace("-", "");
+        if (noHyphens.equals(normalized)) {
+            return CompletableFuture.failedFuture(new CurseForgeApiException("Mod not found: " + originalInput, 404));
+        }
+
+        return fetchFirstBySlug(noHyphens)
+                .thenCompose(opt -> opt
+                        .map(CompletableFuture::completedFuture)
+                        .orElseGet(() -> CompletableFuture.failedFuture(
+                                new CurseForgeApiException("Mod not found: " + originalInput, 404)
+                        )));
+    }
+
+    private CompletableFuture<java.util.Optional<CurseForgeModResponse>> fetchFirstBySlug(String slug) {
         String encodedSlug = URLEncoder.encode(slug, StandardCharsets.UTF_8);
         String url = String.format(
                 "%s/mods/search?gameId=%s&slug=%s&pageSize=1",
@@ -85,12 +114,11 @@ public class CurseForgeClient {
         return executeRequest(url, CurseForgeSearchResponse.class)
                 .thenApply(response -> {
                     if (response.getData() == null || response.getData().isEmpty()) {
-                        throw new CurseForgeApiException("Mod not found: " + slug, 404);
+                        return java.util.Optional.empty();
                     }
-                    // Wrap the search result in a ModResponse
                     CurseForgeModResponse modResponse = new CurseForgeModResponse();
                     modResponse.setData(response.getData().get(0));
-                    return modResponse;
+                    return java.util.Optional.of(modResponse);
                 });
     }
 

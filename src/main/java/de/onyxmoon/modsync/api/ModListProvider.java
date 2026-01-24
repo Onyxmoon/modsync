@@ -3,6 +3,7 @@ package de.onyxmoon.modsync.api;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -73,4 +74,19 @@ public interface ModListProvider {
      * @return CompletableFuture containing the mod entry
      */
     CompletableFuture<ModEntry> fetchModBySlug(String apiKey, String slug);
+
+    /**
+     * Searches for mods by name or keyword.
+     * This is used for import matching to find potential matches for unmanaged mods.
+     *
+     * <p>Default implementation returns an empty list. Providers should override
+     * this method if they support search functionality.</p>
+     *
+     * @param apiKey     API key for authentication (may be null for sources that don't require it)
+     * @param searchTerm the search term (mod name or keyword)
+     * @return CompletableFuture containing a list of matching mod entries
+     */
+    default CompletableFuture<List<ModEntry>> searchMods(String apiKey, String searchTerm) {
+        return CompletableFuture.completedFuture(List.of());
+    }
 }

@@ -6,6 +6,7 @@ import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.provider.curseforge.client.CurseForgeClient;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -78,5 +79,19 @@ public class CurseForgeProvider implements ModListProvider {
         CurseForgeClient client = new CurseForgeClient(apiKey);
         return client.getModBySlug(slug)
                 .thenApply(response -> adapter.adaptToModEntry(response.getData()));
+    }
+
+    @Override
+    public CompletableFuture<List<ModEntry>> searchMods(String apiKey, String searchTerm) {
+        CurseForgeClient client = new CurseForgeClient(apiKey);
+        return client.searchMods(searchTerm, 10, 0)
+                .thenApply(response -> {
+                    if (response.getData() == null || response.getData().isEmpty()) {
+                        return List.of();
+                    }
+                    return response.getData().stream()
+                            .map(adapter::adaptToModEntry)
+                            .toList();
+                });
     }
 }

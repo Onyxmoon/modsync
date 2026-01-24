@@ -1,7 +1,7 @@
 {
     "Group": "Onyxmoon",
     "Name": "ModSync",
-    "Version": "0.5.0",
+    "Version": "0.6.0",
     "Description": "Synchronizes mod lists from CurseForge and other sources",
     "Authors": [
         {
