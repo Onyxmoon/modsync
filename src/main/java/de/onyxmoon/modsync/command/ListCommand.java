@@ -38,7 +38,7 @@ public class ListCommand extends CommandBase {
         List<ManagedMod> mods = registry.getAll();
 
         if (mods.isEmpty()) {
-            sender.sendMessage(Message.parse("&n=== &nManaged &nMods &n===").color(Color.ORANGE));
+            sender.sendMessage(Message.raw("=== Managed Mods ===").color(Color.ORANGE));
             sender.sendMessage(Message.raw("No mods in list. Use ").color(Color.GRAY)
                     .insert(Message.raw("/modsync add <url>").color(Color.WHITE))
                     .insert(Message.raw(" to add mods.").color(Color.GRAY)));
