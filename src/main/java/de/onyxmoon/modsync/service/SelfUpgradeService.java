@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class SelfUpgradeService {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+    private static final int CONNECT_TIMEOUT_SECONDS = 30;
 
     private final ModSync plugin;
     private final GitHubClient gitHubClient;
@@ -37,7 +38,7 @@ public class SelfUpgradeService {
         this.plugin = plugin;
         this.gitHubClient = new GitHubClient();
         this.downloadClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
     }

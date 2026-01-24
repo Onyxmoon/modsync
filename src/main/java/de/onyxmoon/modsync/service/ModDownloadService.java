@@ -30,6 +30,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public class ModDownloadService {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+    private static final int CONNECT_TIMEOUT_SECONDS = 30;
+    private static final int MAX_RETRY_ATTEMPTS = 3;
     private final ModSync modSync;
     private final Path modsFolder;
     private final Path earlyPluginsFolder;
@@ -40,7 +42,7 @@ public class ModDownloadService {
         this.modsFolder = modsFolder;
         this.earlyPluginsFolder = earlyPluginsFolder;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
@@ -139,7 +141,7 @@ public class ModDownloadService {
         return CompletableFuture.supplyAsync(() -> {
             IOException lastException = null;
 
-            for (int attempt = 1; attempt <= 3; attempt++) {
+            for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create(url))
@@ -167,7 +169,7 @@ public class ModDownloadService {
                     lastException = e;
                     LOGGER.atWarning().log("Download attempt %d failed: %s", attempt, e.getMessage());
                     cleanupTempFile(tempPath);
-                    if (attempt < 3) {
+                    if (attempt < MAX_RETRY_ATTEMPTS) {
                         try {
                             Thread.sleep(1000L * attempt); // Exponential backoff
                         } catch (InterruptedException ie) {
@@ -181,7 +183,7 @@ public class ModDownloadService {
                 }
             }
 
-            throw new RuntimeException("Download failed after 3 attempts: " +
+            throw new RuntimeException("Download failed after " + MAX_RETRY_ATTEMPTS + " attempts: " +
                     lastException.getMessage(), lastException);
         });
     }

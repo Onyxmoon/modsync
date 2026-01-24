@@ -16,6 +16,11 @@ public class PluginConfig {
      */
     public static final String DEFAULT_EARLY_PLUGINS_PATH = "earlyplugins";
 
+    /**
+     * Default update interval in minutes.
+     */
+    public static final int DEFAULT_UPDATE_INTERVAL_MINUTES = 60;
+
     private Map<ModListSource, String> apiKeys;
     
     private String currentProjectId;
@@ -38,7 +43,7 @@ public class PluginConfig {
     public PluginConfig() {
         this.apiKeys = new HashMap<>();
         this.updateMode = UpdateMode.MANUAL;
-        this.updateIntervalMinutes = 60;
+        this.updateIntervalMinutes = DEFAULT_UPDATE_INTERVAL_MINUTES;
         this.updateOnStartup = false;
         this.earlyPluginsPath = DEFAULT_EARLY_PLUGINS_PATH;
         this.checkForPluginUpdates = true;
