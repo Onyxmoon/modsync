@@ -1,31 +1,21 @@
 package de.onyxmoon.modsync.service;
 
-import com.hypixel.hytale.codec.ExtraInfo;
-import com.hypixel.hytale.codec.util.RawJsonReader;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
-import com.hypixel.hytale.common.plugin.PluginManifest;
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
-import com.hypixel.hytale.server.core.plugin.PluginManager;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModListProvider;
 import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.*;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
+import de.onyxmoon.modsync.util.FileHashUtils;
+import de.onyxmoon.modsync.util.ManifestReader;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -107,8 +97,8 @@ public class ModScanService {
         try {
             String fileName = path.getFileName().toString();
             long fileSize = Files.size(path);
-            String fileHash = calculateHash(path);
-            PluginIdentifier identifier = readIdentifier(path);
+            String fileHash = FileHashUtils.calculateSha256(path);
+            PluginIdentifier identifier = ManifestReader.readIdentifier(path).orElse(null);
 
             return new UnmanagedMod(path, fileName, identifier, fileHash, fileSize, pluginType);
         } catch (IOException e) {
@@ -268,44 +258,5 @@ public class ModScanService {
         slug = slug.replaceAll("^-|-$", "");
 
         return slug;
-    }
-
-    private String calculateHash(Path filePath) throws IOException {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(filePath);
-            byte[] hashBytes = digest.digest(fileBytes);
-            return "sha256:" + HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
-
-    private PluginIdentifier readIdentifier(Path filePath) {
-        try {
-            URL url = filePath.toUri().toURL();
-            URL resource;
-            try (PluginClassLoader pluginClassLoader = new PluginClassLoader(new PluginManager(), false, url)) {
-                resource = pluginClassLoader.findResource("manifest.json");
-            }
-            if (resource == null) {
-                return null;
-            }
-
-            try (
-                    InputStream stream = resource.openStream();
-                    InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)
-            ) {
-                char[] buffer = RawJsonReader.READ_BUFFER.get();
-                RawJsonReader rawJsonReader = new RawJsonReader(reader, buffer);
-                ExtraInfo extraInfo = ExtraInfo.THREAD_LOCAL.get();
-                PluginManifest manifest = PluginManifest.CODEC.decodeJson(rawJsonReader, extraInfo);
-                assert manifest != null;
-                return new PluginIdentifier(manifest.getGroup(), manifest.getName());
-            }
-        } catch (Exception e) {
-            LOGGER.atFine().log("Could not read manifest from %s: %s", filePath.getFileName(), e.getMessage());
-            return null;
-        }
     }
 }
