@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class UpdateScheduler {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+    private static final int STARTUP_DELAY_SECONDS = 30;
     private final ModSync plugin;
     private final ScheduledExecutorService executor;
     private ScheduledFuture<?> periodicTask;
@@ -57,7 +58,7 @@ public class UpdateScheduler {
                     LOGGER.atSevere().withCause(ex).log("Startup update failed");
                     return null;
                 }),
-            30,
+            STARTUP_DELAY_SECONDS,
             TimeUnit.SECONDS
         );
     }
