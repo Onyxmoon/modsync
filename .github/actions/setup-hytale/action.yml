@@ -8,7 +8,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Download Hytale Server Files
+    - name: Prepare Hytale Downloader
       shell: bash
       env:
         HYTALE_DOWNLOADER_CREDENTIALS: ${{ inputs.credentials }}
@@ -23,10 +23,53 @@ runs:
         wget -q https://downloader.hytale.com/hytale-downloader.zip
         unzip -q hytale-downloader.zip
         chmod +x hytale-downloader-linux-amd64
+        set +e
+        ./hytale-downloader-linux-amd64 -print-version 2>&1 | tee game-version.txt
+        status=${PIPESTATUS[0]}
+        set -e
+        if [ "$status" -ne 0 ]; then
+          if grep -qi "invalid_grant" game-version.txt; then
+            echo "WARNING: Hytale OAuth refresh token is invalid or expired."
+            echo "Continuing to allow interactive device login."
+          fi
+        fi
+
+        rm -f hytale-downloader.zip
+
+    - name: Compute Hytale Cache Key
+      id: hytale_cache_key
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd .hytale
+        version="$(grep -Eo '[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-[0-9a-fA-F]{7,}' game-version.txt | head -n 1 || true)"
+        if [ -z "$version" ]; then
+          echo "WARNING: Could not parse game version, falling back to full output hash."
+          version_hash="$(sha256sum game-version.txt | awk '{print $1}')"
+          key="hytale-${{ runner.os }}-$version_hash"
+        else
+          echo "$version" > game-version.txt
+          key="hytale-${{ runner.os }}-$version"
+        fi
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Hytale Server Files
+      id: hytale_cache
+      uses: actions/cache@v4
+      with:
+        path: .hytale
+        key: ${{ steps.hytale_cache_key.outputs.key }}
+
+    - name: Download Hytale Server Files
+      if: steps.hytale_cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd .hytale
         ./hytale-downloader-linux-amd64 -download-path game.zip
         unzip -q game.zip
 
-        rm -f game.zip hytale-downloader.zip
+        rm -f game.zip
 
     - name: Set Hytale Home for Gradle
       shell: bash

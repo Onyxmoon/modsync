@@ -59,6 +59,9 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -68,11 +71,50 @@ jobs:
       - name: List release files
         run: ls -la dist
 
+      - name: Extract release notes from changelog
+        id: release_notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" {in_section=1; next}
+            in_section && $0 ~ "^## \\[" {exit}
+            in_section {print}
+          ' CHANGELOG.md > release-notes.txt
+
+          if [ ! -s release-notes.txt ]; then
+            echo "Release notes not found for version $version in CHANGELOG.md." > release-notes.txt
+          fi
+
+          prev_version="$(awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" {in_section=1; next}
+            in_section && $0 ~ "^## \\[" {
+              if (match($0, /^## \\[([^\\]]+)\\]/, m)) {
+                print m[1];
+              }
+              exit
+            }
+          ' CHANGELOG.md)"
+
+          body="## ${version}"$'\n\n'"$(cat release-notes.txt)"
+          if [ -n "$prev_version" ]; then
+            compare_url="https://github.com/${GITHUB_REPOSITORY}/compare/${prev_version}...${version}"
+            body="${body}"$'\n\n'"Compare: ${compare_url}"
+          fi
+
+          {
+            echo "body<<EOF"
+            echo "$body"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: "ModSync ${{ github.ref_name }}"
+          body: ${{ steps.release_notes.outputs.body }}
           files: |
             dist/**/*.jar
         env:
