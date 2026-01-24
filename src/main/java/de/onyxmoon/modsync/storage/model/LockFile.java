@@ -32,24 +32,12 @@ public class LockFile {
         return version;
     }
 
-    public void setVersion(int version) {
-        this.version = version;
-    }
-
     public Instant getLockedAt() {
         return lockedAt;
     }
 
-    public void setLockedAt(Instant lockedAt) {
-        this.lockedAt = lockedAt;
-    }
-
     public Map<String, LockedInstallation> getInstallations() {
         return installations;
-    }
-
-    public void setInstallations(Map<String, LockedInstallation> installations) {
-        this.installations = installations;
     }
 
     /**
@@ -88,72 +76,36 @@ public class LockFile {
             return identifier;
         }
 
-        public void setIdentifier(PluginIdentifier identifier) {
-            this.identifier = identifier;
-        }
-
         public String getInstalledVersionId() {
             return installedVersionId;
-        }
-
-        public void setInstalledVersionId(String installedVersionId) {
-            this.installedVersionId = installedVersionId;
         }
 
         public String getInstalledVersionNumber() {
             return installedVersionNumber;
         }
 
-        public void setInstalledVersionNumber(String installedVersionNumber) {
-            this.installedVersionNumber = installedVersionNumber;
-        }
-
         public String getFilePath() {
             return filePath;
-        }
-
-        public void setFilePath(String filePath) {
-            this.filePath = filePath;
         }
 
         public String getFileName() {
             return fileName;
         }
 
-        public void setFileName(String fileName) {
-            this.fileName = fileName;
-        }
-
         public long getFileSize() {
             return fileSize;
-        }
-
-        public void setFileSize(long fileSize) {
-            this.fileSize = fileSize;
         }
 
         public String getFileHash() {
             return fileHash;
         }
 
-        public void setFileHash(String fileHash) {
-            this.fileHash = fileHash;
-        }
-
         public Instant getInstalledAt() {
             return installedAt;
         }
 
-        public void setInstalledAt(Instant installedAt) {
-            this.installedAt = installedAt;
-        }
-
         public Instant getLastChecked() {
             return lastChecked;
-        }
-
-        public void setLastChecked(Instant lastChecked) {
-            this.lastChecked = lastChecked;
         }
     }
 }

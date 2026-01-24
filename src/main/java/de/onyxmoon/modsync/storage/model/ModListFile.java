@@ -38,40 +38,20 @@ public class ModListFile {
         return version;
     }
 
-    public void setVersion(int version) {
-        this.version = version;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public Instant getLastModifiedAt() {
         return lastModifiedAt;
     }
 
-    public void setLastModifiedAt(Instant lastModifiedAt) {
-        this.lastModifiedAt = lastModifiedAt;
-    }
-
     public List<ModListEntry> getMods() {
         return mods;
-    }
-
-    public void setMods(List<ModListEntry> mods) {
-        this.mods = mods;
     }
 
     /**
@@ -110,72 +90,36 @@ public class ModListFile {
             return modId;
         }
 
-        public void setModId(String modId) {
-            this.modId = modId;
-        }
-
         public String getName() {
             return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
         }
 
         public String getSlug() {
             return slug;
         }
 
-        public void setSlug(String slug) {
-            this.slug = slug;
-        }
-
         public ModListSource getSource() {
             return source;
-        }
-
-        public void setSource(ModListSource source) {
-            this.source = source;
         }
 
         public PluginType getPluginType() {
             return pluginType;
         }
 
-        public void setPluginType(PluginType pluginType) {
-            this.pluginType = pluginType;
-        }
-
         public String getDesiredVersionId() {
             return desiredVersionId;
-        }
-
-        public void setDesiredVersionId(String desiredVersionId) {
-            this.desiredVersionId = desiredVersionId;
         }
 
         public Instant getAddedAt() {
             return addedAt;
         }
 
-        public void setAddedAt(Instant addedAt) {
-            this.addedAt = addedAt;
-        }
-
         public String getAddedViaUrl() {
             return addedViaUrl;
         }
 
-        public void setAddedViaUrl(String addedViaUrl) {
-            this.addedViaUrl = addedViaUrl;
-        }
-
         public ReleaseChannel getReleaseChannelOverride() {
             return releaseChannelOverride;
-        }
-
-        public void setReleaseChannelOverride(ReleaseChannel releaseChannelOverride) {
-            this.releaseChannelOverride = releaseChannelOverride;
         }
 
         /**

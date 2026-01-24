@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +42,12 @@ public class ManagedModStorage {
     private final Path oldManagedModsPath;
     private final Path oldInstalledModsPath;
     private final Gson gson;
-    private ManagedModRegistry registry;
+
+    /**
+     * The current registry. Marked volatile to ensure visibility
+     * of updates across threads when the registry is reassigned.
+     */
+    private volatile ManagedModRegistry registry;
 
     public ManagedModStorage(Path dataFolder) {
         this.modsJsonPath = dataFolder.resolve("mods.json");
@@ -72,40 +76,36 @@ public class ManagedModStorage {
         try {
             Files.createDirectories(modsJsonPath.getParent());
 
-            // Build mods.json (without installation state)
-            ModListFile modListFile = new ModListFile();
-            modListFile.setVersion(SCHEMA_VERSION);
-            modListFile.setName(registry.getName());
-            modListFile.setCreatedAt(registry.getCreatedAt());
-            modListFile.setLastModifiedAt(registry.getLastModifiedAt());
+            // Build mods.json entries
+            List<ModListFile.ModListEntry> entries = registry.getAll().stream()
+                    .map(mod -> new ModListFile.ModListEntry(
+                            mod.getModId(),
+                            mod.getName(),
+                            mod.getSlug(),
+                            mod.getSource(),
+                            mod.getPluginType(),
+                            mod.getDesiredVersionId(),
+                            mod.getAddedAt(),
+                            mod.getAddedViaUrl(),
+                            mod.getReleaseChannelOverride()
+                    ))
+                    .toList();
 
-            List<ModListFile.ModListEntry> entries = new ArrayList<>();
-            for (ManagedMod mod : registry.getAll()) {
-                ModListFile.ModListEntry entry = new ModListFile.ModListEntry(
-                        mod.getModId(),
-                        mod.getName(),
-                        mod.getSlug(),
-                        mod.getSource(),
-                        mod.getPluginType(),
-                        mod.getDesiredVersionId(),
-                        mod.getAddedAt(),
-                        mod.getAddedViaUrl(),
-                        mod.getReleaseChannelOverride()
-                );
-                entries.add(entry);
-            }
-            modListFile.setMods(entries);
+            // Build mods.json (immutable, using all-args constructor)
+            ModListFile modListFile = new ModListFile(
+                    SCHEMA_VERSION,
+                    registry.getName(),
+                    registry.getCreatedAt(),
+                    registry.getLastModifiedAt(),
+                    entries
+            );
 
-            // Build mods.lock.json (only installation state)
-            LockFile lockFile = new LockFile();
-            lockFile.setVersion(SCHEMA_VERSION);
-            lockFile.setLockedAt(Instant.now());
-
+            // Build mods.lock.json installations
             Map<String, LockFile.LockedInstallation> installations = new HashMap<>();
             for (ManagedMod mod : registry.getAll()) {
                 if (mod.isInstalled()) {
                     InstalledState state = mod.getInstalledState().orElseThrow();
-                    LockFile.LockedInstallation installation = new LockFile.LockedInstallation(
+                    installations.put(mod.getSourceId(), new LockFile.LockedInstallation(
                             state.getIdentifier(),
                             state.getInstalledVersionId(),
                             state.getInstalledVersionNumber(),
@@ -115,11 +115,12 @@ public class ManagedModStorage {
                             state.getFileHash(),
                             state.getInstalledAt(),
                             state.getLastChecked()
-                    );
-                    installations.put(mod.getSourceId(), installation);
+                    ));
                 }
             }
-            lockFile.setInstallations(installations);
+
+            // Build mods.lock.json (immutable, using all-args constructor)
+            LockFile lockFile = new LockFile(SCHEMA_VERSION, Instant.now(), installations);
 
             // Write both files
             Files.writeString(modsJsonPath, gson.toJson(modListFile));
