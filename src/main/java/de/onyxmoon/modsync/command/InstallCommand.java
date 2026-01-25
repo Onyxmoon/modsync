@@ -209,13 +209,25 @@ public class InstallCommand extends CommandBase {
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenCompose(modEntry -> {
-                    ModVersion version = VersionSelector.selectVersion(
+                    VersionSelector.SelectionResult selection = VersionSelector.selectVersionWithFallback(
                             mod, modEntry, modSync.getConfigStorage().getConfig());
 
-                    if (version == null) {
+                    if (selection.version() == null) {
                         return CompletableFuture.failedFuture(
-                                new IllegalStateException("No version available for " + mod)
+                                new IllegalStateException("No version available for " + mod.getName() +
+                                        " (no releases found for channel: " + selection.requestedChannel().getDisplayName() + ")")
                         );
+                    }
+
+                    ModVersion version = selection.version();
+
+                    // Warn about fallback if applicable
+                    if (selection.usedFallback() && sender != null) {
+                        sender.sendMessage(Message.raw("  Note: ").color(Color.YELLOW)
+                                .insert(Message.raw(mod.getName()).color(Color.WHITE))
+                                .insert(Message.raw(" has no " + selection.requestedChannel().getDisplayName() +
+                                        " version, using " + selection.actualChannel().getDisplayName() +
+                                        " (" + version.getReleaseType() + ")").color(Color.YELLOW)));
                     }
 
                     if (version.getDownloadUrl() == null || version.getDownloadUrl().isBlank()) {

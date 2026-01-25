@@ -66,6 +66,11 @@ public class CheckCommand extends CommandBase {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
                                 CommandMessageFormatter.sendModStatusWithVersion(sender, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
+                                if (result.selection() != null && result.selection().usedFallback()) {
+                                    sender.sendMessage(Message.raw("  Note: No " + result.selection().requestedChannel().getDisplayName() +
+                                            " version, using " + result.selection().actualChannel().getDisplayName() +
+                                            " (" + result.selection().version().getReleaseType() + ")").color(Color.YELLOW));
+                                }
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -96,13 +101,13 @@ public class CheckCommand extends CommandBase {
 
     private CompletableFuture<CheckResult> checkForUpdate(ManagedMod mod) {
         if (!mod.isInstalled()) {
-            return CompletableFuture.completedFuture(CheckResult.upToDate("", ""));
+            return CompletableFuture.completedFuture(CheckResult.upToDate("", "", null));
         }
 
         InstalledState installedState = mod.getInstalledState().orElseThrow();
 
         if (!modSync.getProviderRegistry().hasProvider(mod.getSource())) {
-            return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), ""));
+            return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), "", null));
         }
 
         ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
@@ -116,12 +121,14 @@ public class CheckCommand extends CommandBase {
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenApply(modEntry -> {
-                    ModVersion latestVersion = VersionSelector.selectVersion(
+                    VersionSelector.SelectionResult selection = VersionSelector.selectVersionWithFallback(
                             mod, modEntry, modSync.getConfigStorage().getConfig());
-                    if (latestVersion == null) {
-                        return CheckResult.upToDate(installedState.getInstalledVersionNumber(), "");
+
+                    if (selection.version() == null) {
+                        return CheckResult.upToDate(installedState.getInstalledVersionNumber(), "", null);
                     }
 
+                    ModVersion latestVersion = selection.version();
                     String latestVersionId = latestVersion.getVersionId();
                     String installedVersionId = installedState.getInstalledVersionId();
 
@@ -129,14 +136,20 @@ public class CheckCommand extends CommandBase {
                     return new CheckResult(
                             hasUpdate,
                             installedState.getInstalledVersionNumber(),
-                            latestVersion.getVersionNumber()
+                            latestVersion.getVersionNumber(),
+                            selection
                     );
                 });
     }
 
-    private record CheckResult(boolean hasUpdate, String installedVersion, String latestVersion) {
-        static CheckResult upToDate(String installedVersion, String latestVersion) {
-            return new CheckResult(false, installedVersion, latestVersion);
+    private record CheckResult(
+            boolean hasUpdate,
+            String installedVersion,
+            String latestVersion,
+            VersionSelector.SelectionResult selection
+    ) {
+        static CheckResult upToDate(String installedVersion, String latestVersion, VersionSelector.SelectionResult selection) {
+            return new CheckResult(false, installedVersion, latestVersion, selection);
         }
     }
 }

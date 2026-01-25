@@ -113,6 +113,11 @@ public class UpgradeCommand extends CommandBase {
                             switch (upgradeResult) {
                                 case UpgradeResult.Upgraded u -> {
                                     CommandMessageFormatter.sendModStatusWithVersion(sender, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
+                                    if (u.selection().usedFallback()) {
+                                        sender.sendMessage(Message.raw("  Note: No " + u.selection().requestedChannel().getDisplayName() +
+                                                " version, used " + u.selection().actualChannel().getDisplayName() +
+                                                " (" + u.selection().version().getReleaseType() + ")").color(Color.YELLOW));
+                                    }
                                     sender.sendMessage(Message.raw("Server restart required to load the new version.").color(Color.CYAN));
                                 }
                                 case UpgradeResult.UpToDate ignored ->
@@ -163,6 +168,11 @@ public class UpgradeCommand extends CommandBase {
                                 case UpgradeResult.Upgraded u -> {
                                     upgraded.incrementAndGet();
                                     CommandMessageFormatter.sendModStatusWithVersion(sender, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
+                                    if (u.selection().usedFallback()) {
+                                        sender.sendMessage(Message.raw("  Note: No " + u.selection().requestedChannel().getDisplayName() +
+                                                " version, used " + u.selection().actualChannel().getDisplayName() +
+                                                " (" + u.selection().version().getReleaseType() + ")").color(Color.YELLOW));
+                                    }
                                 }
                                 case UpgradeResult.UpToDate ignored -> upToDate.incrementAndGet();
                                 case UpgradeResult.Skipped ignored -> {
@@ -235,14 +245,17 @@ public class UpgradeCommand extends CommandBase {
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenCompose(modEntry -> {
-                    ModVersion latestVersion = VersionSelector.selectVersion(
+                    VersionSelector.SelectionResult selection = VersionSelector.selectVersionWithFallback(
                             mod, modEntry, modSync.getConfigStorage().getConfig());
 
-                    if (latestVersion == null) {
+                    if (selection.version() == null) {
                         return CompletableFuture.failedFuture(
-                                new IllegalStateException("No version available for " + mod.getName())
+                                new IllegalStateException("No version available for " + mod.getName() +
+                                        " (no releases found for channel: " + selection.requestedChannel().getDisplayName() + ")")
                         );
                     }
+
+                    ModVersion latestVersion = selection.version();
 
                     // Check if update is needed
                     if (latestVersion.getVersionId().equals(currentState.getInstalledVersionId())) {
@@ -265,13 +278,13 @@ public class UpgradeCommand extends CommandBase {
                                         .installedState(newInstalledState)
                                         .build();
                                 modSync.getManagedModStorage().updateMod(updatedMod);
-                                return new UpgradeResult.Upgraded(oldVersionNumber, newVersionNumber);
+                                return new UpgradeResult.Upgraded(oldVersionNumber, newVersionNumber, selection);
                             });
                 });
     }
 
     private sealed interface UpgradeResult {
-        record Upgraded(String oldVersion, String newVersion) implements UpgradeResult {}
+        record Upgraded(String oldVersion, String newVersion, VersionSelector.SelectionResult selection) implements UpgradeResult {}
         record UpToDate() implements UpgradeResult {}
         record Skipped() implements UpgradeResult {}
     }

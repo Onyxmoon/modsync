@@ -74,6 +74,8 @@ Control which release types are considered for installation and updates:
 /modsync setchannel MyMod default  # Remove override, use global
 ```
 
+**Automatic Fallback:** If a mod has no releases for your configured channel (e.g., only Beta versions but you're on Release), ModSync automatically falls back to Beta, then Alpha. A warning is shown so you know which version type was used.
+
 ## How It Works
 
 ### Installing Mods

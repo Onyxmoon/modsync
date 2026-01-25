@@ -19,6 +19,42 @@ public final class VersionSelector {
     }
 
     /**
+     * Result of a version selection operation.
+     *
+     * @param version          the selected version (null if none found)
+     * @param requestedChannel the originally requested channel
+     * @param actualChannel    the channel that was used (may differ if fallback occurred)
+     * @param usedFallback     true if a less strict channel was used as fallback
+     */
+    public record SelectionResult(
+            ModVersion version,
+            ReleaseChannel requestedChannel,
+            ReleaseChannel actualChannel,
+            boolean usedFallback
+    ) {
+        /**
+         * Creates a result for a successful selection without fallback.
+         */
+        public static SelectionResult of(ModVersion version, ReleaseChannel channel) {
+            return new SelectionResult(version, channel, channel, false);
+        }
+
+        /**
+         * Creates a result for a successful selection with fallback.
+         */
+        public static SelectionResult withFallback(ModVersion version, ReleaseChannel requested, ReleaseChannel actual) {
+            return new SelectionResult(version, requested, actual, true);
+        }
+
+        /**
+         * Creates a result when no version was found.
+         */
+        public static SelectionResult notFound(ReleaseChannel channel) {
+            return new SelectionResult(null, channel, channel, false);
+        }
+    }
+
+    /**
      * Selects the appropriate version for a mod based on:
      * <ol>
      *   <li>Per-mod release channel override (if set)</li>
@@ -30,22 +66,53 @@ public final class VersionSelector {
      * @param entry  the mod entry containing available versions
      * @param config the plugin configuration with global default channel
      * @return the selected version, or null if no suitable version found
+     * @deprecated Use {@link #selectVersionWithFallback(ManagedMod, ModEntry, PluginConfig)} instead
      */
+    @Deprecated
     public static ModVersion selectVersion(ManagedMod mod, ModEntry entry, PluginConfig config) {
+        return selectVersionWithFallback(mod, entry, config).version();
+    }
+
+    /**
+     * Selects the appropriate version for a mod with automatic fallback to less strict channels.
+     * <p>
+     * If no version is found for the configured channel, automatically falls back:
+     * RELEASE → BETA → ALPHA
+     * </p>
+     *
+     * @param mod    the managed mod with potential release channel override
+     * @param entry  the mod entry containing available versions
+     * @param config the plugin configuration with global default channel
+     * @return selection result containing the version and fallback info
+     */
+    public static SelectionResult selectVersionWithFallback(ManagedMod mod, ModEntry entry, PluginConfig config) {
         // If pinned to a specific version, try to find it
         if (!mod.wantsLatestVersion()) {
             ModVersion pinned = findByVersionId(entry.getAvailableVersions(), mod.getDesiredVersionId());
             if (pinned != null) {
-                return pinned;
+                return SelectionResult.of(pinned, getEffectiveChannel(mod, config));
             }
             // Fall through to channel-based selection if pinned version not found
         }
 
         // Determine effective release channel
-        ReleaseChannel channel = getEffectiveChannel(mod, config);
+        ReleaseChannel requestedChannel = getEffectiveChannel(mod, config);
 
-        // Select best version matching the channel
-        return selectBestVersion(entry.getAvailableVersions(), channel);
+        // Try to select with the requested channel
+        ModVersion version = selectBestVersion(entry.getAvailableVersions(), requestedChannel);
+        if (version != null) {
+            return SelectionResult.of(version, requestedChannel);
+        }
+
+        // Fallback to less strict channels
+        for (ReleaseChannel fallbackChannel : getFallbackChannels(requestedChannel)) {
+            version = selectBestVersion(entry.getAvailableVersions(), fallbackChannel);
+            if (version != null) {
+                return SelectionResult.withFallback(version, requestedChannel, fallbackChannel);
+            }
+        }
+
+        return SelectionResult.notFound(requestedChannel);
     }
 
     /**
@@ -59,6 +126,23 @@ public final class VersionSelector {
     public static ReleaseChannel getEffectiveChannel(ManagedMod mod, PluginConfig config) {
         ReleaseChannel override = mod.getReleaseChannelOverride();
         return override != null ? override : config.getDefaultReleaseChannel();
+    }
+
+    /**
+     * Gets the fallback channels for a given channel, ordered from most to least strict.
+     * <p>
+     * Fallback order: RELEASE → BETA → ALPHA
+     * </p>
+     *
+     * @param channel the current channel
+     * @return array of fallback channels (may be empty if already at ALPHA)
+     */
+    private static ReleaseChannel[] getFallbackChannels(ReleaseChannel channel) {
+        return switch (channel) {
+            case RELEASE -> new ReleaseChannel[]{ReleaseChannel.BETA, ReleaseChannel.ALPHA};
+            case BETA -> new ReleaseChannel[]{ReleaseChannel.ALPHA};
+            case ALPHA -> new ReleaseChannel[0];
+        };
     }
 
     /**

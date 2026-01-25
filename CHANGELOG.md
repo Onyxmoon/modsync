@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Modtale provider (alpha)**: Experimental Modtale support behind API keys
 - **StringUtils**: New utility class for consistent null/blank string handling
 - **Config**: Option to disable the admin welcome message
+- **Release channel fallback**: If no version is found for the configured channel (e.g., Release), ModSync now automatically falls back to Beta, then Alpha. A warning is shown when a fallback is used.
+- **DownloadHandler interface**: Providers can now implement custom download logic (e.g., authenticated downloads with API key headers, filename extraction from Content-Disposition)
+- **Extensible provider system**: Sources are now string-based, allowing external providers in separate JARs to define custom source identifiers
 
 ### Changed
 - **URL handling**: Providers now parse URLs directly and are tried in priority order (CurseForge first)
@@ -23,9 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTTP clients**: CurseForge/CFWidget reuse shared `HttpClient` and `Gson` instances with longer timeouts
 - **Thread-safety**: `ProviderRegistry` now uses `ConcurrentHashMap`, `ManagedModStorage` uses `volatile` for registry field
 - **Magic numbers**: Extracted constants for timeouts, retry attempts, and intervals (`CONNECT_TIMEOUT_SECONDS`, `MAX_RETRY_ATTEMPTS`, `STARTUP_DELAY_SECONDS`, etc.)
+- **Provider structure**: URL parsers and download handlers are now internal helpers, keeping provider classes focused
+- **Modtale downloads**: Now uses authenticated downloads with `X-MODTALE-KEY` header and extracts correct filename from `Content-Disposition`
 
 ### Fixed
 - **Import messaging**: Clearer errors when no provider can resolve a URL or when search is unsupported
+- **Beta/Alpha-only mods**: Mods with only Beta or Alpha releases can now be installed (automatic fallback from Release channel)
 
 ## [0.6.3] - 2026-01-24
 
