@@ -145,6 +145,8 @@ public class ModDownloadService {
                 try {
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create(url))
+                            .header("User-Agent", "ModSync")
+                            .header("Accept", "*/*")
                             .GET()
                             .build();
 

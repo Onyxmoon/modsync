@@ -1,2 +1,3 @@
 de.onyxmoon.modsync.provider.curseforge.CurseForgeProvider
 de.onyxmoon.modsync.provider.cfwidget.CfWidgetProvider
+de.onyxmoon.modsync.provider.modtale.ModtaleProvider

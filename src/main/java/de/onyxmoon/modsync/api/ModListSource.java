@@ -15,6 +15,11 @@ public enum ModListSource {
     MODRINTH("Modrinth"),
 
     /**
+     * Modtale mod platform
+     */
+    MODTALE("Modtale"),
+
+    /**
      * Custom mod source (future support)
      */
     CUSTOM("Custom"),

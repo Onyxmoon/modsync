@@ -9,7 +9,7 @@ Server-side mod management for Hytale dedicated servers. Add, install, update, a
 
 ## Features
 
-- **Multiple Sources** - CurseForge (API key required) and CFWidget (no API key). More to come.
+- **Multiple Sources** - CurseForge and Modtale (API key required), plus CFWidget (no API key). More to come.
 - **Full Mod Lifecycle** - Add, install, update, remove mods via commands
 - **Update Management** - Check for updates, upgrade individual mods or all at once
 - **Release Channels** - Choose Release, Beta, or Alpha versions (global + per-mod)
@@ -146,7 +146,7 @@ The `config.json` file in `mods/Onyxmoon_ModSync/` contains:
 
 | Setting | Description |
 |---------|-------------|
-| `apiKeys` | API keys per provider (currently CurseForge) |
+| `apiKeys` | API keys per provider (currently CurseForge and Modtale) |
 | `defaultReleaseChannel` | Global release channel (RELEASE, BETA, ALPHA) |
 | `earlyPluginsPath` | Path for early plugins folder (default: `earlyplugins`) |
 | `checkForPluginUpdates` | Check for ModSync updates on startup |
