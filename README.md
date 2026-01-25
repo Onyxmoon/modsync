@@ -114,6 +114,8 @@ Use `/modsync scan` to find unmanaged mods, then `/modsync import` to bring them
 - **Auto-matching** tries slug lookup and name search on CurseForge
 - **Manual import** with URL: `/modsync import mymod.jar https://curseforge.com/hytale/mods/example`
 
+> **Note:** Import and scan currently require a CurseForge API key for auto-matching. CFWidget and Modtale do not support search-based imports.
+
 ## Release Channels
 
 Control which release types are considered for installation and updates:

@@ -122,7 +122,7 @@ Upgrades all installed mods or a specific mod.
 
 Use `/modsync scan` to find unmanaged mods, then `/modsync import` to bring them under ModSync control with auto-matching.
 
-**Note:** This works only when a mod source is configured which supports search lookups (e.g., CurseForge).
+**Note:** Import and scan currently require a CurseForge API key for auto-matching. CFWidget and Modtale do not support search-based imports.
 
 ## Bootstrap Plugin (Optional)
 
