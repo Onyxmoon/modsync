@@ -1,21 +1,25 @@
 package de.onyxmoon.modsync.provider.modtale;
 
+import com.hypixel.hytale.logger.HytaleLogger;
+import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModProvider;
+import de.onyxmoon.modsync.api.ModProviderWithDownloadHandler;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.provider.modtale.client.ModtaleApiException;
 import de.onyxmoon.modsync.provider.modtale.client.ModtaleClient;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Modtale implementation of ModProvider.
+ * Implements DownloadHandler for authenticated downloads with X-MODTALE-KEY header.
  * Registered via META-INF/services/de.onyxmoon.modsync.api.ModProvider
  */
-public class ModtaleProvider implements ModProvider {
+public class ModtaleProvider implements ModProviderWithDownloadHandler {
 
     private static final String SOURCE = "modtale";
     private static final String DISPLAY_NAME = "Modtale";
@@ -25,10 +29,12 @@ public class ModtaleProvider implements ModProvider {
 
     private final ModtaleAdapter adapter;
     private final ModtaleUrlParser urlParser;
+    private final ModtaleDownloader downloader;
 
     public ModtaleProvider() {
         this.adapter = new ModtaleAdapter();
         this.urlParser = new ModtaleUrlParser(SOURCE);
+        this.downloader = new ModtaleDownloader();
     }
 
     @Override
@@ -88,9 +94,7 @@ public class ModtaleProvider implements ModProvider {
 
     @Override
     public CompletableFuture<ModEntry> fetchModBySlug(String apiKey, String slug) {
-        ModtaleClient client = new ModtaleClient(apiKey);
-        return client.searchProjects(slug, 10, 0)
-                .thenApply(adapter::adaptSearch)
+        return searchForSlug(apiKey, slug)
                 .thenApply(results -> findBestMatch(results, slug));
     }
 
@@ -113,5 +117,29 @@ public class ModtaleProvider implements ModProvider {
                         .filter(entry -> entry.getSlug() != null && entry.getSlug().equalsIgnoreCase(normalized))
                         .findFirst()
                         .orElse(results.get(0)));
+    }
+
+    private CompletableFuture<List<ModEntry>> searchForSlug(String apiKey, String slug) {
+        String normalized = slug == null ? "" : slug.trim();
+        if (normalized.isEmpty()) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        String spaced = normalized.replace('-', ' ').trim();
+
+        return searchMods(apiKey, normalized)
+                .thenCompose(results -> {
+                    if (!results.isEmpty() || spaced.equalsIgnoreCase(normalized)) {
+                        return CompletableFuture.completedFuture(results);
+                    }
+                    return searchMods(apiKey, spaced);
+                });
+    }
+
+    // ==================== DownloadHandler Implementation ====================
+
+    @Override
+    public CompletableFuture<DownloadResult> download(String downloadUrl, String apiKey, Path targetDir) {
+        return downloader.download(downloadUrl, apiKey, targetDir);
     }
 }

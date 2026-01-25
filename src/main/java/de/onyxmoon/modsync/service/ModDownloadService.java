@@ -4,6 +4,8 @@ import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import com.hypixel.hytale.common.plugin.PluginManifest;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
+import de.onyxmoon.modsync.api.ModProviderWithDownloadHandler;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
@@ -62,6 +64,9 @@ public class ModDownloadService {
      * The download is atomic: the file only appears at the final location after
      * successful validation (manifest readable, hash calculated). If any step fails,
      * the temp file is cleaned up and no orphan files remain.
+     *
+     * If the provider is a {@link ModProviderWithDownloadHandler}, custom download logic is used
+     * (e.g., authenticated downloads, filename from Content-Disposition header).
      */
     public CompletableFuture<InstalledState> downloadAndInstall(
             ManagedMod mod,
@@ -74,56 +79,107 @@ public class ModDownloadService {
             );
         }
 
-        String fileName = version.getFileName();
         PluginType pluginType = mod.getPluginType();
         Path targetFolder = getTargetFolder(pluginType);
+
+        // Check if provider has custom download logic
+        ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
+
+        if (provider instanceof ModProviderWithDownloadHandler modProviderWithDownloadHandler) {
+            LOGGER.atInfo().log("Using custom download handler for %s", provider.getDisplayName());
+            return downloadWithHandler(modProviderWithDownloadHandler, mod, version, downloadUrl, apiKey, targetFolder, pluginType);
+        }
+
+        // Standard download
+        String fileName = version.getFileName();
         Path targetPath = targetFolder.resolve(fileName);
         Path tempPath = targetFolder.resolve(fileName + ".tmp");
 
         LOGGER.atInfo().log("Downloading %s (%s) to %s", mod.getName(), pluginType.getDisplayName(), targetPath);
 
         return downloadToTemp(downloadUrl, tempPath)
-                .thenApply(downloadedTempPath -> {
-                    try {
-                        // Validate BEFORE moving to final location
-                        String hash = FileHashUtils.calculateSha256(downloadedTempPath);
-                        long fileSize = Files.size(downloadedTempPath);
-                        PluginManifest manifest = ManifestReader.readManifest(downloadedTempPath)
-                                .orElse(null);
+                .thenApply(downloadedTempPath -> processDownloadedFile(
+                        downloadedTempPath, targetPath, fileName, version, mod, pluginType));
+    }
 
-                        if (manifest == null) {
-                            cleanupTempFile(downloadedTempPath);
-                            throw new RuntimeException("Failed to read manifest from downloaded file");
-                        }
+    /**
+     * Download using a custom DownloadHandler (for authenticated downloads, etc.).
+     */
+    private CompletableFuture<InstalledState> downloadWithHandler(
+            ModProviderWithDownloadHandler handler,
+            ManagedMod mod,
+            ModVersion version,
+            String downloadUrl,
+            String apiKey,
+            Path targetFolder,
+            PluginType pluginType) {
 
-                        var identifier = new PluginIdentifier(manifest.getGroup(), manifest.getName());
+        return handler.download(downloadUrl, apiKey, targetFolder)
+                .thenApply(result -> {
+                    // Use filename from handler (e.g., Content-Disposition) or fall back to version
+                    String fileName = result.actualFileName() != null
+                            ? result.actualFileName()
+                            : version.getFileName();
+                    Path targetPath = targetFolder.resolve(fileName);
 
-                        // All validation passed - now move to final location
-                        moveFileWithFallback(downloadedTempPath, targetPath);
+                    LOGGER.atInfo().log("Downloaded %s (%s), actual filename: %s",
+                            mod.getName(), pluginType.getDisplayName(), fileName);
 
-                        InstalledState installedState = InstalledState.builder()
-                                .identifier(identifier)
-                                .installedVersionId(version.getVersionId())
-                                .installedVersionNumber(version.getVersionNumber())
-                                .filePath(targetPath.toString())
-                                .fileName(fileName)
-                                .fileSize(fileSize)
-                                .fileHash(hash)
-                                .installedAt(Instant.now())
-                                .lastChecked(Instant.now())
-                                .build();
-
-                        LOGGER.atInfo().log("Successfully installed %s (%s) as %s",
-                                mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
-                        return installedState;
-                    } catch (IOException e) {
-                        cleanupTempFile(downloadedTempPath);
-                        throw new RuntimeException("Failed to process downloaded file", e);
-                    } catch (RuntimeException e) {
-                        cleanupTempFile(downloadedTempPath);
-                        throw e;
-                    }
+                    return processDownloadedFile(
+                            result.downloadedFile(), targetPath, fileName, version, mod, pluginType);
                 });
+    }
+
+    /**
+     * Process a downloaded temp file: validate, hash, read manifest, move to final location.
+     */
+    private InstalledState processDownloadedFile(
+            Path downloadedTempPath,
+            Path targetPath,
+            String fileName,
+            ModVersion version,
+            ManagedMod mod,
+            PluginType pluginType) {
+        try {
+            // Validate BEFORE moving to final location
+            String hash = FileHashUtils.calculateSha256(downloadedTempPath);
+            long fileSize = Files.size(downloadedTempPath);
+            PluginManifest manifest = ManifestReader.readManifest(downloadedTempPath)
+                    .orElse(null);
+
+            if (manifest == null) {
+                cleanupTempFile(downloadedTempPath);
+                throw new RuntimeException("Failed to read manifest from downloaded file");
+            }
+
+            var identifier = new PluginIdentifier(manifest.getGroup(), manifest.getName());
+
+            // All validation passed - now move to final location
+            moveFileWithFallback(downloadedTempPath, targetPath);
+
+            InstalledState installedState = InstalledState.builder()
+                    .identifier(identifier)
+                    .installedVersionId(version.getVersionId())
+                    .installedVersionNumber(version.getVersionNumber())
+                    .filePath(targetPath.toString())
+                    .fileName(fileName)
+                    .fileSize(fileSize)
+                    .fileHash(hash)
+                    .installedAt(Instant.now())
+                    .lastChecked(Instant.now())
+                    .build();
+
+            LOGGER.atInfo().log("Successfully installed %s (%s) as %s",
+                    mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
+            return installedState;
+        } catch (IOException e) {
+            cleanupTempFile(downloadedTempPath);
+            throw new RuntimeException("Failed to process downloaded file", e);
+        } catch (RuntimeException e) {
+            cleanupTempFile(downloadedTempPath);
+            throw e;
+        }
     }
 
     /**

@@ -37,6 +37,10 @@ class ModtaleUrlParser {
             "/mod/([a-z0-9-]+)-([0-9a-fA-F-]{36})(?:/.*)?",
             Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern PATH_WITH_SLUG = Pattern.compile(
+            "/mod/([a-z0-9-]+)(?:/.*)?",
+            Pattern.CASE_INSENSITIVE
+    );
 
     public boolean canParse(String url) {
         if (url == null || url.isBlank()) {
@@ -58,6 +62,7 @@ class ModtaleUrlParser {
             }
             return PATH_WITH_UUID.matcher(path).find()
                     || PATH_WITH_SLUG_UUID.matcher(path).find()
+                    || PATH_WITH_SLUG.matcher(path).find()
                     || extractSlug(path) != null;
         } catch (Exception e) {
             return false;
@@ -91,6 +96,11 @@ class ModtaleUrlParser {
                 String id = slugMatcher.group(2);
                 return new ParsedModUrl(source, id, slug, null);
             }
+            Matcher slugOnlyMatcher = PATH_WITH_SLUG.matcher(path);
+            if (slugOnlyMatcher.find()) {
+                String slug = slugOnlyMatcher.group(1);
+                return new ParsedModUrl(source, null, slug, null);
+            }
             String slug = extractSlug(path);
             if (slug == null) {
                 throw new InvalidModUrlException(url, "URL does not contain a project identifier");
@@ -114,6 +124,9 @@ class ModtaleUrlParser {
         }
         String candidate = trimmed.substring(slashIndex + 1);
         if (candidate.isBlank() || candidate.equalsIgnoreCase("projects") || candidate.equalsIgnoreCase("project")) {
+            return null;
+        }
+        if (candidate.equalsIgnoreCase("mod") || candidate.equalsIgnoreCase("mods")) {
             return null;
         }
         if (UUID_PATTERN.matcher(candidate).matches()) {
