@@ -7,8 +7,7 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
@@ -38,11 +37,11 @@ public class KeyCommand extends CommandBase {
         }
 
         CommandSender sender = commandContext.sender();
-        List<ModListProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
-        providers.sort(Comparator.comparing(ModListProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+        List<ModProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
+        providers.sort(Comparator.comparing(ModProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
 
         sender.sendMessage(Message.raw("=== Provider API Keys ===").color(Color.CYAN));
-        for (ModListProvider provider : providers) {
+        for (ModProvider provider : providers) {
             if (!provider.requiresApiKey()) {
                 sender.sendMessage(Message.raw("  " + provider.getDisplayName() + ": ").color(Color.GRAY)
                         .insert(Message.raw("Not required").color(Color.GREEN)));
@@ -60,11 +59,11 @@ public class KeyCommand extends CommandBase {
                 .insert(Message.raw("/modsync config key <provider> <key>").color(Color.WHITE)));
     }
 
-    private static ModListSource resolveSource(String input, Collection<ModListSource> available) {
-        for (ModListSource source : available) {
-            if (source.name().equalsIgnoreCase(input) ||
-                source.getDisplayName().equalsIgnoreCase(input)) {
-                return source;
+    private static ModProvider resolveProvider(String input, Collection<ModProvider> providers) {
+        for (ModProvider provider : providers) {
+            if (provider.getSource().equalsIgnoreCase(input) ||
+                provider.getDisplayName().equalsIgnoreCase(input)) {
+                return provider;
             }
         }
         return null;
@@ -98,21 +97,20 @@ public class KeyCommand extends CommandBase {
             String providerName = commandContext.get(providerArg);
             String key = commandContext.get(keyArg);
 
-            List<ModListSource> available = new ArrayList<>(modSync.getProviderRegistry().getAvailableSources());
-            available.sort(Comparator.comparing(ModListSource::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+            List<ModProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
+            providers.sort(Comparator.comparing(ModProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
 
-            ModListSource source = resolveSource(providerName, available);
-            if (source == null) {
+            ModProvider provider = resolveProvider(providerName, providers);
+            if (provider == null) {
                 sender.sendMessage(Message.raw("Unknown provider: " + providerName).color(Color.RED));
                 sender.sendMessage(Message.raw("Available providers: " +
-                        String.join(", ", available.stream()
-                                .map(ModListSource::getDisplayName)
+                        String.join(", ", providers.stream()
+                                .map(ModProvider::getDisplayName)
                                 .toList()))
                         .color(Color.GRAY));
                 return;
             }
 
-            ModListProvider provider = modSync.getProviderRegistry().getProvider(source);
             if (!provider.requiresApiKey()) {
                 sender.sendMessage(Message.raw(provider.getDisplayName() + " does not support API keys.").color(Color.YELLOW));
                 return;
@@ -122,7 +120,7 @@ public class KeyCommand extends CommandBase {
             provider.validateApiKey(key)
                     .thenAccept(valid -> {
                         if (valid) {
-                            modSync.getConfigStorage().getConfig().setApiKey(source, key);
+                            modSync.getConfigStorage().getConfig().setApiKey(provider.getSource(), key);
                             modSync.getConfigStorage().save();
                             sender.sendMessage(Message.raw("API key set successfully for " + provider.getDisplayName()).color(Color.GREEN));
                         } else {

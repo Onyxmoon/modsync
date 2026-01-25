@@ -1,33 +1,39 @@
 package de.onyxmoon.modsync.provider.modtale;
 
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.api.model.provider.ModList;
+import de.onyxmoon.modsync.provider.modtale.client.ModtaleApiException;
+import de.onyxmoon.modsync.provider.modtale.client.ModtaleClient;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Modtale implementation of ModListProvider.
- * Registered via META-INF/services/de.onyxmoon.modsync.api.ModListProvider
+ * Modtale implementation of ModProvider.
+ * Registered via META-INF/services/de.onyxmoon.modsync.api.ModProvider
  */
-public class ModtaleProvider implements ModListProvider {
+public class ModtaleProvider implements ModProvider {
+
+    private static final String SOURCE = "modtale";
+    private static final String DISPLAY_NAME = "Modtale";
+
     private static final int RATE_LIMIT = 300;
     private static final int URL_PRIORITY = 80;
+
     private final ModtaleAdapter adapter;
     private final ModtaleUrlParser urlParser;
 
     public ModtaleProvider() {
         this.adapter = new ModtaleAdapter();
-        this.urlParser = new ModtaleUrlParser();
+        this.urlParser = new ModtaleUrlParser(SOURCE);
     }
 
     @Override
-    public ModListSource getSource() {
-        return ModListSource.MODTALE;
+    public String getSource() {
+        return SOURCE;
     }
 
     @Override
@@ -50,7 +56,7 @@ public class ModtaleProvider implements ModListProvider {
 
     @Override
     public String getDisplayName() {
-        return "Modtale";
+        return DISPLAY_NAME;
     }
 
     @Override
@@ -101,7 +107,7 @@ public class ModtaleProvider implements ModListProvider {
         }
         String normalized = slug.toLowerCase();
         return results.stream()
-                .filter(entry -> entry.getName() != null && entry.getName().equalsIgnoreCase(slug))
+                .filter(entry -> entry.getName().equalsIgnoreCase(slug))
                 .findFirst()
                 .orElseGet(() -> results.stream()
                         .filter(entry -> entry.getSlug() != null && entry.getSlug().equalsIgnoreCase(normalized))

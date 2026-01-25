@@ -1,8 +1,6 @@
 package de.onyxmoon.modsync.provider.modtale;
 
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListSource;
-import de.onyxmoon.modsync.api.ModUrlParser;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 
 import java.net.URI;
@@ -11,8 +9,21 @@ import java.util.regex.Pattern;
 
 /**
  * URL parser for Modtale project URLs.
+ * Internal helper class - the provider delegates URL parsing to this class.
  */
-public class ModtaleUrlParser implements ModUrlParser {
+class ModtaleUrlParser {
+
+    private final String source;
+
+    /**
+     * Creates a new Modtale URL parser.
+     *
+     * @param source the source identifier from the provider
+     */
+    public ModtaleUrlParser(String source) {
+        this.source = source;
+    }
+
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     );
@@ -27,7 +38,6 @@ public class ModtaleUrlParser implements ModUrlParser {
             Pattern.CASE_INSENSITIVE
     );
 
-    @Override
     public boolean canParse(String url) {
         if (url == null || url.isBlank()) {
             return false;
@@ -54,14 +64,13 @@ public class ModtaleUrlParser implements ModUrlParser {
         }
     }
 
-    @Override
     public ParsedModUrl parse(String url) throws InvalidModUrlException {
         if (url == null || url.isBlank()) {
             throw new InvalidModUrlException(url, "URL cannot be null or empty");
         }
         String trimmed = url.trim();
         if (UUID_PATTERN.matcher(trimmed).matches()) {
-            return new ParsedModUrl(ModListSource.MODTALE, trimmed, null, null);
+            return new ParsedModUrl(source, trimmed, null, null);
         }
         try {
             URI uri = URI.create(trimmed);
@@ -74,29 +83,24 @@ public class ModtaleUrlParser implements ModUrlParser {
             Matcher matcher = PATH_WITH_UUID.matcher(path);
             if (matcher.find()) {
                 String id = matcher.group(1);
-                return new ParsedModUrl(ModListSource.MODTALE, id, null, null);
+                return new ParsedModUrl(source, id, null, null);
             }
             Matcher slugMatcher = PATH_WITH_SLUG_UUID.matcher(path);
             if (slugMatcher.find()) {
                 String slug = slugMatcher.group(1);
                 String id = slugMatcher.group(2);
-                return new ParsedModUrl(ModListSource.MODTALE, id, slug, null);
+                return new ParsedModUrl(source, id, slug, null);
             }
             String slug = extractSlug(path);
             if (slug == null) {
                 throw new InvalidModUrlException(url, "URL does not contain a project identifier");
             }
-            return new ParsedModUrl(ModListSource.MODTALE, null, slug, null);
+            return new ParsedModUrl(source, null, slug, null);
         } catch (InvalidModUrlException e) {
             throw e;
         } catch (Exception e) {
             throw new InvalidModUrlException(url, "URL does not match Modtale pattern");
         }
-    }
-
-    @Override
-    public ModListSource getSource() {
-        return ModListSource.MODTALE;
     }
 
     private String extractSlug(String path) {

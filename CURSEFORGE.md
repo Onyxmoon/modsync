@@ -6,7 +6,7 @@ A server-side mod management plugin for Hytale dedicated servers that lets you e
 
 ## Features
 
-- **Multiple Sources** - CurseForge (API key required) and CFWidget (no API key). More to come.
+- **Multiple Sources** - CurseForge (API key required), CFWidget (no API key) and Modtale (alpha, API key required). More to come.
 - **One-command install** - Install all managed mods at once
 - **Full Mod Lifecycle** - Add, install, update, remove mods via commands
 - **Update Management** - Check for updates, upgrade individual mods or all at once
@@ -24,9 +24,10 @@ A server-side mod management plugin for Hytale dedicated servers that lets you e
 4. (Optional) Set your CurseForge API key: `/modsync config key curseforge <key>`
 5. Add mods: `/modsync add https://curseforge.com/hytale/mods/example`
 
-> Get your API key from [CurseForge Console](https://console.curseforge.com/)
+> Get your API key from [CurseForge Console](https://console.curseforge.com/) or [Modtale API Docs](https://modtale.net/api-docs)
 
 > **Note:** Without an API key, ModSync uses CFWidget as fallback for CurseForge URLs. CFWidget supports URL-based lookups but not search-based import matching.
+> **Note:** Modtale support is experimental/alpha and requires an API key.
 
 ## Commands
 
@@ -151,7 +152,7 @@ All data is stored in `mods/Onyxmoon_ModSync/`:
 - **Mod distribution** - Mods can only be downloaded if the author has enabled "Allow Mod Distribution" in their CurseForge project settings
 - **Provider fallback** - Without a CurseForge API key, ModSync uses CFWidget which supports URL lookups but not search
 - **File Locking (Windows)**: JAR files are locked while loaded. The bootstrap plugin handles deletion on restart.
-- **Supported Sources**: CurseForge and CFWidget are supported. CFWidget uses the public widget API and does not require an API key, but does not support search-based imports.
+- **Supported Sources**: CurseForge, Modtale (alpha), and CFWidget are supported. CFWidget uses the public widget API and does not require an API key, but does not support search-based imports.
 
 ## Support
 

@@ -8,7 +8,6 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.model.ImportMatch;
 import de.onyxmoon.modsync.api.model.UnmanagedMod;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
@@ -171,7 +170,7 @@ public class ImportCommand extends CommandBase {
         if (match.isAutoImportable()) {
             // High confidence - auto import
             Objects.requireNonNull(modEntry, "modEntry cannot be null when match is auto-importable");
-            modSync.getScanService().importWithEntry(unmanagedMod, modEntry, ModListSource.CURSEFORGE);
+            modSync.getScanService().importWithEntry(unmanagedMod, modEntry, "curseforge");
             sender.sendMessage(Message.raw("Match found: ").color(Color.GREEN)
                     .insert(Message.raw(modEntry.getName()).color(Color.YELLOW))
                     .insert(Message.raw(" (" + match.confidence().getDisplayName() + ")").color(Color.GRAY)));

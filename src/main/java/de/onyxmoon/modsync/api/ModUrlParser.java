@@ -21,11 +21,4 @@ public interface ModUrlParser {
      * @throws InvalidModUrlException if the URL cannot be parsed
      */
     ParsedModUrl parse(String url) throws InvalidModUrlException;
-
-    /**
-     * Get the source this parser handles.
-     *
-     * @return the mod list source
-     */
-    ModListSource getSource();
 }

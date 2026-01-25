@@ -1,54 +1,61 @@
 package de.onyxmoon.modsync.provider.cfwidget;
 
-import com.google.gson.JsonObject;
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.api.model.provider.ModList;
+import de.onyxmoon.modsync.provider.cfwidget.client.CfWidgetApiException;
+import de.onyxmoon.modsync.provider.cfwidget.client.CfWidgetClient;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * CFWidget implementation of ModListProvider.
- * Registered via META-INF/services/de.onyxmoon.modsync.api.ModListProvider
+ * CFWidget implementation of ModProvider.
+ * Registered via META-INF/services/de.onyxmoon.modsync.api.ModProvider
  */
-public class CfWidgetProvider implements ModListProvider {
+public class CfWidgetProvider implements ModProvider {
+    private static final String SOURCE = "cfwidget";
+    private static final String DISPLAY_NAME = "CFWidget";
 
     private static final int RATE_LIMIT = 30;
     private static final int URL_PRIORITY = 50;
     private static final String HYTALE_MODS_PATH = "hytale/mods/";
     private static final String HYTALE_BOOTSTRAP_PATH = "hytale/bootstrap/";
-    private static final Pattern CF_WIDGET_HOST = Pattern.compile("^(?:api\\.)?cfwidget\\.com$", Pattern.CASE_INSENSITIVE);
-    private static final Pattern CURSEFORGE_URL = Pattern.compile(
-            "^https?://(?:www\\.)?curseforge\\.com/hytale/(mods|bootstrap)/([\\w-]+)(?:/files(?:/(\\d+))?)?/?$",
-            Pattern.CASE_INSENSITIVE
-    );
+
 
     private final CfWidgetClient client;
     private final CfWidgetAdapter adapter;
+    private final CfWidgetUrlParser urlParser;
 
     public CfWidgetProvider() {
         this.client = new CfWidgetClient();
         this.adapter = new CfWidgetAdapter();
+        this.urlParser = new CfWidgetUrlParser(SOURCE);
     }
 
     @Override
-    public ModListSource getSource() {
-        return ModListSource.CFWIDGET;
+    public boolean canParse(String url) {
+        return urlParser.canParse(url);
+    }
+
+    @Override
+    public ParsedModUrl parse(String url) throws InvalidModUrlException {
+        return urlParser.parse(url);
+    }
+
+    @Override
+    public String getSource() {
+        return SOURCE;
     }
 
     @Override
     public CompletableFuture<ModList> fetchModList(String apiKey, String projectId) {
         return fetchMod(apiKey, projectId)
                 .thenApply(entry -> ModList.builder()
-                        .source(ModListSource.CFWIDGET)
+                        .source(SOURCE)
                         .projectId(projectId)
                         .projectName(entry.getName())
                         .mods(List.of(entry))
@@ -68,7 +75,7 @@ public class CfWidgetProvider implements ModListProvider {
 
     @Override
     public String getDisplayName() {
-        return "CFWidget";
+        return DISPLAY_NAME;
     }
 
     @Override
@@ -81,62 +88,9 @@ public class CfWidgetProvider implements ModListProvider {
         return URL_PRIORITY;
     }
 
-    @Override
-    public boolean canParse(String url) {
-        if (url == null || url.isBlank()) {
-            return false;
-        }
-        String trimmed = url.trim();
-        if (CURSEFORGE_URL.matcher(trimmed).matches()) {
-            return true;
-        }
-        try {
-            URI uri = URI.create(trimmed);
-            String host = uri.getHost();
-            String path = uri.getPath();
-            return host != null && CF_WIDGET_HOST.matcher(host).matches()
-                    && path != null && !path.isBlank() && !path.endsWith(".png");
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
-    @Override
-    public ParsedModUrl parse(String url) throws InvalidModUrlException {
-        if (url == null || url.isBlank()) {
-            throw new InvalidModUrlException(url, "URL cannot be null or empty");
-        }
-        String trimmed = url.trim();
-        Matcher cfMatcher = CURSEFORGE_URL.matcher(trimmed);
-        if (cfMatcher.matches()) {
-            String category = cfMatcher.group(1);
-            String slug = cfMatcher.group(2);
-            String versionId = cfMatcher.group(3);
-            String path = "hytale/" + category + "/" + slug;
-            return new ParsedModUrl(ModListSource.CFWIDGET, path, slug, versionId);
-        }
-        try {
-            URI uri = URI.create(trimmed);
-            String host = uri.getHost();
-            if (host == null || !CF_WIDGET_HOST.matcher(host).matches()) {
-                throw new InvalidModUrlException(url, "URL does not match CFWidget pattern");
-            }
-            String path = uri.getPath();
-            if (path == null || path.isBlank()) {
-                throw new InvalidModUrlException(url, "URL does not contain a project path");
-            }
-            if (path.endsWith(".png")) {
-                throw new InvalidModUrlException(url, "Image URLs are not supported");
-            }
-            String normalized = path.startsWith("/") ? path.substring(1) : path;
-            String slug = extractSlug(normalized);
-            return new ParsedModUrl(ModListSource.CFWIDGET, normalized, slug, null);
-        } catch (InvalidModUrlException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new InvalidModUrlException(url, "URL does not match CFWidget pattern");
-        }
-    }
+
+
 
     @Override
     public CompletableFuture<ModEntry> fetchMod(String apiKey, String modId) {
@@ -174,17 +128,5 @@ public class CfWidgetProvider implements ModListProvider {
         return CompletableFuture.failedFuture(
                 new UnsupportedOperationException("CFWidget does not support search")
         );
-    }
-
-    private static String extractSlug(String path) {
-        if (path == null || path.isBlank()) {
-            return null;
-        }
-        String trimmed = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
-        int slashIndex = trimmed.lastIndexOf('/');
-        if (slashIndex < 0) {
-            return trimmed;
-        }
-        return trimmed.substring(slashIndex + 1);
     }
 }

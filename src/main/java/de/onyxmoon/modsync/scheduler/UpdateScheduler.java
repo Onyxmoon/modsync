@@ -2,8 +2,7 @@ package de.onyxmoon.modsync.scheduler;
 
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 
@@ -121,20 +120,20 @@ public class UpdateScheduler {
             );
         }
 
-        ModListSource source = storedList.get().getSource();
-        ModListProvider provider = plugin.getProviderRegistry().getProvider(source);
+        String source = storedList.get().getSource();
+        ModProvider provider = plugin.getProviderRegistry().getProvider(source);
 
         String apiKey = config.getApiKey(source);
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                new IllegalStateException("No API key configured for " + source.getDisplayName())
+                new IllegalStateException("No API key configured for " + provider.getDisplayName())
             );
         }
 
         String projectId = storedList.get().getProjectId();
 
         LOGGER.atInfo().log("Starting mod list update from %s for project %s",
-                   source.getDisplayName(), projectId);
+                   provider.getDisplayName(), projectId);
 
         return provider.fetchModList(apiKey, projectId)
             .thenApply(modList -> {
@@ -143,13 +142,12 @@ public class UpdateScheduler {
 
                 LOGGER.atInfo().log("Mod list updated successfully: %d mods loaded from %s",
                            modList.getMods().size(),
-                           modList.getSource().getDisplayName());
+                           modList.getSource());
 
                 return modList;
             })
             .exceptionally(ex -> {
-                LOGGER.atSevere().withCause(ex).log("Failed to fetch mod list from %s",
-                            source.getDisplayName());
+                LOGGER.atSevere().withCause(ex).log("Failed to fetch mod list from %s", source);
                 throw new RuntimeException("Update failed: " + ex.getMessage(), ex);
             });
     }

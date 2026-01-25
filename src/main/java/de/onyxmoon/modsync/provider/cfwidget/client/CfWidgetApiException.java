@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.provider.cfwidget;
+package de.onyxmoon.modsync.provider.cfwidget.client;
 
 /**
  * Custom exception for CFWidget API errors.

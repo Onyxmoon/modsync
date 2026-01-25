@@ -1,7 +1,5 @@
 package de.onyxmoon.modsync.api.model;
 
-import de.onyxmoon.modsync.api.ModListSource;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,12 +39,12 @@ public final class ManagedModRegistry {
     /**
      * Finds a mod by its source and mod ID.
      *
-     * @param source the mod source
+     * @param source the source identifier (e.g., "curseforge")
      * @param modId the mod ID
      * @return an Optional containing the mod if found
      */
-    public Optional<ManagedMod> findBySourceId(ModListSource source, String modId) {
-        return findBySourceId(source.name().toLowerCase() + ":" + modId);
+    public Optional<ManagedMod> findBySourceId(String source, String modId) {
+        return findBySourceId(source.toLowerCase() + ":" + modId);
     }
 
     /**
@@ -144,12 +142,13 @@ public final class ManagedModRegistry {
     /**
      * Gets all mods from a specific source.
      *
-     * @param source the source to filter by
+     * @param source the source identifier to filter by (e.g., "curseforge")
      * @return a list of mods from that source
      */
-    public List<ManagedMod> getBySource(ModListSource source) {
+    public List<ManagedMod> getBySource(String source) {
+        String normalizedSource = source != null ? source.toLowerCase() : null;
         return mods.values().stream()
-                .filter(mod -> mod.getSource() == source)
+                .filter(mod -> normalizedSource != null && normalizedSource.equals(mod.getSource()))
                 .collect(Collectors.toList());
     }
 
@@ -166,12 +165,12 @@ public final class ManagedModRegistry {
     /**
      * Checks if a mod with the given source and mod ID exists.
      *
-     * @param source the mod source
+     * @param source the source identifier (e.g., "curseforge")
      * @param modId the mod ID
      * @return true if the mod exists
      */
-    public boolean contains(ModListSource source, String modId) {
-        return contains(source.name().toLowerCase() + ":" + modId);
+    public boolean contains(String source, String modId) {
+        return contains(source.toLowerCase() + ":" + modId);
     }
 
     /**

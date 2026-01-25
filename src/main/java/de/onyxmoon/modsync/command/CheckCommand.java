@@ -5,7 +5,7 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
@@ -105,12 +105,12 @@ public class CheckCommand extends CommandBase {
             return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), ""));
         }
 
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No API key for " + mod.getSource().getDisplayName())
+                    new IllegalStateException("No API key for " + provider.getDisplayName())
             );
         }
 

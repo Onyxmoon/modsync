@@ -1,6 +1,5 @@
 package de.onyxmoon.modsync.provider.modtale;
 
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.provider.ModAuthor;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
@@ -21,12 +20,13 @@ import java.util.List;
  * Adapter to convert Modtale API responses to canonical models.
  */
 public class ModtaleAdapter {
+    private static final String SOURCE = "modtale";
     private static final String BASE_URL = "https://api.modtale.net";
 
     public ModList adaptToModList(ModtaleProjectResponse project) {
         ModEntry entry = adaptToModEntry(project);
         return ModList.builder()
-                .source(ModListSource.MODTALE)
+                .source(SOURCE)
                 .projectId(project.getId())
                 .projectName(project.getTitle())
                 .mods(List.of(entry))

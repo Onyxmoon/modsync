@@ -1,7 +1,6 @@
 package de.onyxmoon.modsync.api.model;
 
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 
@@ -18,7 +17,7 @@ public final class ManagedMod {
     private final String modId;
     private final String name;
     private final String slug;
-    private final ModListSource source;
+    private final String source;
     private final PluginType pluginType;
 
     // Tracking info
@@ -52,7 +51,7 @@ public final class ManagedMod {
      * @return the source ID (e.g., "curseforge:12345")
      */
     public String getSourceId() {
-        return source.name().toLowerCase() + ":" + modId;
+        return source + ":" + modId;
     }
 
     /**
@@ -115,7 +114,7 @@ public final class ManagedMod {
         return slug;
     }
 
-    public ModListSource getSource() {
+    public String getSource() {
         return source;
     }
 
@@ -170,7 +169,7 @@ public final class ManagedMod {
         return Objects.equals(modId, that.modId) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(slug, that.slug) &&
-                source == that.source &&
+                Objects.equals(source, that.source) &&
                 pluginType == that.pluginType &&
                 Objects.equals(desiredVersionId, that.desiredVersionId) &&
                 Objects.equals(addedAt, that.addedAt) &&
@@ -204,7 +203,7 @@ public final class ManagedMod {
         private String modId;
         private String name;
         private String slug;
-        private ModListSource source;
+        private String source;
         private PluginType pluginType = PluginType.PLUGIN;
         private String desiredVersionId;
         private Instant addedAt;
@@ -230,7 +229,7 @@ public final class ManagedMod {
             return this;
         }
 
-        public Builder source(ModListSource source) {
+        public Builder source(String source) {
             this.source = source;
             return this;
         }

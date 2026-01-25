@@ -1,6 +1,5 @@
 package de.onyxmoon.modsync.storage.model;
 
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 
@@ -62,7 +61,7 @@ public class ModListFile {
         private String modId;
         private String name;
         private String slug;
-        private ModListSource source;
+        private String source;
         private PluginType pluginType;
         private String desiredVersionId;
         private Instant addedAt;
@@ -72,7 +71,7 @@ public class ModListFile {
         public ModListEntry() {
         }
 
-        public ModListEntry(String modId, String name, String slug, ModListSource source,
+        public ModListEntry(String modId, String name, String slug, String source,
                            PluginType pluginType, String desiredVersionId,
                            Instant addedAt, String addedViaUrl, ReleaseChannel releaseChannelOverride) {
             this.modId = modId;
@@ -98,7 +97,7 @@ public class ModListFile {
             return slug;
         }
 
-        public ModListSource getSource() {
+        public String getSource() {
             return source;
         }
 
@@ -126,7 +125,7 @@ public class ModListFile {
          * Get the source ID for this entry (e.g., "curseforge:12345").
          */
         public String getSourceId() {
-            return source.name().toLowerCase() + ":" + modId;
+            return source.toLowerCase() + ":" + modId;
         }
     }
 }

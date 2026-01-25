@@ -2,8 +2,7 @@ package de.onyxmoon.modsync.provider;
 
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -22,8 +21,9 @@ public class ProviderRegistry {
     /**
      * Thread-safe map of providers. Uses ConcurrentHashMap to allow
      * safe concurrent access during provider lookups.
+     * Key is the source identifier (lowercase), e.g., "curseforge", "modtale".
      */
-    private final Map<ModListSource, ModListProvider> providers;
+    private final Map<String, ModProvider> providers;
 
     public ProviderRegistry() {
         this.providers = new ConcurrentHashMap<>();
@@ -36,20 +36,20 @@ public class ProviderRegistry {
         Set<ClassLoader> loaders = new LinkedHashSet<>(List.of(
                 Thread.currentThread().getContextClassLoader(),
                 ProviderRegistry.class.getClassLoader(),
-                ModListProvider.class.getClassLoader()
+                ModProvider.class.getClassLoader()
         ));
 
         for (ClassLoader cl : loaders) {
             if (cl == null) continue;
 
             try {
-                ServiceLoader<ModListProvider> loader = ServiceLoader.load(ModListProvider.class, cl);
+                ServiceLoader<ModProvider> loader = ServiceLoader.load(ModProvider.class, cl);
 
                 // stream() zeigt Kandidaten ohne sofort zu instanziieren
                 loader.stream().forEach(p -> {
                     LOGGER.atInfo().log("Service candidate via %s: %s", cl, p.type().getName());
                     try {
-                        ModListProvider prov = p.get(); // instanziieren
+                        ModProvider prov = p.get(); // instanziieren
                         providers.put(prov.getSource(), prov);
                         LOGGER.atInfo().log("Registered provider via %s: %s", cl, prov.getClass().getName());
                     } catch (Throwable t) {
@@ -68,23 +68,49 @@ public class ProviderRegistry {
 
 
 
-    public ModListProvider getProvider(ModListSource source) {
-        ModListProvider provider = providers.get(source);
+    /**
+     * Gets a provider by its source identifier.
+     *
+     * @param source the source identifier (e.g., "curseforge", "modtale")
+     * @return the provider
+     * @throws IllegalArgumentException if no provider exists for the source
+     */
+    public ModProvider getProvider(String source) {
+        String normalized = source != null ? source.toLowerCase() : null;
+        ModProvider provider = providers.get(normalized);
         if (provider == null) {
             throw new IllegalArgumentException("No provider for source: " + source);
         }
         return provider;
     }
 
-    public boolean hasProvider(ModListSource source) {
-        return providers.containsKey(source);
+    /**
+     * Checks if a provider exists for the given source.
+     *
+     * @param source the source identifier
+     * @return true if a provider exists
+     */
+    public boolean hasProvider(String source) {
+        String normalized = source != null ? source.toLowerCase() : null;
+        return providers.containsKey(normalized);
     }
 
-    public Collection<ModListProvider> getProviders() {
+    public Collection<ModProvider> getProviders() {
         return providers.values();
     }
 
-    public Collection<ModListSource> getAvailableSources() {
-        return providers.keySet();
+    /**
+     * Gets the display name for a source identifier.
+     * Falls back to the source string if no provider is found.
+     *
+     * @param source the source identifier (e.g., "curseforge")
+     * @return the display name (e.g., "CurseForge")
+     */
+    public String getDisplayName(String source) {
+        if (source == null) {
+            return "Unknown";
+        }
+        ModProvider provider = providers.get(source.toLowerCase());
+        return provider != null ? provider.getDisplayName() : source;
     }
 }

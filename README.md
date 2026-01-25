@@ -9,7 +9,7 @@ Server-side mod management for Hytale dedicated servers. Add, install, update, a
 
 ## Features
 
-- **Multiple Sources** - CurseForge and Modtale (API key required), plus CFWidget (no API key). More to come.
+- **Multiple Sources** - CurseForge plus CFWidget (fallback for no API key) and Modtale (alpha, API key required). More to come.
 - **Full Mod Lifecycle** - Add, install, update, remove mods via commands
 - **Update Management** - Check for updates, upgrade individual mods or all at once
 - **Release Channels** - Choose Release, Beta, or Alpha versions (global + per-mod)
@@ -23,15 +23,16 @@ Server-side mod management for Hytale dedicated servers. Add, install, update, a
 - Java 25
 - Hytale Server (release patchline)
 - CurseForge API key (optional, but recommended for full functionality)
+- Modtale API key (optional, required for Modtale)
 
 ## Installation
 
 1. Download `modsync-<version>.jar` from [Releases](https://github.com/Onyxmoon/modsync/releases)
 2. Place in your server's `mods/` folder
 3. Start server
-4. (Optional) Set your CurseForge API key: `/modsync config key curseforge <key>`
+4. (Optional) Set your API key: `/modsync config key <provider> <key>`
 
-> Get your API key from [CurseForge Console](https://console.curseforge.com/)
+> Get your API key from [CurseForge Console](https://console.curseforge.com/) or [Modtale API](https://modtale.net/api-docs)
 
 > **Note:** Without an API key, ModSync uses CFWidget as fallback. CFWidget supports URL-based lookups but not search-based import matching.
 
@@ -187,6 +188,7 @@ The bootstrap plugin is an **early plugin** that runs before normal plugins load
 - **Mod distribution** - Mods can only be downloaded if the author has enabled "Allow Mod Distribution" in their CurseForge project settings
 - **No automatic restart** - There is no way to trigger a server restart via the Mod API; you must restart manually
 - **Provider fallback** - Without a CurseForge API key, ModSync uses CFWidget which supports URL lookups but not search
+- **Modtale (alpha)** - Modtale support is experimental and requires an API key
 
 ## Building
 

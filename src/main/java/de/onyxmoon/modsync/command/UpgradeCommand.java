@@ -7,7 +7,7 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
@@ -224,12 +224,12 @@ public class UpgradeCommand extends CommandBase {
             );
         }
 
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No API key set for " + mod.getSource().getDisplayName())
+                    new IllegalStateException("No API key set for " + provider.getDisplayName())
             );
         }
 

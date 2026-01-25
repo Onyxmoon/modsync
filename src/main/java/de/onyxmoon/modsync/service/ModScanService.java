@@ -3,8 +3,7 @@ package de.onyxmoon.modsync.service;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.*;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
@@ -26,6 +25,7 @@ import java.util.stream.Stream;
  */
 public class ModScanService {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+    private static final String DEFAULT_IMPORT_SOURCE = "curseforge";
     private final ModSync modSync;
 
     public ModScanService(ModSync modSync) {
@@ -114,8 +114,8 @@ public class ModScanService {
      * @return ImportMatch with the result
      */
     public CompletableFuture<ImportMatch> findMatch(UnmanagedMod unmanagedMod) {
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(ModListSource.CURSEFORGE);
-        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(ModListSource.CURSEFORGE);
+        ModProvider provider = modSync.getProviderRegistry().getProvider(DEFAULT_IMPORT_SOURCE);
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(DEFAULT_IMPORT_SOURCE);
 
         if (provider == null || apiKey == null || apiKey.isEmpty()) {
             return CompletableFuture.completedFuture(ImportMatch.noMatch(unmanagedMod));
@@ -139,7 +139,7 @@ public class ModScanService {
     }
 
     private CompletableFuture<ImportMatch> trySlugMatch(
-            ModListProvider provider, String apiKey, UnmanagedMod unmanagedMod, String slug) {
+            ModProvider provider, String apiKey, UnmanagedMod unmanagedMod, String slug) {
 
         return provider.fetchModBySlug(apiKey, slug)
                 .thenApply(entry -> ImportMatch.exactMatch(unmanagedMod, entry, "Slug match: " + slug))
@@ -150,7 +150,7 @@ public class ModScanService {
     }
 
     private CompletableFuture<ImportMatch> tryNameSearch(
-            ModListProvider provider, String apiKey, UnmanagedMod unmanagedMod) {
+            ModProvider provider, String apiKey, UnmanagedMod unmanagedMod) {
 
         // getDisplayName() already handles identifier != null case
         String searchTerm = unmanagedMod.getDisplayName();
@@ -198,7 +198,7 @@ public class ModScanService {
      * @param unmanagedMod The unmanaged mod to import
      * @param modEntry     The matched entry from the provider
      */
-    public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry, ModListSource source) {
+    public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry, String source) {
         // Create InstalledState from the unmanaged mod
         InstalledState installedState = InstalledState.builder()
                 .identifier(unmanagedMod.identifier())
@@ -217,7 +217,7 @@ public class ModScanService {
         // but fall back to unmanagedMod.pluginType() if not available
         PluginType pluginType = modEntry.getPluginType();
 
-        ModListSource effectiveSource = source != null ? source : ModListSource.CURSEFORGE;
+        String effectiveSource = source != null ? source : DEFAULT_IMPORT_SOURCE;
 
         ManagedMod managedMod = ManagedMod.builder()
                 .modId(modEntry.getModId())

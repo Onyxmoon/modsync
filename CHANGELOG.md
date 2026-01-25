@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **CFWidget provider**: URL-based mod lookups via the CFWidget API (no API key required)
+- **Modtale provider (alpha)**: Experimental Modtale support behind API keys
 - **StringUtils**: New utility class for consistent null/blank string handling
 
 ### Changed

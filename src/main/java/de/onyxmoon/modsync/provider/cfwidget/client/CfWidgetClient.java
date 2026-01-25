@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.provider.cfwidget;
+package de.onyxmoon.modsync.provider.cfwidget.client;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

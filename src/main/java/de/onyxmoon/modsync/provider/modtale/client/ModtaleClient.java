@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.provider.modtale;
+package de.onyxmoon.modsync.provider.modtale.client;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

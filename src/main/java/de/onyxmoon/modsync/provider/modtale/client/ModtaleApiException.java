@@ -1,4 +1,4 @@
-package de.onyxmoon.modsync.provider.modtale;
+package de.onyxmoon.modsync.provider.modtale.client;
 
 /**
  * Custom exception for Modtale API errors.

@@ -6,7 +6,7 @@ import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.BuildInfo;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 import de.onyxmoon.modsync.util.PermissionHelper;
@@ -58,8 +58,9 @@ public class StatusCommand extends CommandBase {
                 : Optional.empty();
 
         if (modList.isPresent()) {
+            String sourceDisplayName = modSync.getProviderRegistry().getDisplayName(modList.get().getSource());
             sender.sendMessage(Message.raw("Mod List Source: ").color(Color.GRAY)
-                    .insert(Message.raw(modList.get().getSource().getDisplayName()).color(Color.WHITE)));
+                    .insert(Message.raw(sourceDisplayName).color(Color.WHITE)));
             sender.sendMessage(Message.raw("Project ID: ").color(Color.GRAY)
                     .insert(Message.raw(modList.get().getProjectId()).color(Color.WHITE)));
         } else if (config.getCurrentProjectId() != null) {
@@ -80,8 +81,8 @@ public class StatusCommand extends CommandBase {
                     .insert(Message.raw("Never").color(Color.RED)));
         }
 
-        List<ModListProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
-        providers.sort(Comparator.comparing(ModListProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+        List<ModProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
+        providers.sort(Comparator.comparing(ModProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
         providers.forEach(provider -> {
             if (!provider.requiresApiKey()) {
                 sender.sendMessage(Message.raw(provider.getDisplayName() + " API Key: ").color(Color.GRAY)

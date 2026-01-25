@@ -74,7 +74,7 @@ public class ListCommand extends CommandBase {
             // Second line: Identifier | Type | Source
             String identifier = mod.getIdentifierString().orElse("-");
             String typeAbbrev = mod.getPluginType().getDisplayName();
-            String source = mod.getSource().getDisplayName();
+            String source = modSync.getProviderRegistry().getDisplayName(mod.getSource());
 
             Message secondLine = Message.raw("    ").color(Color.GRAY)
                     .insert(Message.raw(identifier).color(Color.CYAN))

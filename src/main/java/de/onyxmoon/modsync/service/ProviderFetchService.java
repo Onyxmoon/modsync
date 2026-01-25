@@ -2,8 +2,7 @@ package de.onyxmoon.modsync.service;
 
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 
@@ -31,7 +30,7 @@ public class ProviderFetchService {
      * @param modEntry  the fetched mod entry
      */
     public record FetchResult(
-            ModListProvider provider,
+            ModProvider provider,
             ParsedModUrl parsedUrl,
             ModEntry modEntry
     ) {
@@ -46,7 +45,7 @@ public class ProviderFetchService {
      * @return a CompletableFuture containing the FetchResult, or null if no provider could resolve the URL
      */
     public CompletableFuture<FetchResult> fetchFromUrl(String url, Consumer<String> onMissingApiKey) {
-        List<ModListProvider> providers = modSync.getUrlParserRegistry().findProviders(url);
+        List<ModProvider> providers = modSync.getUrlParserRegistry().findProviders(url);
         if (providers.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -69,13 +68,13 @@ public class ProviderFetchService {
      */
     public List<String> getProviderNamesForUrl(String url) {
         return modSync.getUrlParserRegistry().findProviders(url).stream()
-                .map(ModListProvider::getDisplayName)
+                .map(ModProvider::getDisplayName)
                 .toList();
     }
 
     private CompletableFuture<FetchResult> fetchFromProviders(
             String url,
-            List<ModListProvider> providers,
+            List<ModProvider> providers,
             List<String> missingApiKeys,
             int index) {
 
@@ -83,7 +82,7 @@ public class ProviderFetchService {
             return CompletableFuture.completedFuture(null);
         }
 
-        ModListProvider provider = providers.get(index);
+        ModProvider provider = providers.get(index);
 
         // Try to parse the URL
         ParsedModUrl parsedUrl;
@@ -94,7 +93,7 @@ public class ProviderFetchService {
         }
 
         // Check if we have the required API key
-        ModListSource source = provider.getSource();
+        String source = provider.getSource();
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(source);
 
         if (provider.requiresApiKey() && (apiKey == null || apiKey.isBlank())) {

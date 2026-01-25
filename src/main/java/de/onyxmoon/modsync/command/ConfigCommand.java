@@ -5,7 +5,7 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 import de.onyxmoon.modsync.command.config.ChannelCommand;
 import de.onyxmoon.modsync.command.config.KeyCommand;
@@ -60,9 +60,9 @@ public class ConfigCommand extends CommandBase {
         sender.sendMessage(Message.raw("> ").color(Color.ORANGE)
                 .insert(Message.raw("API Keys").color(Color.WHITE)));
 
-        List<ModListProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
-        providers.sort(Comparator.comparing(ModListProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
-        for (ModListProvider provider : providers) {
+        List<ModProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
+        providers.sort(Comparator.comparing(ModProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+        for (ModProvider provider : providers) {
             if (!provider.requiresApiKey()) {
                 sender.sendMessage(Message.raw("    ").color(Color.GRAY)
                         .insert(Message.raw(provider.getDisplayName()).color(Color.WHITE))

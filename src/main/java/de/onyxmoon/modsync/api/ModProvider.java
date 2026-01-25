@@ -8,16 +8,20 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Service Provider Interface for mod list providers.
- * Implementations should be registered via META-INF/services/de.onyxmoon.modsync.api.ModListProvider
+ * Implementations should be registered via META-INF/services/de.onyxmoon.modsync.api.ModProvider
  */
-public interface ModListProvider extends ModUrlParser {
+public interface ModProvider extends ModUrlParser {
 
     /**
-     * Gets the source type this provider handles.
+     * Gets the source identifier this provider handles.
+     * <p>
+     * External providers can return their own unique source identifier.
+     * Built-in sources use lowercase names like "curseforge", "modtale", "cfwidget".
+     * </p>
      *
-     * @return the mod list source
+     * @return the source identifier (lowercase recommended)
      */
-    ModListSource getSource();
+    String getSource();
 
     /**
      * Fetches the mod list from the source.

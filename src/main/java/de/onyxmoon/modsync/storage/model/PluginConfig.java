@@ -1,6 +1,5 @@
 package de.onyxmoon.modsync.storage.model;
 
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 import de.onyxmoon.modsync.scheduler.UpdateMode;
 
@@ -21,7 +20,10 @@ public class PluginConfig {
      */
     public static final int DEFAULT_UPDATE_INTERVAL_MINUTES = 60;
 
-    private Map<ModListSource, String> apiKeys;
+    /**
+     * API keys per provider source identifier (e.g., "curseforge", "modtale").
+     */
+    private Map<String, String> apiKeys;
     
     private String currentProjectId;
     
@@ -50,20 +52,32 @@ public class PluginConfig {
         this.includePrereleases = false;
     }
 
-    public Map<ModListSource, String> getApiKeys() {
+    public Map<String, String> getApiKeys() {
         return apiKeys;
     }
 
-    public void setApiKeys(Map<ModListSource, String> apiKeys) {
+    public void setApiKeys(Map<String, String> apiKeys) {
         this.apiKeys = apiKeys;
     }
 
-    public String getApiKey(ModListSource source) {
-        return apiKeys.get(source);
+    /**
+     * Gets the API key for a provider source.
+     *
+     * @param source the source identifier (e.g., "curseforge", "modtale")
+     * @return the API key, or null if not set
+     */
+    public String getApiKey(String source) {
+        return apiKeys.get(source != null ? source.toLowerCase() : null);
     }
 
-    public void setApiKey(ModListSource source, String apiKey) {
-        apiKeys.put(source, apiKey);
+    /**
+     * Sets the API key for a provider source.
+     *
+     * @param source the source identifier (e.g., "curseforge", "modtale")
+     * @param apiKey the API key
+     */
+    public void setApiKey(String source, String apiKey) {
+        apiKeys.put(source != null ? source.toLowerCase() : null, apiKey);
     }
 
     public String getCurrentProjectId() {

@@ -1,6 +1,6 @@
 package de.onyxmoon.modsync.provider;
 
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -9,12 +9,10 @@ import java.util.List;
 /**
  * Registry for URL parsers.
  */
-public class UrlParserRegistry {
+public record UrlParserRegistry(List<ModProvider> providers) {
 
-    private final List<ModListProvider> providers;
-
-    public UrlParserRegistry(ProviderRegistry providerRegistry) {
-        this.providers = new ArrayList<>(providerRegistry.getProviders());
+    public UrlParserRegistry(ProviderRegistry providers) {
+        this(new ArrayList<>(providers.getProviders()));
     }
 
     /**
@@ -23,10 +21,10 @@ public class UrlParserRegistry {
      * @param url the URL to parse
      * @return providers that can parse the URL
      */
-    public List<ModListProvider> findProviders(String url) {
+    public List<ModProvider> findProviders(String url) {
         return providers.stream()
                 .filter(provider -> provider.canParse(url))
-                .sorted(Comparator.comparingInt(ModListProvider::getUrlParsePriority).reversed())
+                .sorted(Comparator.comparingInt(ModProvider::getUrlParsePriority).reversed())
                 .toList();
     }
 
@@ -35,7 +33,8 @@ public class UrlParserRegistry {
      *
      * @return list of providers
      */
-    public List<ModListProvider> getProviders() {
+    @Override
+    public List<ModProvider> providers() {
         return List.copyOf(providers);
     }
 }

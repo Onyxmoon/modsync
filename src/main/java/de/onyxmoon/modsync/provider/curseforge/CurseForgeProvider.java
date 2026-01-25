@@ -1,8 +1,7 @@
 package de.onyxmoon.modsync.provider.curseforge;
 
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.api.model.provider.ModList;
@@ -12,24 +11,28 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * CurseForge implementation of ModListProvider.
- * Registered via META-INF/services/de.onyxmoon.modsync.api.ModListProvider
+ * CurseForge implementation of ModProvider.
+ * Registered via META-INF/services/de.onyxmoon.modsync.api.ModProvider
  */
-public class CurseForgeProvider implements ModListProvider {
+public class CurseForgeProvider implements ModProvider {
+
+    private static final String SOURCE = "curseforge";
+    private static final String DISPLAY_NAME = "CurseForge";
 
     private static final int RATE_LIMIT = 60; // 60 requests per minute
     private static final int URL_PRIORITY = 100;
+
     private final CurseForgeAdapter adapter;
     private final CurseForgeUrlParser urlParser;
 
     public CurseForgeProvider() {
         this.adapter = new CurseForgeAdapter();
-        this.urlParser = new CurseForgeUrlParser();
+        this.urlParser = new CurseForgeUrlParser(SOURCE);
     }
 
     @Override
-    public ModListSource getSource() {
-        return ModListSource.CURSEFORGE;
+    public String getSource() {
+        return SOURCE;
     }
 
     @Override
@@ -64,7 +67,7 @@ public class CurseForgeProvider implements ModListProvider {
 
     @Override
     public String getDisplayName() {
-        return "CurseForge";
+        return DISPLAY_NAME;
     }
 
     @Override
@@ -79,7 +82,7 @@ public class CurseForgeProvider implements ModListProvider {
 
     @Override
     public boolean canParse(String url) {
-        return urlParser.canParse(url);
+        return CurseForgeUrlParser.canParse(url);
     }
 
     @Override
