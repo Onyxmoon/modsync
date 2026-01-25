@@ -23,18 +23,23 @@ public class CurseForgeClient {
     private static final String BASE_URL = "https://api.curseforge.com/v1";
     private static final String GAME_ID = "70216";
 
-    private final HttpClient httpClient;
-    private final Gson gson;
+    /**
+     * Shared HttpClient instance for all CurseForgeClient instances.
+     * HttpClient is thread-safe and manages its own connection pool.
+     */
+    private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
+
+    private static final Gson SHARED_GSON = new GsonBuilder()
+            .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+            .create();
+
     private final String apiKey;
 
     public CurseForgeClient(String apiKey) {
         this.apiKey = apiKey;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.gson = new GsonBuilder()
-                .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
-                .create();
     }
 
     /**
@@ -143,10 +148,10 @@ public class CurseForgeClient {
                 .GET()
                 .build();
 
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return SHARED_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     if (response.statusCode() == 200) {
-                        return gson.fromJson(response.body(), responseType);
+                        return SHARED_GSON.fromJson(response.body(), responseType);
                     } else if (response.statusCode() == 401 || response.statusCode() == 403) {
                         throw new CurseForgeApiException("Invalid API key", response.statusCode());
                     } else if (response.statusCode() == 429) {

@@ -14,9 +14,10 @@ import de.onyxmoon.modsync.command.*;
 import de.onyxmoon.modsync.provider.ProviderRegistry;
 import de.onyxmoon.modsync.provider.UrlParserRegistry;
 import de.onyxmoon.modsync.scheduler.UpdateScheduler;
-import de.onyxmoon.modsync.service.ModScanService;
-import de.onyxmoon.modsync.service.SelfUpgradeService;
 import de.onyxmoon.modsync.service.ModDownloadService;
+import de.onyxmoon.modsync.service.ModScanService;
+import de.onyxmoon.modsync.service.ProviderFetchService;
+import de.onyxmoon.modsync.service.SelfUpgradeService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
 import de.onyxmoon.modsync.storage.JsonModListStorage;
 import de.onyxmoon.modsync.storage.ManagedModStorage;
@@ -48,6 +49,7 @@ public class ModSync extends JavaPlugin {
     private ManagedModStorage managedModStorage;
     private ModDownloadService downloadService;
     private ModScanService scanService;
+    private ProviderFetchService fetchService;
     private SelfUpgradeService selfUpgradeService;
     private UpdateScheduler updateScheduler;
     private PluginManager pluginManager;
@@ -68,7 +70,7 @@ public class ModSync extends JavaPlugin {
 
         // Initialize provider and parser registries
         this.providerRegistry = new ProviderRegistry();
-        this.urlParserRegistry = new UrlParserRegistry();
+        this.urlParserRegistry = new UrlParserRegistry(this.providerRegistry);
 
         // Initialize download service
         // mods folder is the parent of the data folder (mods/)
@@ -84,6 +86,7 @@ public class ModSync extends JavaPlugin {
         Path earlyPluginsFolder = resolveEarlyPluginsPath(serverRoot);
         this.downloadService = new ModDownloadService(this, modsFolder, earlyPluginsFolder);
         this.scanService = new ModScanService(this);
+        this.fetchService = new ProviderFetchService(this);
 
         LOGGER.atInfo().log("Mods folder: %s", modsFolder);
         LOGGER.atInfo().log("Early plugins folder: %s", earlyPluginsFolder);
@@ -120,7 +123,6 @@ public class ModSync extends JavaPlugin {
         ModSyncCommand rootCommand = new ModSyncCommand(this);
 
         // Add subcommands to root command
-        rootCommand.addSubCommand(new SetKeyCommand(this));
         rootCommand.addSubCommand(new StatusCommand(this));
         rootCommand.addSubCommand(new ReloadCommand(this));
         rootCommand.addSubCommand(new ConfigCommand(this));
@@ -146,6 +148,10 @@ public class ModSync extends JavaPlugin {
     }
 
     private void sendWelcomeMessage(PlayerReadyEvent event) {
+        if (configStorage.getConfig().isDisableAdminWelcomeMessage()) {
+            return;
+        }
+
         Player player = event.getPlayer();
 
         if (PermissionHelper.hasAdminPermission(player)) {
@@ -250,6 +256,10 @@ public class ModSync extends JavaPlugin {
 
     public ModScanService getScanService() {
         return scanService;
+    }
+
+    public ProviderFetchService getFetchService() {
+        return fetchService;
     }
 
     public SelfUpgradeService getSelfUpdateService() {

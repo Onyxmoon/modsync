@@ -1,8 +1,6 @@
 package de.onyxmoon.modsync.provider.curseforge;
 
 import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListSource;
-import de.onyxmoon.modsync.api.ModUrlParser;
 import de.onyxmoon.modsync.api.ParsedModUrl;
 
 import java.util.regex.Matcher;
@@ -10,6 +8,7 @@ import java.util.regex.Pattern;
 
 /**
  * URL parser for CurseForge mod URLs.
+ * Internal helper class - the provider delegates URL parsing to this class.
  *
  * Supported URL patterns:
  * - https://www.curseforge.com/hytale/mods/example-mod
@@ -19,7 +18,18 @@ import java.util.regex.Pattern;
  * - https://www.curseforge.com/hytale/bootstrap/example-plugin/files/12345
  * - https://curseforge.com/hytale/mods/example-mod
  */
-public class CurseForgeUrlParser implements ModUrlParser {
+class CurseForgeUrlParser {
+
+    private final String source;
+
+    /**
+     * Creates a new CurseForge URL parser.
+     *
+     * @param source the source identifier from the provider
+     */
+    public CurseForgeUrlParser(String source) {
+        this.source = source;
+    }
 
     // Pattern to match CurseForge Hytale mod/bootstrap URLs
     // Groups: (1) category (mods/bootstrap), (2) slug, (3) optional file ID
@@ -28,15 +38,13 @@ public class CurseForgeUrlParser implements ModUrlParser {
             Pattern.CASE_INSENSITIVE
     );
 
-    @Override
-    public boolean canParse(String url) {
+    public static boolean canParse(String url) {
         if (url == null || url.isBlank()) {
             return false;
         }
         return CURSEFORGE_URL_PATTERN.matcher(url.trim()).matches();
     }
 
-    @Override
     public ParsedModUrl parse(String url) throws InvalidModUrlException {
         if (url == null || url.isBlank()) {
             throw new InvalidModUrlException(url, "URL cannot be null or empty");
@@ -46,20 +54,16 @@ public class CurseForgeUrlParser implements ModUrlParser {
         if (!matcher.matches()) {
             throw new InvalidModUrlException(url, "URL does not match CurseForge pattern");
         }
-        
+
         String slug = matcher.group(2);
         String versionId = matcher.group(3); // May be null
 
         return new ParsedModUrl(
-                ModListSource.CURSEFORGE,
+                source,
                 null,  // modId will be resolved via API using slug
                 slug,
                 versionId
         );
     }
 
-    @Override
-    public ModListSource getSource() {
-        return ModListSource.CURSEFORGE;
-    }
 }

@@ -1,6 +1,5 @@
 package de.onyxmoon.modsync.provider.curseforge;
 
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.provider.ModAuthor;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
@@ -33,7 +32,7 @@ public class CurseForgeAdapter {
                 .collect(Collectors.toList());
 
         return ModList.builder()
-                .source(ModListSource.CURSEFORGE)
+                .source("curseforge")
                 .projectId(projectId)
                 .projectName(projectName != null ? projectName : projectId)
                 .mods(mods)

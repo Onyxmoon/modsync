@@ -1,0 +1,80 @@
+package de.onyxmoon.modsync.provider.cfwidget.client;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * HTTP client for CFWidget API.
+ */
+public class CfWidgetClient {
+    private static final String BASE_URL = "https://api.cfwidget.com";
+
+    /**
+     * Shared HttpClient instance for all CfWidgetClient instances.
+     * HttpClient is thread-safe and manages its own connection pool.
+     */
+    private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
+
+    private static final Gson SHARED_GSON = new GsonBuilder().create();
+
+    public CfWidgetClient() {
+        // No instance state needed - all resources are shared
+    }
+
+    public CompletableFuture<JsonObject> getProject(String pathOrId) {
+        String encodedPath = encodePath(pathOrId);
+        String url = BASE_URL + "/" + encodedPath;
+        return executeRequest(url);
+    }
+
+    private CompletableFuture<JsonObject> executeRequest(String url) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        return SHARED_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    int status = response.statusCode();
+                    if (status == 200) {
+                        return SHARED_GSON.fromJson(response.body(), JsonObject.class);
+                    }
+                    throw new CfWidgetApiException(
+                            "CFWidget request failed: " + status,
+                            status
+                    );
+                });
+    }
+
+    private static String encodePath(String pathOrId) {
+        if (pathOrId == null) {
+            return "";
+        }
+        String trimmed = pathOrId.trim();
+        if (trimmed.startsWith("/")) {
+            trimmed = trimmed.substring(1);
+        }
+        if (trimmed.isEmpty()) {
+            return trimmed;
+        }
+        return Arrays.stream(trimmed.split("/"))
+                .map(part -> URLEncoder.encode(part, StandardCharsets.UTF_8).replace("+", "%20"))
+                .collect(Collectors.joining("/"));
+    }
+}

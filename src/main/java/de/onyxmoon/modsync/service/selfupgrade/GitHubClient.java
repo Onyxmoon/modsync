@@ -25,6 +25,8 @@ public class GitHubClient {
     private static final String GITHUB_API_BASE = "https://api.github.com";
     private static final String REPO_OWNER = "Onyxmoon";
     private static final String REPO_NAME = "modsync";
+    private static final int CONNECT_TIMEOUT_SECONDS = 10;
+    private static final Duration CACHE_DURATION = Duration.ofMinutes(15);
 
     private final HttpClient httpClient;
     private final Gson gson;
@@ -32,11 +34,10 @@ public class GitHubClient {
     // Simple cache to avoid hitting rate limits
     private GitHubRelease cachedRelease;
     private Instant cacheExpiry;
-    private static final Duration CACHE_DURATION = Duration.ofMinutes(15);
 
     public GitHubClient() {
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
         this.gson = new GsonBuilder()

@@ -2,183 +2,143 @@
 
 > **Early Development Stage** - This plugin is in very early development. Use at your own risk. Development is ongoing - please be kind with feedback and bug reports!
 
-A server-side mod management plugin for Hytale that lets you easily add, install, update, and remove mods directly from in-game commands.
+A server-side mod management plugin for Hytale dedicated servers that lets you easily add, install, update, and remove mods directly from in-game or console commands.
 
 ## Features
 
-*   **Add mods via URL** - Simply paste a CurseForge mod URL to add it to your server's mod list
-*   **Easy installation** - Install all managed mods with a single command
-*   **Update checking** - Check for available updates with version comparison display
-*   **One-click upgrades** - Upgrade mods to their latest versions
-*   **Release channels** - Choose between Release, Beta, or Alpha versions (global default + per-mod override)
-*   **Import existing mods** - Import unmanaged mods into ModSync with auto-matching
-*   **Flexible removal** - Remove mods by name, slug, or plugin identifier
-*   **Persistent tracking** - Your mod list is saved and persists across server restarts
-*   **Smart file handling** - Locked files are automatically queued for deletion on next server restart (with the optional bootstrap plugin)
-*   **Self-upgrade** - Update ModSync itself directly from in-game commands
+- **Multiple Sources** - CurseForge (API key required), CFWidget (no API key) and Modtale (alpha, API key required). More to come.
+- **One-command install** - Install all managed mods at once
+- **Full Mod Lifecycle** - Add, install, update, remove mods via commands
+- **Update Management** - Check for updates, upgrade individual mods or all at once
+- **Release Channels** - Choose Release, Beta, or Alpha versions (global + per-mod)
+- **Import Existing Mods** - Scan and import unmanaged mods with auto-matching
+- **Persistent tracking** - Your mod list is saved and persists across server restarts. Share your list with friends like a modpack!
+- **Self-Upgrade** - Update ModSync itself from GitHub Releases
+- **Console Support** - All commands work from in-game and server console
+
+## Quick Start
+
+1. Download `modsync-<version>.jar` from here or [GitHub-Releases](https://github.com/Onyxmoon/modsync/releases)
+2. Place in your server's `mods/` folder
+3. Start server
+4. (Optional) Set your CurseForge API key: `/modsync config key curseforge <key>`
+5. Add mods: `/modsync add https://curseforge.com/hytale/mods/example`
+
+> Get your API key from [CurseForge Console](https://console.curseforge.com/) or [Modtale API Docs](https://modtale.net/api-docs)
+
+> **Note:** Without an API key, ModSync uses CFWidget as fallback for CurseForge URLs. CFWidget supports URL-based lookups but not search-based import matching.
+> **Note:** Modtale support is experimental/alpha and requires an API key.
 
 ## Commands
 
-All commands use the `/modsync` prefix:
+| Command                                | Description                               |
+|----------------------------------------|-------------------------------------------|
+| `/modsync add <url>`                   | Add mod from CurseForge URL               |
+| `/modsync list`                        | Show all managed mods with install status |
+| `/modsync install`                     | Install all mods from your list           |
+| `/modsync install <name>`              | Install a specific mod                    |
+| `/modsync remove <name>`               | Remove mod by name, slug, or identifier   |
+| `/modsync remove all`                  | Remove all mods                           |
+| `/modsync check`                       | Check for available updates               |
+| `/modsync upgrade`                     | Upgrade all installed mods                |
+| `/modsync upgrade <name>`              | Upgrade a specific mod                    |
+| `/modsync scan`                        | List unmanaged mods in the mods folder    |
+| `/modsync import`                      | Auto-match and import all unmanaged mods  |
+| `/modsync import <target>`             | Auto-match and import a specific mod      |
+| `/modsync import <target> --url=<url>` | Import with a specific CurseForge URL     |
+| `/modsync config`                      | Show all configuration settings           |
+| `/modsync config channel <value>`      | Set default release channel               |
+| `/modsync config key <provider> <key>` | Set API key for a provider                |
+| `/modsync config welcome <on\|off>`    | Enable or disable the admin welcome message |
+| `/modsync setchannel <mod> <channel>`  | Set per-mod release channel               |
+| `/modsync selfupgrade`                 | Check for ModSync plugin updates          |
+| `/modsync selfupgrade apply`           | Download and install latest ModSync       |
+| `/modsync status`                      | Show current configuration and version    |
+| `/modsync reload`                      | Reload configuration from disk            |
 
-| Command                                           | Description                                                        |
-|---------------------------------------------------|--------------------------------------------------------------------|
-| <code>/modsync add [url]</code>                   | Add a mod from a CurseForge URL                                    |
-| <code>/modsync list</code>                        | Show all managed mods with install status, version, and identifier |
-| <code>/modsync install</code>                     | Install all mods from your list                                    |
-| <code>/modsync install [name]</code>              | Install a specific mod by name, slug, or identifier                |
-| <code>/modsync remove all</code>                  | Remove all mods                                                    |
-| <code>/modsync remove [name]</code>               | Remove mod by name, slug, or identifier                            |
-| <code>/modsync check</code>                       | Check for available updates (shows installed vs. latest version)   |
-| <code>/modsync upgrade</code>                     | Upgrade all installed mods to latest version                       |
-| <code>/modsync upgrade [name]</code>              | Upgrade a specific mod by name, slug, or identifier                |
-| <code>/modsync scan</code>                        | List unmanaged mods in the mods folder                             |
-| <code>/modsync import</code>                      | Auto-match and try to import all unmanaged mods                    |
-| <code>/modsync import [target]</code>             | Auto-match and import an unmanaged mod                             |
-| <code>/modsync import [target] --url=[url]</code> | Import an unmanaged mod with a CurseForge URL                      |
-| <code>/modsync config</code>                      | Show all configuration settings                                    |
-| <code>/modsync config channel [value]</code>      | View or set default release channel (release/beta/alpha)           |
-| <code>/modsync setchannel [mod] [channel]</code>  | Set per-mod release channel override                               |
-| <code>/modsync status</code>                      | Show current configuration and version                             |
-| <code>/modsync setkey [key]</code>                | Set your CurseForge API key                                        |
-| <code>/modsync selfupgrade</code>                 | Check for ModSync plugin updates                                   |
-| <code>/modsync selfupgrade apply</code>           | Download and install the latest ModSync version                    |
-| <code>/modsync reload</code>                      | Reload configuration                                               |
+**Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 
-> **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
+## Release Channels
 
-### Examples
+Control which release types are considered for installation and updates:
+
+| Channel   | Versions Included              |
+|-----------|--------------------------------|
+| `release` | Stable releases only (default) |
+| `beta`    | Beta and stable releases       |
+| `alpha`   | All versions including alpha   |
 
 ```
-# Adding mods
-/modsync add https://www.curseforge.com/hytale/mods/example
-
-
-# Managing mods
-/modsync install
-/modsync install simply-trash
-/modsync install BlameJared:SimplyTrash
-/modsync check
-/modsync upgrade
-/modsync upgrade BlameJared:SimplyTrash
-/modsync remove BlameJared:SimplyTrash
-/modsync remove all
+/modsync config channel beta       # Set global default
+/modsync setchannel MyMod alpha    # Override for specific mod
+/modsync setchannel MyMod default  # Remove override, use global
 ```
 
-## Setup
-
-1.  Install the plugin on your Hytale server
-2.  (Optional but recommended) Install the bootstrap plugin in the `earlyplugins` folder (included as dependency on curseforge), especially if you get deletion errors.
-
-*   Server must be started with `--early-plugins` and `--accept-early-plugins` flags
-
-1.  Get a CurseForge API key from [CurseForge for Studios](https://console.curseforge.com/)
-2.  Set your API key: `/modsync setkey YOUR_API_KEY`
-3.  Start adding mods: `/modsync add https://www.curseforge.com/hytale/mods/your-mod`
-
-## Requirements
-
-*   Hytale Server (release patchline)
-*   CurseForge API key
-*   (Optional) Server must be started with `--early-plugins` and `--accept-early-plugins` flags
-*   (Optional) Bootstrap plugin for proper file deletion
+**Automatic Fallback:** If a mod has no releases for your configured channel (e.g., only Beta versions but you're on Release), ModSync automatically falls back to Beta, then Alpha. A warning is shown so you know which version type was used.
 
 ## How It Works
 
 ### Installing Mods
 
+The `/modsync add` and `/modsync install` command
+
 When you install a mod, the plugin:
 
-1.  Downloads the JAR file from CurseForge
-2.  Detects the plugin type (regular plugin or early plugin) from the CurseForge category
-3.  Saves it to the appropriate folder:
+1. Add the mod to the managed list via an URL
+2. Downloads the mod from the mod source and validates the manifest
+3. Detects the plugin type (regular plugin or early plugin) from the CurseForge category
+4. Saves it to the appropriate folder:
     *   Regular plugins → `mods/`
     *   Early/Bootstrap plugins → `earlyplugins/` (configurable)
-4.  Registers the mod in the installed mods registry
+5. Registers the mod in the installed mods registry
 
 **Note:** A server restart is required to load newly installed mods.
 
-### Bootstrap/Early Plugins (ALPHA)
-
-ModSync automatically detects Bootstrap/Early Plugins from CurseForge and installs them to the correct folder. When you add a mod:
-
-*   URLs like `https://www.curseforge.com/hytale/mods/...` are regular plugins
-*   URLs like `https://www.curseforge.com/hytale/bootstrap/...` are early plugins
-
-The plugin type is displayed in commands with `[Plugin]` or `[Early Plugin]`.
-
 ### Removing Mods
+
+The `/modsync remove` command
 
 When you remove a mod, the plugin:
 
 1.  Unloads the mod if currently loaded
-2.  Attempts to delete the JAR file
-3.  If the file is locked (Windows), it queues the file for deletion on next restart
-4.  (Optional) The bootstrap plugin handles queued deletions before the server loads mods
+2.  Attempts to delete the mod file 
+3. If the file is locked (Windows), it queues the file for deletion on next restart. Install the bootstrap plugin to handle deletion on restart.
 
-**Note:** If a file is locked, you will see a message indicating a restart is required.
+**Note:** If the file is locked (Windows), it queues the file for deletion on next restart. The bootstrap plugin handles queued deletions before the server loads mods.
 
-### Checking for Updates
+### Checking and installing upgrades
 
-The `/modsync check` command shows:
+The `/modsync check` command:
 
-*   Which mods have updates available
-*   Current installed version vs. latest available version
-*   Example output: `Simply Trash: Simply-Trash-0.0.1.jar -> Simply-Trash-0.0.2.jar`
-
-### Upgrading Mods
+Shows which mods have updates available with version comparison (e.g., `1.0.1 -> 1.0.2`).
 
 The `/modsync upgrade` command:
 
-1.  Checks each mod for available updates
-2.  Downloads and installs the new version
-3.  Queues the old version for deletion
+Upgrades all installed mods or a specific mod.
 
-**Note:** A server restart is required to load the upgraded mods.
+**Note:** A server restart is required to load upgraded mods.
 
-### Release Channels
+### Importing Existing Mods
 
-Control which release types are considered for installation and updates:
+Use `/modsync scan` to find unmanaged mods, then `/modsync import` to bring them under ModSync control with auto-matching.
 
-| Channel   | Installs                       |
-|-----------|--------------------------------|
-| `release` | Only stable releases (default) |
-| `beta`    | Beta and release versions      |
-| `alpha`   | All versions including alpha   |
+**Note:** Import and scan currently require a CurseForge API key for auto-matching. CFWidget and Modtale do not support search-based imports.
 
-```
-# Set global default
-/modsync config channel beta
+## Bootstrap Plugin (Optional)
 
-# Override for a specific mod
-/modsync setchannel MyMod alpha
+On Windows, JAR files are locked while loaded by the JVM. This prevents deletion of old mod versions during upgrades.
 
-# Remove override (use global default)
-/modsync setchannel MyMod default
-```
+The bootstrap plugin is an **early plugin** that runs before normal plugins load:
+1. Reads `pending_deletions.json`
+2. Deletes queued files before they get loaded
+3. Normal plugin loading proceeds
 
-## Important Notes
+**Installation (only if you have deletion issues):**
+1. Download from [modsync-bootstrap](https://curseforge.com/hytale/bootstrap/modsync-bootstrap)
+2. Place in `earlyplugins/` folder
+3. Start server with `--early-plugins --accept-early-plugins` flags
 
-*   **Mod Distribution Setting**: Mods can only be downloaded if the mod author has enabled "Allow Mod Distribution" in their CurseForge project settings. If a mod doesn't allow API distribution, it will be skipped during installation.
-*   **Server Restart**: Installing, upgrading, or removing mods requires a server restart to take effect.
-*   **No Automatic Restart**: Currently, there is no way to trigger a server restart via the Mod API. After installing, upgrading, or removing mods, you must manually restart the server.
-*   **File Locking (Windows)**: JAR files are locked while loaded. The bootstrap plugin handles deletion on restart.
-*   **Supported Sources**: Currently CurseForge is the only supported mod source. The plugin architecture allows for additional sources to be added in the future.
-
-## Configuration
-
-The `config.json` file in `mods/Onyxmoon_ModSync/` contains:
-
-```json
-{
-  "apiKeys": {
-    "CURSEFORGE": "your-api-key"
-  },
-  "earlyPluginsPath": "earlyplugins"
-}
-```
-
-*   `earlyPluginsPath` - Path for early plugins folder (default: `earlyplugins`). Can be absolute or relative to server root.
+> **Note:** On Linux dedicated servers, file locking is typically not an issue and the bootstrap plugin is usually not needed.
 
 ## File Locations
 
@@ -187,8 +147,18 @@ All data is stored in `mods/Onyxmoon_ModSync/`:
 *   `config.json` - API keys and settings
 *   `mods.json` - Your curated mod list (shareable between servers)
 *   `mods.lock.json` - Installation state (machine-specific, not shareable)
-*   `pending_deletions.json` - Files queued for deletion on restart
+*   `pending_deletions.json` - Files queued for deletion on restart (only when there are locked files and the bootstrap plugin is required)
+
+## Important Notes
+
+- **Server restart required** - Currently, there is no way to trigger a server restart via the Mod API. After installing, upgrading, or removing mods, you must manually restart the server. If you server is auto-restarting, you may use the /stop command to trigger a restart.
+- **Mod distribution** - Mods can only be downloaded if the author has enabled "Allow Mod Distribution" in their CurseForge project settings
+- **Provider fallback** - Without a CurseForge API key, ModSync uses CFWidget which supports URL lookups but not search
+- **File Locking (Windows)**: JAR files are locked while loaded. The bootstrap plugin handles deletion on restart.
+- **Supported Sources**: CurseForge, Modtale (alpha), and CFWidget are supported. CFWidget uses the public widget API and does not require an API key, but does not support search-based imports.
+- **Admin welcome message** - Disable the admin welcome message via `config.json` with `disableAdminWelcomeMessage: true`
 
 ## Support
 
-Report issues on the [GitHub repository](https://github.com/onyxmoon/modsync).
+- [GitHub Issues](https://github.com/onyxmoon/modsync/issues)
+- [Changelog](https://github.com/Onyxmoon/modsync/blob/main/CHANGELOG.md)

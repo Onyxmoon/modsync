@@ -1,31 +1,20 @@
 package de.onyxmoon.modsync.service;
 
-import com.hypixel.hytale.codec.ExtraInfo;
-import com.hypixel.hytale.codec.util.RawJsonReader;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
-import com.hypixel.hytale.common.plugin.PluginManifest;
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
-import com.hypixel.hytale.server.core.plugin.PluginManager;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModListSource;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.*;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
+import de.onyxmoon.modsync.util.FileHashUtils;
+import de.onyxmoon.modsync.util.ManifestReader;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -36,6 +25,7 @@ import java.util.stream.Stream;
  */
 public class ModScanService {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+    private static final String DEFAULT_IMPORT_SOURCE = "curseforge";
     private final ModSync modSync;
 
     public ModScanService(ModSync modSync) {
@@ -107,8 +97,8 @@ public class ModScanService {
         try {
             String fileName = path.getFileName().toString();
             long fileSize = Files.size(path);
-            String fileHash = calculateHash(path);
-            PluginIdentifier identifier = readIdentifier(path);
+            String fileHash = FileHashUtils.calculateSha256(path);
+            PluginIdentifier identifier = ManifestReader.readIdentifier(path).orElse(null);
 
             return new UnmanagedMod(path, fileName, identifier, fileHash, fileSize, pluginType);
         } catch (IOException e) {
@@ -124,8 +114,8 @@ public class ModScanService {
      * @return ImportMatch with the result
      */
     public CompletableFuture<ImportMatch> findMatch(UnmanagedMod unmanagedMod) {
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(ModListSource.CURSEFORGE);
-        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(ModListSource.CURSEFORGE);
+        ModProvider provider = modSync.getProviderRegistry().getProvider(DEFAULT_IMPORT_SOURCE);
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(DEFAULT_IMPORT_SOURCE);
 
         if (provider == null || apiKey == null || apiKey.isEmpty()) {
             return CompletableFuture.completedFuture(ImportMatch.noMatch(unmanagedMod));
@@ -149,7 +139,7 @@ public class ModScanService {
     }
 
     private CompletableFuture<ImportMatch> trySlugMatch(
-            ModListProvider provider, String apiKey, UnmanagedMod unmanagedMod, String slug) {
+            ModProvider provider, String apiKey, UnmanagedMod unmanagedMod, String slug) {
 
         return provider.fetchModBySlug(apiKey, slug)
                 .thenApply(entry -> ImportMatch.exactMatch(unmanagedMod, entry, "Slug match: " + slug))
@@ -160,14 +150,24 @@ public class ModScanService {
     }
 
     private CompletableFuture<ImportMatch> tryNameSearch(
-            ModListProvider provider, String apiKey, UnmanagedMod unmanagedMod) {
+            ModProvider provider, String apiKey, UnmanagedMod unmanagedMod) {
 
         // getDisplayName() already handles identifier != null case
         String searchTerm = unmanagedMod.getDisplayName();
 
         return provider.searchMods(apiKey, searchTerm)
-                .thenApply(results -> {
-                    if (results.isEmpty()) {
+                .handle((results, ex) -> {
+                    if (ex != null) {
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        if (cause instanceof UnsupportedOperationException) {
+                            return new ImportMatch(unmanagedMod, null, ImportMatchConfidence.NONE,
+                                    provider.getDisplayName() + " does not support search");
+                        }
+                        LOGGER.atFine().log("Name search failed for %s: %s", searchTerm, cause.getMessage());
+                        return ImportMatch.noMatch(unmanagedMod);
+                    }
+
+                    if (results == null || results.isEmpty()) {
                         return ImportMatch.noMatch(unmanagedMod);
                     }
 
@@ -189,10 +189,6 @@ public class ModScanService {
                     // Return first result as low confidence
                     return ImportMatch.lowConfidenceMatch(unmanagedMod, results.getFirst(),
                             "Best search result for: " + searchTerm);
-                })
-                .exceptionally(ex -> {
-                    LOGGER.atFine().log("Name search failed for %s: %s", searchTerm, ex.getMessage());
-                    return ImportMatch.noMatch(unmanagedMod);
                 });
     }
 
@@ -202,7 +198,7 @@ public class ModScanService {
      * @param unmanagedMod The unmanaged mod to import
      * @param modEntry     The matched entry from the provider
      */
-    public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry) {
+    public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry, String source) {
         // Create InstalledState from the unmanaged mod
         InstalledState installedState = InstalledState.builder()
                 .identifier(unmanagedMod.identifier())
@@ -221,9 +217,11 @@ public class ModScanService {
         // but fall back to unmanagedMod.pluginType() if not available
         PluginType pluginType = modEntry.getPluginType();
 
+        String effectiveSource = source != null ? source : DEFAULT_IMPORT_SOURCE;
+
         ManagedMod managedMod = ManagedMod.builder()
                 .modId(modEntry.getModId())
-                .source(ModListSource.CURSEFORGE)
+                .source(effectiveSource)
                 .name(modEntry.getName())
                 .slug(modEntry.getSlug())
                 .pluginType(pluginType)
@@ -260,44 +258,5 @@ public class ModScanService {
         slug = slug.replaceAll("^-|-$", "");
 
         return slug;
-    }
-
-    private String calculateHash(Path filePath) throws IOException {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(filePath);
-            byte[] hashBytes = digest.digest(fileBytes);
-            return "sha256:" + HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
-
-    private PluginIdentifier readIdentifier(Path filePath) {
-        try {
-            URL url = filePath.toUri().toURL();
-            URL resource;
-            try (PluginClassLoader pluginClassLoader = new PluginClassLoader(new PluginManager(), false, url)) {
-                resource = pluginClassLoader.findResource("manifest.json");
-            }
-            if (resource == null) {
-                return null;
-            }
-
-            try (
-                    InputStream stream = resource.openStream();
-                    InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)
-            ) {
-                char[] buffer = RawJsonReader.READ_BUFFER.get();
-                RawJsonReader rawJsonReader = new RawJsonReader(reader, buffer);
-                ExtraInfo extraInfo = ExtraInfo.THREAD_LOCAL.get();
-                PluginManifest manifest = PluginManifest.CODEC.decodeJson(rawJsonReader, extraInfo);
-                assert manifest != null;
-                return new PluginIdentifier(manifest.getGroup(), manifest.getName());
-            }
-        } catch (Exception e) {
-            LOGGER.atFine().log("Could not read manifest from %s: %s", filePath.getFileName(), e.getMessage());
-            return null;
-        }
     }
 }

@@ -3,13 +3,13 @@ package de.onyxmoon.modsync.api;
 /**
  * Represents parsed information from a mod URL.
  *
- * @param source the mod source (CurseForge, Modrinth, etc.)
+ * @param source the mod source identifier (e.g., "curseforge", "modtale")
  * @param modId the numeric mod ID (may be null if only slug is known)
  * @param slug the URL-friendly mod identifier
  * @param versionId specific version ID (null for latest)
  */
 public record ParsedModUrl(
-        ModListSource source,
+        String source,
         String modId,
         String slug,
         String versionId

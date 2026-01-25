@@ -7,11 +7,12 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
+import de.onyxmoon.modsync.util.CommandMessageFormatter;
 import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.ModSelector;
 import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
@@ -111,20 +112,25 @@ public class UpgradeCommand extends CommandBase {
                         .thenAccept(upgradeResult -> {
                             switch (upgradeResult) {
                                 case UpgradeResult.Upgraded u -> {
-                                    sendModStatusWithVersion(sender, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
+                                    CommandMessageFormatter.sendModStatusWithVersion(sender, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
+                                    if (u.selection().usedFallback()) {
+                                        sender.sendMessage(Message.raw("  Note: No " + u.selection().requestedChannel().getDisplayName() +
+                                                " version, used " + u.selection().actualChannel().getDisplayName() +
+                                                " (" + u.selection().version().getReleaseType() + ")").color(Color.YELLOW));
+                                    }
                                     sender.sendMessage(Message.raw("Server restart required to load the new version.").color(Color.CYAN));
                                 }
                                 case UpgradeResult.UpToDate ignored ->
-                                    sendModStatus(sender, mod, "UP TO DATE", Color.GREEN);
+                                    CommandMessageFormatter.sendModStatus(sender, mod, "UP TO DATE", Color.GREEN);
                                 case UpgradeResult.Skipped ignored -> {
-                                    sendModStatus(sender, mod, "SKIPPED", Color.YELLOW);
-                                    sendDetailLine(sender, "Download URL not available", Color.GRAY);
+                                    CommandMessageFormatter.sendModStatus(sender, mod, "SKIPPED", Color.YELLOW);
+                                    CommandMessageFormatter.sendDetailLine(sender, "Download URL not available", Color.GRAY);
                                 }
                             }
                         })
                         .exceptionally(ex -> {
-                            sendModStatus(sender, mod, "FAILED", Color.RED);
-                            sendDetailLine(sender, CommandUtils.extractErrorMessage(ex), Color.RED);
+                            CommandMessageFormatter.sendModStatus(sender, mod, "FAILED", Color.RED);
+                            CommandMessageFormatter.sendDetailLine(sender, CommandUtils.extractErrorMessage(ex), Color.RED);
                             return null;
                         });
             }
@@ -161,20 +167,25 @@ public class UpgradeCommand extends CommandBase {
                             switch (result) {
                                 case UpgradeResult.Upgraded u -> {
                                     upgraded.incrementAndGet();
-                                    sendModStatusWithVersion(sender, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
+                                    CommandMessageFormatter.sendModStatusWithVersion(sender, mod, u.oldVersion(), u.newVersion(), "UPGRADED", Color.GREEN);
+                                    if (u.selection().usedFallback()) {
+                                        sender.sendMessage(Message.raw("  Note: No " + u.selection().requestedChannel().getDisplayName() +
+                                                " version, used " + u.selection().actualChannel().getDisplayName() +
+                                                " (" + u.selection().version().getReleaseType() + ")").color(Color.YELLOW));
+                                    }
                                 }
                                 case UpgradeResult.UpToDate ignored -> upToDate.incrementAndGet();
                                 case UpgradeResult.Skipped ignored -> {
                                     skipped.incrementAndGet();
-                                    sendModStatus(sender, mod, "SKIPPED", Color.YELLOW);
-                                    sendDetailLine(sender, "Download URL not available", Color.GRAY);
+                                    CommandMessageFormatter.sendModStatus(sender, mod, "SKIPPED", Color.YELLOW);
+                                    CommandMessageFormatter.sendDetailLine(sender, "Download URL not available", Color.GRAY);
                                 }
                             }
                         })
                         .exceptionally(ex -> {
                             failed.incrementAndGet();
-                            sendModStatus(sender, mod, "FAILED", Color.RED);
-                            sendDetailLine(sender, CommandUtils.extractErrorMessage(ex), Color.RED);
+                            CommandMessageFormatter.sendModStatus(sender, mod, "FAILED", Color.RED);
+                            CommandMessageFormatter.sendDetailLine(sender, CommandUtils.extractErrorMessage(ex), Color.RED);
                             return null;
                         }))
                 .toArray(CompletableFuture[]::new);
@@ -223,25 +234,28 @@ public class UpgradeCommand extends CommandBase {
             );
         }
 
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No API key set for " + mod.getSource().getDisplayName())
+                    new IllegalStateException("No API key set for " + provider.getDisplayName())
             );
         }
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenCompose(modEntry -> {
-                    ModVersion latestVersion = VersionSelector.selectVersion(
+                    VersionSelector.SelectionResult selection = VersionSelector.selectVersionWithFallback(
                             mod, modEntry, modSync.getConfigStorage().getConfig());
 
-                    if (latestVersion == null) {
+                    if (selection.version() == null) {
                         return CompletableFuture.failedFuture(
-                                new IllegalStateException("No version available for " + mod.getName())
+                                new IllegalStateException("No version available for " + mod.getName() +
+                                        " (no releases found for channel: " + selection.requestedChannel().getDisplayName() + ")")
                         );
                     }
+
+                    ModVersion latestVersion = selection.version();
 
                     // Check if update is needed
                     if (latestVersion.getVersionId().equals(currentState.getInstalledVersionId())) {
@@ -264,52 +278,14 @@ public class UpgradeCommand extends CommandBase {
                                         .installedState(newInstalledState)
                                         .build();
                                 modSync.getManagedModStorage().updateMod(updatedMod);
-                                return new UpgradeResult.Upgraded(oldVersionNumber, newVersionNumber);
+                                return new UpgradeResult.Upgraded(oldVersionNumber, newVersionNumber, selection);
                             });
                 });
     }
 
     private sealed interface UpgradeResult {
-        record Upgraded(String oldVersion, String newVersion) implements UpgradeResult {}
+        record Upgraded(String oldVersion, String newVersion, VersionSelector.SelectionResult selection) implements UpgradeResult {}
         record UpToDate() implements UpgradeResult {}
         record Skipped() implements UpgradeResult {}
-    }
-
-    // ===== Formatting Helpers =====
-
-    private void sendModStatus(CommandSender sender, ManagedMod mod, String status, Color statusColor) {
-        Message firstLine = Message.raw("> ").color(Color.ORANGE)
-                .insert(Message.raw(mod.getName()).color(Color.WHITE))
-                .insert(Message.raw(" [" + status + "]").color(statusColor));
-        sender.sendMessage(firstLine);
-        sendIdentifierLine(sender, mod);
-    }
-
-    private void sendModStatusWithVersion(CommandSender sender, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
-        Message firstLine = Message.raw("> ").color(Color.ORANGE)
-                .insert(Message.raw(mod.getName()).color(Color.WHITE))
-                .insert(Message.raw(" [" + status + "]").color(statusColor));
-        sender.sendMessage(firstLine);
-        sendIdentifierLine(sender, mod);
-        sendVersionLine(sender, oldVersion, newVersion);
-    }
-
-    private void sendIdentifierLine(CommandSender sender, ManagedMod mod) {
-        String identifier = mod.getIdentifierString().orElse("-");
-        sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                .insert(Message.raw(identifier).color(Color.CYAN)));
-    }
-
-    private void sendDetailLine(CommandSender sender, String text, Color color) {
-        sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                .insert(Message.raw(text).color(color)));
-    }
-
-    private void sendVersionLine(CommandSender sender, String oldVersion, String newVersion) {
-        CommandUtils.formatVersionLine(oldVersion, newVersion)
-                .ifPresent(line -> sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                        .insert(Message.raw(line.oldDisplay()).color(Color.RED))
-                        .insert(Message.raw(" -> ").color(Color.GRAY))
-                        .insert(Message.raw(line.newDisplay()).color(Color.GREEN))));
     }
 }

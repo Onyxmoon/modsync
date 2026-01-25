@@ -19,6 +19,7 @@ import java.awt.*;
  * Manages self-updating of the ModSync plugin.
  */
 public class SelfUpgradeCommand extends CommandBase {
+    private static final int RELEASE_NOTES_MAX_LENGTH = 200;
     private final ModSync modSync;
     private final RequiredArg<String> actionArg = this.withRequiredArg(
             "action",
@@ -79,8 +80,8 @@ public class SelfUpgradeCommand extends CommandBase {
                             if (result.release() != null && result.release().getBody() != null) {
                                 String notes = result.release().getBody();
                                 // Truncate long release notes
-                                if (notes.length() > 200) {
-                                    notes = notes.substring(0, 197) + "...";
+                                if (notes.length() > RELEASE_NOTES_MAX_LENGTH) {
+                                    notes = notes.substring(0, RELEASE_NOTES_MAX_LENGTH - 3) + "...";
                                 }
                                 // Remove markdown formatting for cleaner display
                                 notes = notes.replaceAll("\\*\\*", "")

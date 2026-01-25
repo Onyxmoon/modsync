@@ -8,6 +8,8 @@ import de.onyxmoon.modsync.storage.model.PluginConfig;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Handles persistent storage of plugin configuration.
@@ -38,6 +40,7 @@ public class ConfigurationStorage {
         try {
             String json = Files.readString(configPath);
             PluginConfig loaded = gson.fromJson(json, PluginConfig.class);
+            normalizeApiKeys(loaded);
             LOGGER.atInfo().log("Configuration loaded successfully");
             return loaded;
         } catch (IOException e) {
@@ -63,5 +66,24 @@ public class ConfigurationStorage {
 
     public void reload() {
         this.config = load();
+    }
+
+    /**
+     * Normalize API keys to lowercase (migration from old enum-based format).
+     */
+    private void normalizeApiKeys(PluginConfig config) {
+        Map<String, String> apiKeys = config.getApiKeys();
+        if (apiKeys == null || apiKeys.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> normalized = new HashMap<>();
+        for (Map.Entry<String, String> entry : apiKeys.entrySet()) {
+            String key = entry.getKey();
+            if (key != null) {
+                normalized.put(key.toLowerCase(), entry.getValue());
+            }
+        }
+        config.setApiKeys(normalized);
     }
 }

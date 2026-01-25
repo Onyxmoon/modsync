@@ -1,7 +1,5 @@
 package de.onyxmoon.modsync.api.model.provider;
 
-import de.onyxmoon.modsync.api.ModListSource;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -11,7 +9,7 @@ import java.util.Objects;
  * This is an API response model from mod providers (e.g., CurseForge).
  */
 public final class ModList {
-    private final ModListSource source;
+    private final String source;
     private final String projectId;
     private final String projectName;
     private final List<ModEntry> mods;
@@ -27,7 +25,7 @@ public final class ModList {
         this.sourceVersion = builder.sourceVersion;
     }
 
-    public ModListSource getSource() {
+    public String getSource() {
         return source;
     }
 
@@ -60,7 +58,7 @@ public final class ModList {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ModList modList = (ModList) o;
-        return source == modList.source &&
+        return Objects.equals(source, modList.source) &&
                Objects.equals(projectId, modList.projectId) &&
                Objects.equals(projectName, modList.projectName) &&
                Objects.equals(mods, modList.mods) &&
@@ -85,14 +83,14 @@ public final class ModList {
     }
 
     public static class Builder {
-        private ModListSource source;
+        private String source;
         private String projectId;
         private String projectName;
         private List<ModEntry> mods;
         private Instant fetchedAt;
         private String sourceVersion;
 
-        public Builder source(ModListSource source) {
+        public Builder source(String source) {
             this.source = source;
             return this;
         }

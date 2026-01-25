@@ -1,82 +1,40 @@
 package de.onyxmoon.modsync.provider;
 
-import de.onyxmoon.modsync.api.ModListSource;
-import de.onyxmoon.modsync.api.ModUrlParser;
-import de.onyxmoon.modsync.provider.curseforge.CurseForgeUrlParser;
+import de.onyxmoon.modsync.api.ModProvider;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Registry for URL parsers.
  */
-public class UrlParserRegistry {
+public record UrlParserRegistry(List<ModProvider> providers) {
 
-    private final List<ModUrlParser> parsers;
-
-    public UrlParserRegistry() {
-        this.parsers = new ArrayList<>();
-        registerBuiltInParsers();
-    }
-
-    private void registerBuiltInParsers() {
-        // Register CurseForge parser
-        parsers.add(new CurseForgeUrlParser());
-
-        // Future: Add Modrinth parser here
-        // parsers.add(new ModrinthUrlParser());
+    public UrlParserRegistry(ProviderRegistry providers) {
+        this(new ArrayList<>(providers.getProviders()));
     }
 
     /**
-     * Find a parser that can handle the given URL.
+     * Find providers that can handle the given URL, sorted by priority.
      *
      * @param url the URL to parse
-     * @return the parser if found
+     * @return providers that can parse the URL
      */
-    public Optional<ModUrlParser> findParser(String url) {
-        return parsers.stream()
-                .filter(parser -> parser.canParse(url))
-                .findFirst();
+    public List<ModProvider> findProviders(String url) {
+        return providers.stream()
+                .filter(provider -> provider.canParse(url))
+                .sorted(Comparator.comparingInt(ModProvider::getUrlParsePriority).reversed())
+                .toList();
     }
 
     /**
-     * Get a parser for a specific source.
+     * Get all registered providers that can parse URLs.
      *
-     * @param source the mod source
-     * @return the parser if found
+     * @return list of providers
      */
-    public Optional<ModUrlParser> getParser(ModListSource source) {
-        return parsers.stream()
-                .filter(parser -> parser.getSource() == source)
-                .findFirst();
-    }
-
-    /**
-     * Check if any parser can handle the given URL.
-     *
-     * @param url the URL to check
-     * @return true if a parser exists for this URL
-     */
-    public boolean canParse(String url) {
-        return findParser(url).isPresent();
-    }
-
-    /**
-     * Register a custom parser.
-     *
-     * @param parser the parser to register
-     */
-    public void registerParser(ModUrlParser parser) {
-        parsers.add(parser);
-    }
-
-    /**
-     * Get all registered parsers.
-     *
-     * @return list of all parsers
-     */
-    public List<ModUrlParser> getParsers() {
-        return List.copyOf(parsers);
+    @Override
+    public List<ModProvider> providers() {
+        return List.copyOf(providers);
     }
 }

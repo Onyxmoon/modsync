@@ -6,6 +6,7 @@ import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.BuildInfo;
 import de.onyxmoon.modsync.ModSync;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.provider.ModList;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 import de.onyxmoon.modsync.util.PermissionHelper;
@@ -15,6 +16,9 @@ import java.awt.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -45,22 +49,29 @@ public class StatusCommand extends CommandBase {
         sender.sendMessage(Message.raw("=== ModSync Status ===").color(Color.CYAN));
         sender.sendMessage(Message.raw("Version: ").color(Color.GRAY)
                 .insert(Message.raw("v" + BuildInfo.VERSION).color(Color.WHITE)));
-        sender.sendMessage(Message.raw("Current Source: ").color(Color.GRAY)
-                .insert(Message.raw(config.getCurrentSource().getDisplayName()).color(Color.WHITE)));
         sender.sendMessage(Message.raw("Update Mode: ").color(Color.GRAY)
                 .insert(Message.raw(config.getUpdateMode().toString()).color(Color.WHITE)));
 
-        if (config.getCurrentProjectId() != null) {
+        Optional<Instant> lastUpdate = modSync.getModListStorage().getLastUpdateTime();
+        Optional<ModList> modList = lastUpdate.isPresent()
+                ? modSync.getModListStorage().load()
+                : Optional.empty();
+
+        if (modList.isPresent()) {
+            String sourceDisplayName = modSync.getProviderRegistry().getDisplayName(modList.get().getSource());
+            sender.sendMessage(Message.raw("Mod List Source: ").color(Color.GRAY)
+                    .insert(Message.raw(sourceDisplayName).color(Color.WHITE)));
+            sender.sendMessage(Message.raw("Project ID: ").color(Color.GRAY)
+                    .insert(Message.raw(modList.get().getProjectId()).color(Color.WHITE)));
+        } else if (config.getCurrentProjectId() != null) {
             sender.sendMessage(Message.raw("Project ID: ").color(Color.GRAY)
                     .insert(Message.raw(config.getCurrentProjectId()).color(Color.WHITE)));
         }
 
-        Optional<Instant> lastUpdate = modSync.getModListStorage().getLastUpdateTime();
         if (lastUpdate.isPresent()) {
             sender.sendMessage(Message.raw("Last Update: ").color(Color.GRAY)
                     .insert(Message.raw(FORMATTER.format(lastUpdate.get())).color(Color.WHITE)));
 
-            Optional<ModList> modList = modSync.getModListStorage().load();
             modList.ifPresent(list ->
                 sender.sendMessage(Message.raw("Mods Loaded: ").color(Color.GRAY)
                         .insert(Message.raw(String.valueOf(list.getMods().size())).color(Color.WHITE)))
@@ -70,8 +81,17 @@ public class StatusCommand extends CommandBase {
                     .insert(Message.raw("Never").color(Color.RED)));
         }
 
-        boolean hasApiKey = config.getApiKey(config.getCurrentSource()) != null;
-        sender.sendMessage(Message.raw("API Key Configured: ").color(Color.GRAY)
-                .insert(Message.raw(hasApiKey ? "Yes" : "No").color(Color.WHITE)));
+        List<ModProvider> providers = new ArrayList<>(modSync.getProviderRegistry().getProviders());
+        providers.sort(Comparator.comparing(ModProvider::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+        providers.forEach(provider -> {
+            if (!provider.requiresApiKey()) {
+                sender.sendMessage(Message.raw(provider.getDisplayName() + " API Key: ").color(Color.GRAY)
+                        .insert(Message.raw("Not required").color(Color.WHITE)));
+                return;
+            }
+            boolean hasApiKey = config.getApiKey(provider.getSource()) != null;
+            sender.sendMessage(Message.raw(provider.getDisplayName() + " API Key: ").color(Color.GRAY)
+                    .insert(Message.raw(hasApiKey ? "Set" : "Not set").color(Color.WHITE)));
+        });
     }
 }

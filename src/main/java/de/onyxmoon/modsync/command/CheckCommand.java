@@ -5,12 +5,12 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListProvider;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
-import de.onyxmoon.modsync.util.CommandUtils;
+import de.onyxmoon.modsync.util.CommandMessageFormatter;
 import de.onyxmoon.modsync.util.PermissionHelper;
 import de.onyxmoon.modsync.util.VersionSelector;
 
@@ -65,7 +65,12 @@ public class CheckCommand extends CommandBase {
                         .thenAccept(result -> {
                             if (result.hasUpdate()) {
                                 updatesAvailable.incrementAndGet();
-                                sendModStatusWithVersion(sender, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
+                                CommandMessageFormatter.sendModStatusWithVersion(sender, mod, result.installedVersion(), result.latestVersion(), "UPDATE", Color.YELLOW);
+                                if (result.selection() != null && result.selection().usedFallback()) {
+                                    sender.sendMessage(Message.raw("  Note: No " + result.selection().requestedChannel().getDisplayName() +
+                                            " version, using " + result.selection().actualChannel().getDisplayName() +
+                                            " (" + result.selection().version().getReleaseType() + ")").color(Color.YELLOW));
+                                }
                             } else {
                                 upToDate.incrementAndGet();
                             }
@@ -96,32 +101,34 @@ public class CheckCommand extends CommandBase {
 
     private CompletableFuture<CheckResult> checkForUpdate(ManagedMod mod) {
         if (!mod.isInstalled()) {
-            return CompletableFuture.completedFuture(CheckResult.upToDate("", ""));
+            return CompletableFuture.completedFuture(CheckResult.upToDate("", "", null));
         }
 
         InstalledState installedState = mod.getInstalledState().orElseThrow();
 
         if (!modSync.getProviderRegistry().hasProvider(mod.getSource())) {
-            return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), ""));
+            return CompletableFuture.completedFuture(CheckResult.upToDate(installedState.getInstalledVersionNumber(), "", null));
         }
 
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
         String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
 
         if (provider.requiresApiKey() && apiKey == null) {
             return CompletableFuture.failedFuture(
-                    new IllegalStateException("No API key for " + mod.getSource().getDisplayName())
+                    new IllegalStateException("No API key for " + provider.getDisplayName())
             );
         }
 
         return provider.fetchMod(apiKey, mod.getModId())
                 .thenApply(modEntry -> {
-                    ModVersion latestVersion = VersionSelector.selectVersion(
+                    VersionSelector.SelectionResult selection = VersionSelector.selectVersionWithFallback(
                             mod, modEntry, modSync.getConfigStorage().getConfig());
-                    if (latestVersion == null) {
-                        return CheckResult.upToDate(installedState.getInstalledVersionNumber(), "");
+
+                    if (selection.version() == null) {
+                        return CheckResult.upToDate(installedState.getInstalledVersionNumber(), "", null);
                     }
 
+                    ModVersion latestVersion = selection.version();
                     String latestVersionId = latestVersion.getVersionId();
                     String installedVersionId = installedState.getInstalledVersionId();
 
@@ -129,40 +136,20 @@ public class CheckCommand extends CommandBase {
                     return new CheckResult(
                             hasUpdate,
                             installedState.getInstalledVersionNumber(),
-                            latestVersion.getVersionNumber()
+                            latestVersion.getVersionNumber(),
+                            selection
                     );
                 });
     }
 
-    private record CheckResult(boolean hasUpdate, String installedVersion, String latestVersion) {
-        static CheckResult upToDate(String installedVersion, String latestVersion) {
-            return new CheckResult(false, installedVersion, latestVersion);
+    private record CheckResult(
+            boolean hasUpdate,
+            String installedVersion,
+            String latestVersion,
+            VersionSelector.SelectionResult selection
+    ) {
+        static CheckResult upToDate(String installedVersion, String latestVersion, VersionSelector.SelectionResult selection) {
+            return new CheckResult(false, installedVersion, latestVersion, selection);
         }
-    }
-
-    // ===== Formatting Helpers =====
-
-    private void sendModStatusWithVersion(CommandSender sender, ManagedMod mod, String oldVersion, String newVersion, String status, Color statusColor) {
-        Message firstLine = Message.raw("> ").color(Color.ORANGE)
-                .insert(Message.raw(mod.getName()).color(Color.WHITE))
-                .insert(Message.raw(" [" + status + "]").color(statusColor));
-        sender.sendMessage(firstLine);
-
-        sendIdentifierLine(sender, mod);
-        sendVersionLine(sender, oldVersion, newVersion);
-    }
-
-    private void sendIdentifierLine(CommandSender sender, ManagedMod mod) {
-        String identifier = mod.getIdentifierString().orElse("-");
-        sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                .insert(Message.raw(identifier).color(Color.CYAN)));
-    }
-
-    private void sendVersionLine(CommandSender sender, String oldVersion, String newVersion) {
-        CommandUtils.formatVersionLine(oldVersion, newVersion)
-                .ifPresent(line -> sender.sendMessage(Message.raw("    ").color(Color.GRAY)
-                        .insert(Message.raw(line.oldDisplay()).color(Color.RED))
-                        .insert(Message.raw(" -> ").color(Color.GRAY))
-                        .insert(Message.raw(line.newDisplay()).color(Color.GREEN))));
     }
 }

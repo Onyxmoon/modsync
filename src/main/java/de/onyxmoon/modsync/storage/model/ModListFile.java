@@ -1,6 +1,5 @@
 package de.onyxmoon.modsync.storage.model;
 
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 
@@ -38,40 +37,20 @@ public class ModListFile {
         return version;
     }
 
-    public void setVersion(int version) {
-        this.version = version;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public Instant getLastModifiedAt() {
         return lastModifiedAt;
     }
 
-    public void setLastModifiedAt(Instant lastModifiedAt) {
-        this.lastModifiedAt = lastModifiedAt;
-    }
-
     public List<ModListEntry> getMods() {
         return mods;
-    }
-
-    public void setMods(List<ModListEntry> mods) {
-        this.mods = mods;
     }
 
     /**
@@ -82,7 +61,7 @@ public class ModListFile {
         private String modId;
         private String name;
         private String slug;
-        private ModListSource source;
+        private String source;
         private PluginType pluginType;
         private String desiredVersionId;
         private Instant addedAt;
@@ -92,7 +71,7 @@ public class ModListFile {
         public ModListEntry() {
         }
 
-        public ModListEntry(String modId, String name, String slug, ModListSource source,
+        public ModListEntry(String modId, String name, String slug, String source,
                            PluginType pluginType, String desiredVersionId,
                            Instant addedAt, String addedViaUrl, ReleaseChannel releaseChannelOverride) {
             this.modId = modId;
@@ -110,79 +89,43 @@ public class ModListFile {
             return modId;
         }
 
-        public void setModId(String modId) {
-            this.modId = modId;
-        }
-
         public String getName() {
             return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
         }
 
         public String getSlug() {
             return slug;
         }
 
-        public void setSlug(String slug) {
-            this.slug = slug;
-        }
-
-        public ModListSource getSource() {
+        public String getSource() {
             return source;
-        }
-
-        public void setSource(ModListSource source) {
-            this.source = source;
         }
 
         public PluginType getPluginType() {
             return pluginType;
         }
 
-        public void setPluginType(PluginType pluginType) {
-            this.pluginType = pluginType;
-        }
-
         public String getDesiredVersionId() {
             return desiredVersionId;
-        }
-
-        public void setDesiredVersionId(String desiredVersionId) {
-            this.desiredVersionId = desiredVersionId;
         }
 
         public Instant getAddedAt() {
             return addedAt;
         }
 
-        public void setAddedAt(Instant addedAt) {
-            this.addedAt = addedAt;
-        }
-
         public String getAddedViaUrl() {
             return addedViaUrl;
-        }
-
-        public void setAddedViaUrl(String addedViaUrl) {
-            this.addedViaUrl = addedViaUrl;
         }
 
         public ReleaseChannel getReleaseChannelOverride() {
             return releaseChannelOverride;
         }
 
-        public void setReleaseChannelOverride(ReleaseChannel releaseChannelOverride) {
-            this.releaseChannelOverride = releaseChannelOverride;
-        }
-
         /**
          * Get the source ID for this entry (e.g., "curseforge:12345").
          */
         public String getSourceId() {
-            return source.name().toLowerCase() + ":" + modId;
+            return source.toLowerCase() + ":" + modId;
         }
     }
 }

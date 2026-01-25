@@ -1,6 +1,5 @@
 package de.onyxmoon.modsync.storage.model;
 
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 import de.onyxmoon.modsync.scheduler.UpdateMode;
 
@@ -16,11 +15,17 @@ public class PluginConfig {
      */
     public static final String DEFAULT_EARLY_PLUGINS_PATH = "earlyplugins";
 
-    private Map<ModListSource, String> apiKeys;
+    /**
+     * Default update interval in minutes.
+     */
+    public static final int DEFAULT_UPDATE_INTERVAL_MINUTES = 60;
+
+    /**
+     * API keys per provider source identifier (e.g., "curseforge", "modtale").
+     */
+    private Map<String, String> apiKeys;
     
     private String currentProjectId;
-    
-    private ModListSource currentSource;
     
     // Paths
     private String earlyPluginsPath;
@@ -37,31 +42,46 @@ public class PluginConfig {
     private boolean checkForPluginUpdates;
     private boolean includePrereleases;
 
+    // Admin welcome message configuration
+    private boolean disableAdminWelcomeMessage;
+
     public PluginConfig() {
         this.apiKeys = new HashMap<>();
-        this.currentSource = ModListSource.CURSEFORGE;
         this.updateMode = UpdateMode.MANUAL;
-        this.updateIntervalMinutes = 60;
+        this.updateIntervalMinutes = DEFAULT_UPDATE_INTERVAL_MINUTES;
         this.updateOnStartup = false;
         this.earlyPluginsPath = DEFAULT_EARLY_PLUGINS_PATH;
         this.checkForPluginUpdates = true;
         this.includePrereleases = false;
+        this.disableAdminWelcomeMessage = false;
     }
 
-    public Map<ModListSource, String> getApiKeys() {
+    public Map<String, String> getApiKeys() {
         return apiKeys;
     }
 
-    public void setApiKeys(Map<ModListSource, String> apiKeys) {
+    public void setApiKeys(Map<String, String> apiKeys) {
         this.apiKeys = apiKeys;
     }
 
-    public String getApiKey(ModListSource source) {
-        return apiKeys.get(source);
+    /**
+     * Gets the API key for a provider source.
+     *
+     * @param source the source identifier (e.g., "curseforge", "modtale")
+     * @return the API key, or null if not set
+     */
+    public String getApiKey(String source) {
+        return apiKeys.get(source != null ? source.toLowerCase() : null);
     }
 
-    public void setApiKey(ModListSource source, String apiKey) {
-        apiKeys.put(source, apiKey);
+    /**
+     * Sets the API key for a provider source.
+     *
+     * @param source the source identifier (e.g., "curseforge", "modtale")
+     * @param apiKey the API key
+     */
+    public void setApiKey(String source, String apiKey) {
+        apiKeys.put(source != null ? source.toLowerCase() : null, apiKey);
     }
 
     public String getCurrentProjectId() {
@@ -70,14 +90,6 @@ public class PluginConfig {
 
     public void setCurrentProjectId(String currentProjectId) {
         this.currentProjectId = currentProjectId;
-    }
-
-    public ModListSource getCurrentSource() {
-        return currentSource;
-    }
-
-    public void setCurrentSource(ModListSource currentSource) {
-        this.currentSource = currentSource;
     }
 
     public UpdateMode getUpdateMode() {
@@ -142,6 +154,19 @@ public class PluginConfig {
 
     public void setIncludePrereleases(boolean includePrereleases) {
         this.includePrereleases = includePrereleases;
+    }
+
+    /**
+     * Whether to disable the admin welcome message on player join.
+     *
+     * @return true if admin welcome messages are disabled
+     */
+    public boolean isDisableAdminWelcomeMessage() {
+        return disableAdminWelcomeMessage;
+    }
+
+    public void setDisableAdminWelcomeMessage(boolean disableAdminWelcomeMessage) {
+        this.disableAdminWelcomeMessage = disableAdminWelcomeMessage;
     }
 
     /**

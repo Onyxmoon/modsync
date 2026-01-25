@@ -7,17 +7,15 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.InvalidModUrlException;
-import de.onyxmoon.modsync.api.ModListProvider;
-import de.onyxmoon.modsync.api.ModUrlParser;
-import de.onyxmoon.modsync.api.ParsedModUrl;
 import de.onyxmoon.modsync.api.model.ManagedMod;
+import de.onyxmoon.modsync.service.ProviderFetchService;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Command: /modsync add <url>
@@ -50,54 +48,45 @@ public class AddCommand extends CommandBase {
             return;
         }
 
-        // Find a parser for this URL
-        Optional<ModUrlParser> parserOpt = modSync.getUrlParserRegistry().findParser(url);
-        if (parserOpt.isEmpty()) {
-            sender.sendMessage(Message.raw("Unsupported URL format. Supported: CurseForge").color(Color.RED));
-            return;
-        }
+        ProviderFetchService fetchService = modSync.getFetchService();
+        List<String> providerNames = fetchService.getProviderNamesForUrl(url);
 
-        ModUrlParser parser = parserOpt.get();
-        ParsedModUrl parsed;
-        try {
-            parsed = parser.parse(url);
-        } catch (InvalidModUrlException e) {
-            sender.sendMessage(Message.raw("Invalid URL: " + e.getMessage()).color(Color.RED));
-            return;
-        }
-
-        // Check if already in list
-        if (parsed.hasSlug() && modSync.getManagedModStorage().getRegistry().findBySlug(parsed.slug()).isPresent()) {
-            sender.sendMessage(Message.raw("Mod already in list: " + parsed.slug()).color(Color.RED));
-            return;
-        }
-
-        // Check if we have a provider for this source
-        if (!modSync.getProviderRegistry().hasProvider(parsed.source())) {
-            sender.sendMessage(Message.raw("Source not yet supported: " + parsed.source().getDisplayName()).color(Color.RED));
-            return;
-        }
-
-        ModListProvider provider = modSync.getProviderRegistry().getProvider(parsed.source());
-        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(parsed.source());
-
-        if (provider.requiresApiKey() && apiKey == null) {
-            sender.sendMessage(Message.raw("No API key set for " + parsed.source().getDisplayName() + ". Use: /modsync setkey <key>").color(Color.RED));
+        if (providerNames.isEmpty()) {
+            sender.sendMessage(Message.raw("No provider supports this URL.").color(Color.RED));
             return;
         }
 
         sender.sendMessage(Message.raw("Fetching mod info...").color(Color.YELLOW));
 
-        provider.fetchModBySlug(apiKey, parsed.slug())
-            .thenAccept(modEntry -> {
+        List<String> missingApiKeys = new ArrayList<>();
+
+        fetchService.fetchFromUrl(url, missingApiKeys::add)
+            .thenAccept(result -> {
+                if (result == null) {
+                    sender.sendMessage(Message.raw("No provider could resolve the URL. Tried: " + String.join(", ", providerNames)).color(Color.RED));
+                    if (!missingApiKeys.isEmpty()) {
+                        sender.sendMessage(Message.raw("No API key set for: " + String.join(", ", missingApiKeys)).color(Color.RED));
+                        sender.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                                .insert(Message.raw("/modsync config key <provider> <key>").color(Color.WHITE))
+                                .insert(Message.raw(" to set API keys.").color(Color.GRAY)));
+                    }
+                    return;
+                }
+                var modEntry = result.modEntry();
+                var registry = modSync.getManagedModStorage().getRegistry();
+                if (registry.findBySourceId(result.provider().getSource(), modEntry.getModId()).isPresent()
+                        || (modEntry.getSlug() != null && registry.findBySlug(modEntry.getSlug()).isPresent())) {
+                    sender.sendMessage(Message.raw("Mod already in list: " + modEntry.getName()).color(Color.RED));
+                    return;
+                }
                 // Create managed mod (without installedState - will be set on install)
                 ManagedMod managedMod = ManagedMod.builder()
                         .modId(modEntry.getModId())
-                        .source(parsed.source())
+                        .source(result.provider().getSource())
                         .slug(modEntry.getSlug())
                         .name(modEntry.getName())
                         .pluginType(modEntry.getPluginType())
-                        .desiredVersionId(parsed.versionId())
+                        .desiredVersionId(result.parsedUrl().versionId())
                         .addedAt(Instant.now())
                         .addedViaUrl(url)
                         .build();

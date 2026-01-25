@@ -1,44 +1,39 @@
 package de.onyxmoon.modsync.service;
 
-import com.hypixel.hytale.codec.ExtraInfo;
-import com.hypixel.hytale.codec.util.RawJsonReader;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import com.hypixel.hytale.common.plugin.PluginManifest;
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
-import com.hypixel.hytale.server.core.plugin.PluginManager;
 import de.onyxmoon.modsync.ModSync;
+import de.onyxmoon.modsync.api.ModProviderWithDownloadHandler;
+import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
+import de.onyxmoon.modsync.util.FileHashUtils;
+import de.onyxmoon.modsync.util.ManifestReader;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.HexFormat;
-import java.util.logging.Level;
 
 /**
  * Service for downloading and installing mods.
  */
 public class ModDownloadService {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
+    private static final int CONNECT_TIMEOUT_SECONDS = 30;
+    private static final int MAX_RETRY_ATTEMPTS = 3;
     private final ModSync modSync;
     private final Path modsFolder;
     private final Path earlyPluginsFolder;
@@ -49,7 +44,7 @@ public class ModDownloadService {
         this.modsFolder = modsFolder;
         this.earlyPluginsFolder = earlyPluginsFolder;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
@@ -69,6 +64,9 @@ public class ModDownloadService {
      * The download is atomic: the file only appears at the final location after
      * successful validation (manifest readable, hash calculated). If any step fails,
      * the temp file is cleaned up and no orphan files remain.
+     *
+     * If the provider is a {@link ModProviderWithDownloadHandler}, custom download logic is used
+     * (e.g., authenticated downloads, filename from Content-Disposition header).
      */
     public CompletableFuture<InstalledState> downloadAndInstall(
             ManagedMod mod,
@@ -81,55 +79,107 @@ public class ModDownloadService {
             );
         }
 
-        String fileName = version.getFileName();
         PluginType pluginType = mod.getPluginType();
         Path targetFolder = getTargetFolder(pluginType);
+
+        // Check if provider has custom download logic
+        ModProvider provider = modSync.getProviderRegistry().getProvider(mod.getSource());
+        String apiKey = modSync.getConfigStorage().getConfig().getApiKey(mod.getSource());
+
+        if (provider instanceof ModProviderWithDownloadHandler modProviderWithDownloadHandler) {
+            LOGGER.atInfo().log("Using custom download handler for %s", provider.getDisplayName());
+            return downloadWithHandler(modProviderWithDownloadHandler, mod, version, downloadUrl, apiKey, targetFolder, pluginType);
+        }
+
+        // Standard download
+        String fileName = version.getFileName();
         Path targetPath = targetFolder.resolve(fileName);
         Path tempPath = targetFolder.resolve(fileName + ".tmp");
 
         LOGGER.atInfo().log("Downloading %s (%s) to %s", mod.getName(), pluginType.getDisplayName(), targetPath);
 
         return downloadToTemp(downloadUrl, tempPath)
-                .thenApply(downloadedTempPath -> {
-                    try {
-                        // Validate BEFORE moving to final location
-                        String hash = calculateHash(downloadedTempPath);
-                        long fileSize = Files.size(downloadedTempPath);
-                        var manifest = readManifest(downloadedTempPath);
+                .thenApply(downloadedTempPath -> processDownloadedFile(
+                        downloadedTempPath, targetPath, fileName, version, mod, pluginType));
+    }
 
-                        if (manifest == null) {
-                            cleanupTempFile(downloadedTempPath);
-                            throw new RuntimeException("Failed to read manifest from downloaded file");
-                        }
+    /**
+     * Download using a custom DownloadHandler (for authenticated downloads, etc.).
+     */
+    private CompletableFuture<InstalledState> downloadWithHandler(
+            ModProviderWithDownloadHandler handler,
+            ManagedMod mod,
+            ModVersion version,
+            String downloadUrl,
+            String apiKey,
+            Path targetFolder,
+            PluginType pluginType) {
 
-                        var identifier = new PluginIdentifier(manifest.getGroup(), manifest.getName());
+        return handler.download(downloadUrl, apiKey, targetFolder)
+                .thenApply(result -> {
+                    // Use filename from handler (e.g., Content-Disposition) or fall back to version
+                    String fileName = result.actualFileName() != null
+                            ? result.actualFileName()
+                            : version.getFileName();
+                    Path targetPath = targetFolder.resolve(fileName);
 
-                        // All validation passed - now move to final location
-                        moveFileWithFallback(downloadedTempPath, targetPath);
+                    LOGGER.atInfo().log("Downloaded %s (%s), actual filename: %s",
+                            mod.getName(), pluginType.getDisplayName(), fileName);
 
-                        InstalledState installedState = InstalledState.builder()
-                                .identifier(identifier)
-                                .installedVersionId(version.getVersionId())
-                                .installedVersionNumber(version.getVersionNumber())
-                                .filePath(targetPath.toString())
-                                .fileName(fileName)
-                                .fileSize(fileSize)
-                                .fileHash(hash)
-                                .installedAt(Instant.now())
-                                .lastChecked(Instant.now())
-                                .build();
-
-                        LOGGER.atInfo().log("Successfully installed %s (%s) as %s",
-                                mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
-                        return installedState;
-                    } catch (IOException e) {
-                        cleanupTempFile(downloadedTempPath);
-                        throw new RuntimeException("Failed to process downloaded file", e);
-                    } catch (RuntimeException e) {
-                        cleanupTempFile(downloadedTempPath);
-                        throw e;
-                    }
+                    return processDownloadedFile(
+                            result.downloadedFile(), targetPath, fileName, version, mod, pluginType);
                 });
+    }
+
+    /**
+     * Process a downloaded temp file: validate, hash, read manifest, move to final location.
+     */
+    private InstalledState processDownloadedFile(
+            Path downloadedTempPath,
+            Path targetPath,
+            String fileName,
+            ModVersion version,
+            ManagedMod mod,
+            PluginType pluginType) {
+        try {
+            // Validate BEFORE moving to final location
+            String hash = FileHashUtils.calculateSha256(downloadedTempPath);
+            long fileSize = Files.size(downloadedTempPath);
+            PluginManifest manifest = ManifestReader.readManifest(downloadedTempPath)
+                    .orElse(null);
+
+            if (manifest == null) {
+                cleanupTempFile(downloadedTempPath);
+                throw new RuntimeException("Failed to read manifest from downloaded file");
+            }
+
+            var identifier = new PluginIdentifier(manifest.getGroup(), manifest.getName());
+
+            // All validation passed - now move to final location
+            moveFileWithFallback(downloadedTempPath, targetPath);
+
+            InstalledState installedState = InstalledState.builder()
+                    .identifier(identifier)
+                    .installedVersionId(version.getVersionId())
+                    .installedVersionNumber(version.getVersionNumber())
+                    .filePath(targetPath.toString())
+                    .fileName(fileName)
+                    .fileSize(fileSize)
+                    .fileHash(hash)
+                    .installedAt(Instant.now())
+                    .lastChecked(Instant.now())
+                    .build();
+
+            LOGGER.atInfo().log("Successfully installed %s (%s) as %s",
+                    mod.getName(), version.getVersionNumber(), pluginType.getDisplayName());
+            return installedState;
+        } catch (IOException e) {
+            cleanupTempFile(downloadedTempPath);
+            throw new RuntimeException("Failed to process downloaded file", e);
+        } catch (RuntimeException e) {
+            cleanupTempFile(downloadedTempPath);
+            throw e;
+        }
     }
 
     /**
@@ -147,10 +197,12 @@ public class ModDownloadService {
         return CompletableFuture.supplyAsync(() -> {
             IOException lastException = null;
 
-            for (int attempt = 1; attempt <= 3; attempt++) {
+            for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create(url))
+                            .header("User-Agent", "ModSync")
+                            .header("Accept", "*/*")
                             .GET()
                             .build();
 
@@ -175,7 +227,7 @@ public class ModDownloadService {
                     lastException = e;
                     LOGGER.atWarning().log("Download attempt %d failed: %s", attempt, e.getMessage());
                     cleanupTempFile(tempPath);
-                    if (attempt < 3) {
+                    if (attempt < MAX_RETRY_ATTEMPTS) {
                         try {
                             Thread.sleep(1000L * attempt); // Exponential backoff
                         } catch (InterruptedException ie) {
@@ -189,7 +241,7 @@ public class ModDownloadService {
                 }
             }
 
-            throw new RuntimeException("Download failed after 3 attempts: " +
+            throw new RuntimeException("Download failed after " + MAX_RETRY_ATTEMPTS + " attempts: " +
                     lastException.getMessage(), lastException);
         });
     }
@@ -244,17 +296,6 @@ public class ModDownloadService {
         }
     }
 
-    private String calculateHash(Path filePath) throws IOException {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(filePath);
-            byte[] hashBytes = digest.digest(fileBytes);
-            return "sha256:" + HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
-
     /**
      * Delete an installed mod. Unloads if loaded, then deletes or schedules for deletion on next startup.
      * @return true if file was deleted immediately, false if restart is required
@@ -295,32 +336,6 @@ public class ModDownloadService {
 
             return deletedImmediately;
         });
-    }
-
-    private PluginManifest readManifest(Path filePath) {
-        try {
-            URL url = filePath.toUri().toURL();
-            URL resource;
-            try (PluginClassLoader pluginClassLoader = new PluginClassLoader(new PluginManager(), false, url)) {
-                resource = pluginClassLoader.findResource("manifest.json");
-            }
-            if (resource == null) {
-                LOGGER.at(Level.SEVERE).log("Failed to load pending plugin from '%s'. Failed to load manifest file!", filePath.toString());
-                return null;
-            }
-
-            try (
-                    InputStream stream = resource.openStream();
-                    InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)
-            ) {
-                char[] buffer = RawJsonReader.READ_BUFFER.get();
-                RawJsonReader rawJsonReader = new RawJsonReader(reader, buffer);
-                ExtraInfo extraInfo = ExtraInfo.THREAD_LOCAL.get();
-                return PluginManifest.CODEC.decodeJson(rawJsonReader, extraInfo);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public Path getModsFolder() {

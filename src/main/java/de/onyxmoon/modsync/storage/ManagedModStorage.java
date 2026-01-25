@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.api.ModListSource;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
@@ -17,7 +16,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +41,12 @@ public class ManagedModStorage {
     private final Path oldManagedModsPath;
     private final Path oldInstalledModsPath;
     private final Gson gson;
-    private ManagedModRegistry registry;
+
+    /**
+     * The current registry. Marked volatile to ensure visibility
+     * of updates across threads when the registry is reassigned.
+     */
+    private volatile ManagedModRegistry registry;
 
     public ManagedModStorage(Path dataFolder) {
         this.modsJsonPath = dataFolder.resolve("mods.json");
@@ -72,40 +75,36 @@ public class ManagedModStorage {
         try {
             Files.createDirectories(modsJsonPath.getParent());
 
-            // Build mods.json (without installation state)
-            ModListFile modListFile = new ModListFile();
-            modListFile.setVersion(SCHEMA_VERSION);
-            modListFile.setName(registry.getName());
-            modListFile.setCreatedAt(registry.getCreatedAt());
-            modListFile.setLastModifiedAt(registry.getLastModifiedAt());
+            // Build mods.json entries
+            List<ModListFile.ModListEntry> entries = registry.getAll().stream()
+                    .map(mod -> new ModListFile.ModListEntry(
+                            mod.getModId(),
+                            mod.getName(),
+                            mod.getSlug(),
+                            mod.getSource(),
+                            mod.getPluginType(),
+                            mod.getDesiredVersionId(),
+                            mod.getAddedAt(),
+                            mod.getAddedViaUrl(),
+                            mod.getReleaseChannelOverride()
+                    ))
+                    .toList();
 
-            List<ModListFile.ModListEntry> entries = new ArrayList<>();
-            for (ManagedMod mod : registry.getAll()) {
-                ModListFile.ModListEntry entry = new ModListFile.ModListEntry(
-                        mod.getModId(),
-                        mod.getName(),
-                        mod.getSlug(),
-                        mod.getSource(),
-                        mod.getPluginType(),
-                        mod.getDesiredVersionId(),
-                        mod.getAddedAt(),
-                        mod.getAddedViaUrl(),
-                        mod.getReleaseChannelOverride()
-                );
-                entries.add(entry);
-            }
-            modListFile.setMods(entries);
+            // Build mods.json (immutable, using all-args constructor)
+            ModListFile modListFile = new ModListFile(
+                    SCHEMA_VERSION,
+                    registry.getName(),
+                    registry.getCreatedAt(),
+                    registry.getLastModifiedAt(),
+                    entries
+            );
 
-            // Build mods.lock.json (only installation state)
-            LockFile lockFile = new LockFile();
-            lockFile.setVersion(SCHEMA_VERSION);
-            lockFile.setLockedAt(Instant.now());
-
+            // Build mods.lock.json installations
             Map<String, LockFile.LockedInstallation> installations = new HashMap<>();
             for (ManagedMod mod : registry.getAll()) {
                 if (mod.isInstalled()) {
                     InstalledState state = mod.getInstalledState().orElseThrow();
-                    LockFile.LockedInstallation installation = new LockFile.LockedInstallation(
+                    installations.put(mod.getSourceId(), new LockFile.LockedInstallation(
                             state.getIdentifier(),
                             state.getInstalledVersionId(),
                             state.getInstalledVersionNumber(),
@@ -115,11 +114,12 @@ public class ManagedModStorage {
                             state.getFileHash(),
                             state.getInstalledAt(),
                             state.getLastChecked()
-                    );
-                    installations.put(mod.getSourceId(), installation);
+                    ));
                 }
             }
-            lockFile.setInstallations(installations);
+
+            // Build mods.lock.json (immutable, using all-args constructor)
+            LockFile lockFile = new LockFile(SCHEMA_VERSION, Instant.now(), installations);
 
             // Write both files
             Files.writeString(modsJsonPath, gson.toJson(modListFile));
@@ -176,11 +176,16 @@ public class ManagedModStorage {
             }
 
             for (ModListFile.ModListEntry entry : modListFile.getMods()) {
+                // Normalize source to lowercase (migration from old enum-based format)
+                String normalizedSource = entry.getSource() != null
+                        ? entry.getSource().toLowerCase()
+                        : null;
+
                 ManagedMod.Builder modBuilder = ManagedMod.builder()
                         .modId(entry.getModId())
                         .name(entry.getName())
                         .slug(entry.getSlug())
-                        .source(entry.getSource())
+                        .source(normalizedSource)
                         .pluginType(entry.getPluginType() != null ? entry.getPluginType() : PluginType.PLUGIN)
                         .desiredVersionId(entry.getDesiredVersionId())
                         .addedAt(entry.getAddedAt())
@@ -286,9 +291,9 @@ public class ManagedModStorage {
 
                 // Check if this mod is installed
                 if (oldInstalled != null && oldInstalled.mods != null) {
-                    String sourceId = entry.source.name().toLowerCase() + ":" + entry.modId;
+                    String sourceId = entry.source.toLowerCase() + ":" + entry.modId;
                     for (OldInstalledMod installed : oldInstalled.mods) {
-                        String installedSourceId = installed.source.name().toLowerCase() + ":" + installed.modId;
+                        String installedSourceId = installed.source.toLowerCase() + ":" + installed.modId;
                         if (sourceId.equals(installedSourceId)) {
                             InstalledState state = InstalledState.builder()
                                     .identifier(installed.identifier)
@@ -409,7 +414,7 @@ public class ManagedModStorage {
 
     private static class OldManagedModEntry {
         String modId;
-        ModListSource source;
+        String source;
         String slug;
         String name;
         PluginType pluginType;
@@ -428,7 +433,7 @@ public class ManagedModStorage {
         String name;
         String slug;
         PluginIdentifier identifier;
-        ModListSource source;
+        String source;
         PluginType pluginType;
         String installedVersionId;
         String installedVersionNumber;
