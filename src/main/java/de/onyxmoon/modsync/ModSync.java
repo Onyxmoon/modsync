@@ -148,6 +148,10 @@ public class ModSync extends JavaPlugin {
     }
 
     private void sendWelcomeMessage(PlayerReadyEvent event) {
+        if (configStorage.getConfig().isDisableAdminWelcomeMessage()) {
+            return;
+        }
+
         Player player = event.getPlayer();
 
         if (PermissionHelper.hasAdminPermission(player)) {

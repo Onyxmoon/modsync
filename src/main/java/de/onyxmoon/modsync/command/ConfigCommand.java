@@ -9,6 +9,7 @@ import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.ReleaseChannel;
 import de.onyxmoon.modsync.command.config.ChannelCommand;
 import de.onyxmoon.modsync.command.config.KeyCommand;
+import de.onyxmoon.modsync.command.config.WelcomeCommand;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
@@ -36,6 +37,7 @@ public class ConfigCommand extends CommandBase {
         // Add subcommands
         this.addSubCommand(new ChannelCommand(modSync));
         this.addSubCommand(new KeyCommand(modSync));
+        this.addSubCommand(new WelcomeCommand(modSync));
     }
 
     @Override
@@ -84,6 +86,8 @@ public class ConfigCommand extends CommandBase {
                 .insert(Message.raw(config.isCheckForPluginUpdates() ? "Yes" : "No").color(Color.WHITE)));
         sender.sendMessage(Message.raw("  Include Prereleases: ").color(Color.GRAY)
                 .insert(Message.raw(config.isIncludePrereleases() ? "Yes" : "No").color(Color.WHITE)));
+        sender.sendMessage(Message.raw("  Disable Admin Welcome: ").color(Color.GRAY)
+                .insert(Message.raw(config.isDisableAdminWelcomeMessage() ? "Yes" : "No").color(Color.WHITE)));
 
         sender.sendMessage(Message.raw(""));
         sender.sendMessage(Message.raw(""));
@@ -93,6 +97,9 @@ public class ConfigCommand extends CommandBase {
         sender.sendMessage(Message.raw("Use ").color(Color.GRAY)
                 .insert(Message.raw("/modsync config key <provider> <key>").color(Color.WHITE))
                 .insert(Message.raw(" to set API keys.").color(Color.GRAY)));
+        sender.sendMessage(Message.raw("Use ").color(Color.GRAY)
+                .insert(Message.raw("/modsync config welcome <on|off>").color(Color.WHITE))
+                .insert(Message.raw(" to toggle the admin welcome message.").color(Color.GRAY)));
     }
 
     private String getChannelDescription(ReleaseChannel channel) {

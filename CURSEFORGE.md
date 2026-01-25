@@ -49,6 +49,7 @@ A server-side mod management plugin for Hytale dedicated servers that lets you e
 | `/modsync config`                      | Show all configuration settings           |
 | `/modsync config channel <value>`      | Set default release channel               |
 | `/modsync config key <provider> <key>` | Set API key for a provider                |
+| `/modsync config welcome <on\|off>`    | Enable or disable the admin welcome message |
 | `/modsync setchannel <mod> <channel>`  | Set per-mod release channel               |
 | `/modsync selfupgrade`                 | Check for ModSync plugin updates          |
 | `/modsync selfupgrade apply`           | Download and install latest ModSync       |
@@ -153,6 +154,7 @@ All data is stored in `mods/Onyxmoon_ModSync/`:
 - **Provider fallback** - Without a CurseForge API key, ModSync uses CFWidget which supports URL lookups but not search
 - **File Locking (Windows)**: JAR files are locked while loaded. The bootstrap plugin handles deletion on restart.
 - **Supported Sources**: CurseForge, Modtale (alpha), and CFWidget are supported. CFWidget uses the public widget API and does not require an API key, but does not support search-based imports.
+- **Admin welcome message** - Disable the admin welcome message via `config.json` with `disableAdminWelcomeMessage: true`
 
 ## Support
 

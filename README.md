@@ -56,6 +56,7 @@ Server-side mod management for Hytale dedicated servers. Add, install, update, a
 | `/modsync config`                       | Show all configuration settings |
 | `/modsync config channel <value>`       | Set default release channel (release/beta/alpha) |
 | `/modsync config key <provider> <key>`  | Set API key for a provider |
+| `/modsync config welcome <on\|off>`      | Enable or disable the admin welcome message |
 | `/modsync setchannel <mod> <channel>`   | Set per-mod release channel override |
 | `/modsync selfupgrade`                  | Check for ModSync plugin updates |
 | `/modsync selfupgrade apply`            | Download and install the latest ModSync version |
@@ -141,7 +142,8 @@ The `config.json` file in `mods/Onyxmoon_ModSync/` contains:
   "defaultReleaseChannel": "RELEASE",
   "earlyPluginsPath": "earlyplugins",
   "checkForPluginUpdates": true,
-  "includePrereleases": false
+  "includePrereleases": false,
+  "disableAdminWelcomeMessage": false
 }
 ```
 
@@ -152,6 +154,7 @@ The `config.json` file in `mods/Onyxmoon_ModSync/` contains:
 | `earlyPluginsPath` | Path for early plugins folder (default: `earlyplugins`) |
 | `checkForPluginUpdates` | Check for ModSync updates on startup |
 | `includePrereleases` | Include prerelease versions in self-upgrade checks |
+| `disableAdminWelcomeMessage` | Disable the admin welcome message on join |
 
 ## File Locations
 

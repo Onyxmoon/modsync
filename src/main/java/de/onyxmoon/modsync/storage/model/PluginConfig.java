@@ -42,6 +42,9 @@ public class PluginConfig {
     private boolean checkForPluginUpdates;
     private boolean includePrereleases;
 
+    // Admin welcome message configuration
+    private boolean disableAdminWelcomeMessage;
+
     public PluginConfig() {
         this.apiKeys = new HashMap<>();
         this.updateMode = UpdateMode.MANUAL;
@@ -50,6 +53,7 @@ public class PluginConfig {
         this.earlyPluginsPath = DEFAULT_EARLY_PLUGINS_PATH;
         this.checkForPluginUpdates = true;
         this.includePrereleases = false;
+        this.disableAdminWelcomeMessage = false;
     }
 
     public Map<String, String> getApiKeys() {
@@ -150,6 +154,19 @@ public class PluginConfig {
 
     public void setIncludePrereleases(boolean includePrereleases) {
         this.includePrereleases = includePrereleases;
+    }
+
+    /**
+     * Whether to disable the admin welcome message on player join.
+     *
+     * @return true if admin welcome messages are disabled
+     */
+    public boolean isDisableAdminWelcomeMessage() {
+        return disableAdminWelcomeMessage;
+    }
+
+    public void setDisableAdminWelcomeMessage(boolean disableAdminWelcomeMessage) {
+        this.disableAdminWelcomeMessage = disableAdminWelcomeMessage;
     }
 
     /**
