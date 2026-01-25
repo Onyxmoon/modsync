@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **CFWidget provider**: URL-based mod lookups via the CFWidget API (no API key required)
+- **StringUtils**: New utility class for consistent null/blank string handling
 
 ### Changed
 - **URL handling**: Providers now parse URLs directly and are tried in priority order (CurseForge first)
-- **Docs**: Added CFWidget support notes and API key requirements
 - **Config keys**: API keys are now set per provider via `/modsync config key <provider> <key>` (no global current source)
+- **Provider fetching**: URL resolution for add/import now uses a shared fetch service (consistent API key handling and fallbacks)
+- **Command output**: Status/formatting helpers consolidated for check/upgrade commands
+- **Download/scan utilities**: Hashing and manifest parsing centralized in shared helpers
+- **Storage models**: `mods.json`/`mods.lock.json` now built from immutable model objects
+- **HTTP clients**: CurseForge/CFWidget reuse shared `HttpClient` and `Gson` instances with longer timeouts
+- **Thread-safety**: `ProviderRegistry` now uses `ConcurrentHashMap`, `ManagedModStorage` uses `volatile` for registry field
+- **Magic numbers**: Extracted constants for timeouts, retry attempts, and intervals (`CONNECT_TIMEOUT_SECONDS`, `MAX_RETRY_ATTEMPTS`, `STARTUP_DELAY_SECONDS`, etc.)
 
 ### Fixed
 - **Import messaging**: Clearer errors when no provider can resolve a URL or when search is unsupported
