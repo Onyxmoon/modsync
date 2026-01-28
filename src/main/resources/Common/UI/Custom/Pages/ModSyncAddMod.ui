@@ -1,0 +1,128 @@
+$C = "Common.ui";
+
+@PrimaryButtonStyle = TextButtonStyle(
+  Default: (Background: #3a7bd5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #4a8be5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #2a6bc5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@SecondaryButtonStyle = TextButtonStyle(
+  Default: (Background: #2b3542, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3b4552, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1b2532, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+Group {
+  Anchor: (Width: 500, Height: 350);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 20);
+
+  Label #title {
+    Text: "Add Mod";
+    Anchor: (Height: 40);
+    Style: (
+      FontSize: 24,
+      TextColor: #ffffff,
+      HorizontalAlignment: Center,
+      RenderBold: true
+    );
+  }
+
+  Group {
+    Anchor: (Height: 1);
+    Background: #2b3542;
+  }
+
+  Group { Anchor: (Height: 16); }
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 44);
+
+    Label {
+      Text: "URL";
+      Anchor: (Width: 60);
+      Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+    }
+
+    TextField #url_input {
+      Style: $C.@DefaultInputFieldStyle;
+      Background: $C.@InputBoxBackground;
+      FlexWeight: 1;
+      PlaceholderText: "Enter mod URL...";
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Label #provider_info {
+    Text: "";
+    Anchor: (Height: 24);
+    Style: (FontSize: 12, TextColor: #4a5568, HorizontalAlignment: Left);
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Label #error_message {
+    Text: "";
+    Anchor: (Height: 24);
+    Style: (FontSize: 12, TextColor: #cc4444, HorizontalAlignment: Left);
+  }
+
+  Group { Anchor: (Height: 16); }
+
+  Group #mod_info {
+    Anchor: (Height: 80);
+    Background: #1a2332;
+    Padding: (Full: 12);
+    LayoutMode: Top;
+
+    Label #mod_name {
+      Text: "";
+      Anchor: (Height: 24);
+      Style: (FontSize: 16, TextColor: #ffffff, RenderBold: true);
+    }
+
+    Label #mod_slug {
+      Text: "";
+      Anchor: (Height: 20);
+      Style: (FontSize: 12, TextColor: #96a9be);
+    }
+
+    Label #mod_provider {
+      Text: "";
+      Anchor: (Height: 20);
+      Style: (FontSize: 12, TextColor: #4a5568);
+    }
+  }
+
+  Group { FlexWeight: 1; }
+
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 44);
+
+    TextButton #fetch_btn {
+      Text: "Fetch";
+      Anchor: (Width: 100, Height: 36);
+      Style: @SecondaryButtonStyle;
+    }
+
+    Group { Anchor: (Width: 12); }
+
+    TextButton #add_btn {
+      Text: "Add";
+      Anchor: (Width: 100, Height: 36);
+      Style: @PrimaryButtonStyle;
+    }
+
+    Group { Anchor: (Width: 12); }
+
+    TextButton #back_btn {
+      Text: "Back";
+      Anchor: (Width: 80, Height: 36);
+      Style: @SecondaryButtonStyle;
+    }
+  }
+}
