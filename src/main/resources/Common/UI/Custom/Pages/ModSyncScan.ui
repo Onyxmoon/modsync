@@ -1,0 +1,101 @@
+$C = "Common.ui";
+
+@PrimaryButtonStyle = TextButtonStyle(
+  Default: (Background: #3a7bd5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #4a8be5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #2a6bc5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@SecondaryButtonStyle = TextButtonStyle(
+  Default: (Background: #2b3542, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3b4552, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1b2532, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@SuccessButtonStyle = TextButtonStyle(
+  Default: (Background: #2d6a4f, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3d7a5f, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1d5a3f, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+Group {
+  Anchor: (Width: 650, Height: 500);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 20);
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 45);
+
+    Label #title {
+      Text: "Scan Unmanaged Mods";
+      Anchor: (Width: 300);
+      Style: (
+        FontSize: 24,
+        TextColor: #ffffff,
+        HorizontalAlignment: Left,
+        RenderBold: true
+      );
+    }
+
+    Group { FlexWeight: 1; }
+
+    TextButton #rescan_btn {
+      Text: "Rescan";
+      Anchor: (Width: 80, Height: 32);
+      Style: @SecondaryButtonStyle;
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    TextButton #back_btn {
+      Text: "Back";
+      Anchor: (Width: 70, Height: 32);
+      Style: @SecondaryButtonStyle;
+    }
+  }
+
+  Group {
+    Anchor: (Height: 1);
+    Background: #2b3542;
+  }
+
+  Group { Anchor: (Height: 12); }
+
+  Label #summary {
+    Text: "";
+    Anchor: (Height: 24);
+    Style: (FontSize: 13, TextColor: #96a9be, HorizontalAlignment: Left);
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Group #mod_list_container {
+    FlexWeight: 1;
+    LayoutMode: Top;
+    Background: #1a2332;
+    Padding: (Full: 8);
+  }
+
+  Group { Anchor: (Height: 12); }
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 40);
+
+    TextButton #import_all_btn {
+      Text: "Import All (High Confidence)";
+      Anchor: (Width: 200, Height: 34);
+      Style: @SuccessButtonStyle;
+    }
+
+    Group { FlexWeight: 1; }
+
+    Label #status_message {
+      Text: "";
+      FlexWeight: 1;
+      Style: (FontSize: 12, TextColor: #96a9be, HorizontalAlignment: Right, VerticalAlignment: Center);
+    }
+  }
+}

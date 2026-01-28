@@ -1,0 +1,115 @@
+$C = "Common.ui";
+
+@PrimaryButtonStyle = TextButtonStyle(
+  Default: (Background: #3a7bd5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #4a8be5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #2a6bc5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@SecondaryButtonStyle = TextButtonStyle(
+  Default: (Background: #2b3542, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3b4552, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1b2532, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+Group {
+  Anchor: (Width: 600, Height: 500);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 20);
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 45);
+
+    Label #title {
+      Text: "ModSync";
+      Anchor: (Width: 200);
+      Style: (
+        FontSize: 26,
+        TextColor: #ffffff,
+        HorizontalAlignment: Left,
+        RenderBold: true
+      );
+    }
+
+    Group { FlexWeight: 1; }
+
+    Label #version {
+      Text: "";
+      Anchor: (Width: 80);
+      Style: (FontSize: 12, TextColor: #4a5568, HorizontalAlignment: Right, VerticalAlignment: Center);
+    }
+  }
+
+  Group {
+    Anchor: (Height: 1);
+    Background: #2b3542;
+  }
+
+  Group { Anchor: (Height: 12); }
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 36);
+
+    TextButton #add_btn {
+      Text: "Add Mod";
+      Anchor: (Width: 90, Height: 32);
+      Style: @PrimaryButtonStyle;
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    TextButton #scan_btn {
+      Text: "Scan";
+      Anchor: (Width: 70, Height: 32);
+      Style: @SecondaryButtonStyle;
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    TextButton #settings_btn {
+      Text: "Settings";
+      Anchor: (Width: 80, Height: 32);
+      Style: @SecondaryButtonStyle;
+    }
+
+    Group { FlexWeight: 1; }
+
+    Label #summary {
+      Text: "";
+      Anchor: (Width: 150);
+      Style: (FontSize: 12, TextColor: #96a9be, HorizontalAlignment: Right, VerticalAlignment: Center);
+    }
+  }
+
+  Group { Anchor: (Height: 12); }
+
+  Group {
+    Anchor: (Height: 1);
+    Background: #2b3542(0.5);
+  }
+
+  Group { Anchor: (Height: 12); }
+
+  Group #mod_list_container {
+    FlexWeight: 1;
+    LayoutMode: Top;
+    Background: #1a2332;
+    Padding: (Full: 8);
+  }
+
+  Group { Anchor: (Height: 12); }
+
+  Group #status_container {
+    Anchor: (Height: 24);
+    LayoutMode: Left;
+
+    Label #status_message {
+      Text: "";
+      FlexWeight: 1;
+      Style: (FontSize: 12, TextColor: #96a9be, VerticalAlignment: Center);
+    }
+  }
+}

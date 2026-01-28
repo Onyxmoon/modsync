@@ -21,6 +21,7 @@ import de.onyxmoon.modsync.service.SelfUpgradeService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
 import de.onyxmoon.modsync.storage.JsonModListStorage;
 import de.onyxmoon.modsync.storage.ManagedModStorage;
+import de.onyxmoon.modsync.ui.ModSyncUIManager;
 import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
@@ -53,6 +54,7 @@ public class ModSync extends JavaPlugin {
     private SelfUpgradeService selfUpgradeService;
     private UpdateScheduler updateScheduler;
     private PluginManager pluginManager;
+    private ModSyncUIManager uiManager;
 
     public ModSync(@Nonnull JavaPluginInit init) {
         super(init);
@@ -100,6 +102,9 @@ public class ModSync extends JavaPlugin {
         // Initialize plugin manager
         this.pluginManager = PluginManager.get();
 
+        // Initialize UI manager
+        this.uiManager = new ModSyncUIManager(this);
+
         LOGGER.atInfo().log("ModSync setup complete");
     }
 
@@ -140,6 +145,8 @@ public class ModSync extends JavaPlugin {
         rootCommand.addSubCommand(new ImportCommand(this));
         // Self-update command
         rootCommand.addSubCommand(new SelfUpgradeCommand(this));
+        // UI command
+        rootCommand.addSubCommand(new UICommand(this));
 
         // Register only the root command
         getCommandRegistry().registerCommand(rootCommand);
@@ -272,6 +279,10 @@ public class ModSync extends JavaPlugin {
 
     public PluginManager getPluginManager() {
         return pluginManager;
+    }
+
+    public ModSyncUIManager getUIManager() {
+        return uiManager;
     }
 
 // Internal methods
