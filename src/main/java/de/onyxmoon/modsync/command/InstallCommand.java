@@ -16,10 +16,13 @@ import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.ModSelector;
 import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
 import de.onyxmoon.modsync.util.PermissionHelper;
+import de.onyxmoon.modsync.util.VersionExtractor;
 import de.onyxmoon.modsync.util.VersionSelector;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -242,11 +245,19 @@ public class InstallCommand extends CommandBase {
 
                     return modSync.getDownloadService().downloadAndInstall(mod, version)
                             .thenApply(installedState -> {
+                                InstalledState finalState = installedState;
+                                Path modFile = Paths.get(installedState.getFilePath());
+                                String localVersion = VersionExtractor.extractVersion(modFile);
+                                if (localVersion != null && !localVersion.equals(installedState.getInstalledVersionNumber())) {
+                                    finalState = installedState.toBuilder()
+                                            .installedVersionNumber(localVersion)
+                                            .build();
+                                }
                                 ManagedMod updatedMod = mod.toBuilder()
-                                        .installedState(installedState)
+                                        .installedState(finalState)
                                         .build();
                                 modSync.getManagedModStorage().updateMod(updatedMod);
-                                return installedState;
+                                return finalState;
                             });
                 });
     }

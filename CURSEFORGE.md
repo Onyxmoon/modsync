@@ -31,30 +31,30 @@ A server-side mod management plugin for Hytale dedicated servers that lets you e
 
 ## Commands
 
-| Command                                | Description                               |
-|----------------------------------------|-------------------------------------------|
-| `/modsync add <url>`                   | Add mod from CurseForge URL               |
-| `/modsync list`                        | Show all managed mods with install status |
-| `/modsync install`                     | Install all mods from your list           |
-| `/modsync install <name>`              | Install a specific mod                    |
-| `/modsync remove <name>`               | Remove mod by name, slug, or identifier   |
-| `/modsync remove all`                  | Remove all mods                           |
-| `/modsync check`                       | Check for available updates               |
-| `/modsync upgrade`                     | Upgrade all installed mods                |
-| `/modsync upgrade <name>`              | Upgrade a specific mod                    |
-| `/modsync scan`                        | List unmanaged mods in the mods folder    |
-| `/modsync import`                      | Auto-match and import all unmanaged mods  |
-| `/modsync import <target>`             | Auto-match and import a specific mod      |
-| `/modsync import <target> --url=<url>` | Import with a specific CurseForge URL     |
-| `/modsync config`                      | Show all configuration settings           |
-| `/modsync config channel <value>`      | Set default release channel               |
-| `/modsync config key <provider> <key>` | Set API key for a provider                |
+| Command                                | Description                                 |
+|----------------------------------------|---------------------------------------------|
+| `/modsync add <url>`                   | Add mod from CurseForge URL                 |
+| `/modsync list`                        | Show all managed mods with install status   |
+| `/modsync install`                     | Install all mods from your list             |
+| `/modsync install <name>`              | Install a specific mod                      |
+| `/modsync remove <name>`               | Remove mod by name, slug, or identifier     |
+| `/modsync remove all`                  | Remove all mods                             |
+| `/modsync check`                       | Check for available updates                 |
+| `/modsync upgrade`                     | Upgrade all installed mods                  |
+| `/modsync upgrade <name>`              | Upgrade a specific mod                      |
+| `/modsync scan`                        | List unmanaged mods in the mods folder      |
+| `/modsync import`                      | Auto-match and import all unmanaged mods    |
+| `/modsync import <target>`             | Auto-match and import a specific mod        |
+| `/modsync import <target> --url=<url>` | Import with a specific CurseForge URL       |
+| `/modsync config`                      | Show all configuration settings             |
+| `/modsync config channel <value>`      | Set default release channel                 |
+| `/modsync config key <provider> <key>` | Set API key for a provider                  |
 | `/modsync config welcome <on\|off>`    | Enable or disable the admin welcome message |
-| `/modsync setchannel <mod> <channel>`  | Set per-mod release channel               |
-| `/modsync selfupgrade`                 | Check for ModSync plugin updates          |
-| `/modsync selfupgrade apply`           | Download and install latest ModSync       |
-| `/modsync status`                      | Show current configuration and version    |
-| `/modsync reload`                      | Reload configuration from disk            |
+| `/modsync setchannel <mod> <channel>`  | Set per-mod release channel                 |
+| `/modsync selfupgrade`                 | Check for ModSync plugin updates            |
+| `/modsync selfupgrade apply`           | Download and install latest ModSync         |
+| `/modsync status`                      | Show current configuration and version      |
+| `/modsync reload`                      | Reload configuration from disk              |
 
 **Tip:** Use quotes for names with spaces: `/modsync install "My Mod"`
 

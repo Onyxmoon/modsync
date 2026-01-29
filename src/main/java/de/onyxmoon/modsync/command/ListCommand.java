@@ -84,6 +84,13 @@ public class ListCommand extends CommandBase {
                     .insert(Message.raw(source).color(Color.GRAY));
 
             sender.sendMessage(secondLine);
+
+            if (mod.isInstalled() && mod.getInstalledState().isPresent()) {
+                Message thirdLine = Message.raw("    ").color(Color.GRAY)
+                        .insert(Message.raw(mod.getInstalledState().get().getFileName()).color(Color.GRAY));
+
+                sender.sendMessage(thirdLine);
+            }
         }
 
         // Summary

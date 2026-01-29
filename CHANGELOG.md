@@ -5,7 +5,18 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.1] - 2026-01-29
+
+### Added
+- **Storage migrations**: `StorageFileMigrator` now handles both mods.json and mods.lock.json migration flows.
+- **Lockfile migration**: Added v2->v3 migration to rewrite non-semver installed versions from manifest or filename.
+
+### Changed
+- **Version extraction**: Normalize semver values when possible; fallback to filename without extension when needed.
+- **Install/import flows**: Installed version now prefers local version; import maps installedVersionId by matching available versions.
+- **Load process**: Optional migration updates are persisted for mods.json and mods.lock.json when versions change.
+
+## [0.7.0] - 2026-01-25
 
 ### Added
 - **CFWidget provider**: URL-based mod lookups via the CFWidget API (no API key required)
