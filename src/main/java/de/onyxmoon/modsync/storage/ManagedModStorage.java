@@ -122,14 +122,32 @@ public class ManagedModStorage {
             LockFile lockFile = new LockFile(SCHEMA_VERSION, Instant.now(), installations);
 
             // Write both files
-            Files.writeString(modsJsonPath, gson.toJson(modListFile));
-            Files.writeString(modsLockPath, gson.toJson(lockFile));
+            saveModListFile(modListFile);
+            saveLockFile(lockFile);
 
             LOGGER.atInfo().log("Saved %d mods to mods.json, %d installations to mods.lock.json",
                     entries.size(), installations.size());
         } catch (IOException e) {
             LOGGER.atSevere().withCause(e).log("Failed to save managed mods");
             throw new RuntimeException("Failed to save managed mods", e);
+        }
+    }
+
+    private void saveModListFile(ModListFile modListFile) {
+        try {
+            Files.createDirectories(modsJsonPath.getParent());
+            Files.writeString(modsJsonPath, gson.toJson(modListFile));
+        } catch (IOException e) {
+            LOGGER.atWarning().log("Failed to save mod list file: %s", e.getMessage());
+        }
+    }
+
+    private void saveLockFile(LockFile lockFile) {
+        try {
+            Files.createDirectories(modsLockPath.getParent());
+            Files.writeString(modsLockPath, gson.toJson(lockFile));
+        } catch (IOException e) {
+            LOGGER.atWarning().log("Failed to save lock file: %s", e.getMessage());
         }
     }
 
@@ -156,12 +174,34 @@ public class ManagedModStorage {
             // Load mods.json
             String modsJson = Files.readString(modsJsonPath);
             ModListFile modListFile = gson.fromJson(modsJson, ModListFile.class);
+            int originalModListVersion = modListFile.getVersion();
 
             // Load mods.lock.json (optional - may not exist if nothing installed)
             LockFile lockFile = new LockFile();
-            if (Files.exists(modsLockPath)) {
+            int originalLockVersion = lockFile.getVersion();
+            boolean lockFileExists = Files.exists(modsLockPath);
+            if (lockFileExists) {
                 String lockJson = Files.readString(modsLockPath);
                 lockFile = gson.fromJson(lockJson, LockFile.class);
+                originalLockVersion = lockFile.getVersion();
+            }
+
+            // Migrate files if needed
+            StorageFileMigrator migrator = new StorageFileMigrator(LOGGER);
+            modListFile = migrator.migrate(modListFile);
+            if (lockFileExists) {
+                lockFile = migrator.migrate(lockFile);
+            }
+
+            boolean modListUpdated = modListFile.getVersion() != originalModListVersion;
+            boolean lockUpdated = lockFileExists && lockFile.getVersion() != originalLockVersion;
+            if (modListUpdated || lockUpdated) {
+                if (lockFileExists) {
+                    saveModListFile(modListFile);
+                    saveLockFile(lockFile);
+                } else if (modListUpdated) {
+                    saveModListFile(modListFile);
+                }
             }
 
             // Merge into ManagedModRegistry

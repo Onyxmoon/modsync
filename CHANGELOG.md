@@ -5,6 +5,11 @@ All notable changes to ModSync will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [UNVERSIONED]
+
+### Added
+- **Storage migrations**: `StorageFileMigrator` now handles both mods.json and mods.lock.json migration flows.
+- **Load process**: Optional migration updates are persisted for mods.json and mods.lock.json when versions change.
 ## [0.7.0] - 2026-01-25
 
 ### Added

@@ -1,6 +1,7 @@
 package de.onyxmoon.modsync.storage.model;
 
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
+import de.onyxmoon.modsync.storage.ManagedModStorage;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -14,11 +15,12 @@ import java.util.Map;
  * @see de.onyxmoon.modsync.storage.ManagedModStorage#SCHEMA_VERSION
  */
 public class LockFile {
-    private int version;
+    private final int version;
     private Instant lockedAt;
-    private Map<String, LockedInstallation> installations;
+    private final Map<String, LockedInstallation> installations;
 
     public LockFile() {
+        this.version = ManagedModStorage.SCHEMA_VERSION;
         this.installations = new HashMap<>();
     }
 

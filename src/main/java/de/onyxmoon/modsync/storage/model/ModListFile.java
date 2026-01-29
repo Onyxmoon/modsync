@@ -19,7 +19,7 @@ public class ModListFile {
     private String name;
     private Instant createdAt;
     private Instant lastModifiedAt;
-    private List<ModListEntry> mods;
+    private final List<ModListEntry> mods;
 
     public ModListFile() {
         this.mods = new ArrayList<>();
