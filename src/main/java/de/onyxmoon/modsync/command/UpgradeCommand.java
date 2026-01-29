@@ -17,7 +17,11 @@ import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.ModSelector;
 import de.onyxmoon.modsync.util.ModSelector.SelectionResult;
 import de.onyxmoon.modsync.util.PermissionHelper;
+import de.onyxmoon.modsync.util.VersionExtractor;
 import de.onyxmoon.modsync.util.VersionSelector;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -274,11 +278,24 @@ public class UpgradeCommand extends CommandBase {
                     return modSync.getDownloadService().deleteMod(mod)
                             .thenCompose(v -> modSync.getDownloadService().downloadAndInstall(mod, latestVersion))
                             .thenApply(newInstalledState -> {
+                                // Extract local version from the newly installed file
+                                Path newModFile = Paths.get(newInstalledState.getFilePath());
+                                String localVersion = VersionExtractor.extractVersion(newModFile);
+                                
+                                // Update version number with local version if available
+                                String finalVersionNumber = localVersion != null
+                                    ? localVersion
+                                    : newInstalledState.getInstalledVersionNumber();
+                                
+                                InstalledState finalState = newInstalledState.toBuilder()
+                                    .installedVersionNumber(finalVersionNumber)
+                                    .build();
+                                
                                 ManagedMod updatedMod = mod.toBuilder()
-                                        .installedState(newInstalledState)
+                                        .installedState(finalState)
                                         .build();
                                 modSync.getManagedModStorage().updateMod(updatedMod);
-                                return new UpgradeResult.Upgraded(oldVersionNumber, newVersionNumber, selection);
+                                return new UpgradeResult.Upgraded(oldVersionNumber, finalVersionNumber, selection);
                             });
                 });
     }

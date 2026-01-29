@@ -12,7 +12,11 @@ import de.onyxmoon.modsync.api.model.ManagedModRegistry;
 import de.onyxmoon.modsync.api.model.provider.ModVersion;
 import de.onyxmoon.modsync.util.CommandMessageFormatter;
 import de.onyxmoon.modsync.util.PermissionHelper;
+import de.onyxmoon.modsync.util.VersionExtractor;
 import de.onyxmoon.modsync.util.VersionSelector;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -132,10 +136,20 @@ public class CheckCommand extends CommandBase {
                     String latestVersionId = latestVersion.getVersionId();
                     String installedVersionId = installedState.getInstalledVersionId();
 
+                    // Extract local version from file if not already set
+                    String effectiveInstalledVersion = installedState.getInstalledVersionNumber();
+                    if (effectiveInstalledVersion == null || effectiveInstalledVersion.isEmpty()) {
+                        Path modFile = Paths.get(installedState.getFilePath());
+                        String localVersion = VersionExtractor.extractVersion(modFile);
+                        if (localVersion != null) {
+                            effectiveInstalledVersion = localVersion;
+                        }
+                    }
+
                     boolean hasUpdate = !latestVersionId.equals(installedVersionId);
                     return new CheckResult(
                             hasUpdate,
-                            installedState.getInstalledVersionNumber(),
+                            effectiveInstalledVersion,
                             latestVersion.getVersionNumber(),
                             selection
                     );

@@ -1,18 +1,22 @@
 package de.onyxmoon.modsync.service;
 
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
+import com.hypixel.hytale.common.semver.Semver;
 import com.hypixel.hytale.logger.HytaleLogger;
 import de.onyxmoon.modsync.ModSync;
 import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.*;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
+import de.onyxmoon.modsync.api.model.provider.ModVersion;
 import de.onyxmoon.modsync.util.FileHashUtils;
 import de.onyxmoon.modsync.util.ManifestReader;
+import de.onyxmoon.modsync.util.VersionExtractor;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,8 +103,14 @@ public class ModScanService {
             long fileSize = Files.size(path);
             String fileHash = FileHashUtils.calculateSha256(path);
             PluginIdentifier identifier = ManifestReader.readIdentifier(path).orElse(null);
+            Semver manifestVersion = ManifestReader.readVersion(path).orElse(null);
 
-            return new UnmanagedMod(path, fileName, identifier, fileHash, fileSize, pluginType);
+            // If no manifest version, try to extract from filename as fallback
+            String effectiveVersion = manifestVersion != null
+                ? manifestVersion.toString()
+                : VersionExtractor.extractVersionFromFilename(fileName);
+
+            return new UnmanagedMod(path, fileName, identifier, fileHash, fileSize, pluginType, effectiveVersion);
         } catch (IOException e) {
             LOGGER.atWarning().log("Failed to read file: %s - %s", path.getFileName(), e.getMessage());
             return null;
@@ -199,6 +209,15 @@ public class ModScanService {
      * @param modEntry     The matched entry from the provider
      */
     public void importWithEntry(UnmanagedMod unmanagedMod, ModEntry modEntry, String source) {
+        // Use manifest version if available, fall back to filename version, then provider version
+        String versionNumber = unmanagedMod.manifestVersion() != null
+            ? unmanagedMod.manifestVersion()
+            : (unmanagedMod.fileName() != null
+                ? VersionExtractor.extractVersionFromFilename(unmanagedMod.fileName())
+                : (modEntry.getLatestVersion() != null ? modEntry.getLatestVersion().getVersionNumber() : null));
+        versionNumber = VersionExtractor.normalizeVersion(versionNumber);
+        String matchedVersionId = findMatchingVersionId(modEntry, versionNumber, unmanagedMod.fileName());
+
         // Create InstalledState from the unmanaged mod
         InstalledState installedState = InstalledState.builder()
                 .identifier(unmanagedMod.identifier())
@@ -208,9 +227,10 @@ public class ModScanService {
                 .fileHash(unmanagedMod.fileHash())
                 .installedAt(Instant.now())
                 .lastChecked(Instant.now())
-                // Version info from modEntry's latest version
-                .installedVersionId(modEntry.getLatestVersion() != null ? modEntry.getLatestVersion().getVersionId() : null)
-                .installedVersionNumber(modEntry.getLatestVersion() != null ? modEntry.getLatestVersion().getVersionNumber() : null)
+                // Version ID from provider for tracking (match by local version when possible)
+                .installedVersionId(matchedVersionId)
+                // Version number from manifest (preferred) or filename/provider
+                .installedVersionNumber(versionNumber)
                 .build();
 
         // Create ManagedMod - use modEntry.getPluginType() as source of truth,
@@ -235,6 +255,30 @@ public class ModScanService {
 
         LOGGER.atInfo().log("Imported %s as %s", unmanagedMod.fileName(), modEntry.getName());
 
+    }
+
+    private String findMatchingVersionId(ModEntry modEntry, String localVersion, String fileName) {
+        if (modEntry == null || modEntry.getAvailableVersions().isEmpty()) {
+            return null;
+        }
+        String normalizedLocal = VersionExtractor.normalizeVersion(localVersion);
+        String localBaseName = VersionExtractor.baseFilename(fileName);
+
+        for (ModVersion version : modEntry.getAvailableVersions()) {
+            String normalizedProvider = VersionExtractor.normalizeVersion(version.getVersionNumber());
+            if (normalizedLocal != null && normalizedLocal.equals(normalizedProvider)) {
+                return version.getVersionId();
+            }
+
+            if (localBaseName != null) {
+                String providerBaseName = VersionExtractor.baseFilename(version.getFileName());
+                if (localBaseName.equalsIgnoreCase(providerBaseName)) {
+                    return version.getVersionId();
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

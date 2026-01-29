@@ -9,8 +9,10 @@ import de.onyxmoon.modsync.api.PluginType;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
+import de.onyxmoon.modsync.storage.migration.lock.StorageFileMigrator;
 import de.onyxmoon.modsync.storage.model.LockFile;
 import de.onyxmoon.modsync.storage.model.ModListFile;
+import de.onyxmoon.modsync.util.VersionExtractor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,7 +36,7 @@ public class ManagedModStorage {
     private static final HytaleLogger LOGGER = HytaleLogger.get(ModSync.LOG_NAME);
 
     /** Schema version for mods.json and mods.lock.json files */
-    public static final int SCHEMA_VERSION = 1;
+    public static final int SCHEMA_VERSION = 3;
 
     private final Path modsJsonPath;
     private final Path modsLockPath;
@@ -338,7 +340,9 @@ public class ManagedModStorage {
                             InstalledState state = InstalledState.builder()
                                     .identifier(installed.identifier)
                                     .installedVersionId(installed.installedVersionId)
-                                    .installedVersionNumber(installed.installedVersionNumber)
+                                    .installedVersionNumber(VersionExtractor.parseSemver(installed.installedVersionNumber).isPresent()
+                                            ? VersionExtractor.normalizeVersion(installed.installedVersionNumber)
+                                            : VersionExtractor.baseFilename(installed.fileName))
                                     .filePath(installed.filePath)
                                     .fileName(installed.fileName)
                                     .fileSize(installed.fileSize)

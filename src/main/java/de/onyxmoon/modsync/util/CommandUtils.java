@@ -6,15 +6,11 @@ import de.onyxmoon.modsync.api.model.ManagedMod;
 
 import java.awt.*;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Utility methods shared across commands.
  */
 public final class CommandUtils {
-
-    private static final Pattern SEMVER_LIKE = Pattern.compile("(?i)\\bv?(\\d+\\.\\d+(?:\\.\\d+)?)");
 
     private CommandUtils() {
         // Utility class
@@ -102,27 +98,8 @@ public final class CommandUtils {
     }
 
     /**
-     * Extracts a semver-like numeric version from a raw string.
-     * Matches patterns like v1.2, 1.2.3, or 1.2.3-foo (returns 1.2.3).
-     */
-    public static Optional<String> extractSemverLike(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return Optional.empty();
-        }
-        Matcher matcher = SEMVER_LIKE.matcher(raw);
-        String best = null;
-        while (matcher.find()) {
-            String match = matcher.group(1);
-            if (best == null || match.length() > best.length()) {
-                best = match;
-            }
-        }
-        return Optional.ofNullable(best);
-    }
-
-    /**
      * Formats old/new version display values.
-     * Uses extracted semver-like values only if both sides are present.
+     * Normalizes to SemVer when possible, otherwise falls back to raw values.
      */
     public static Optional<VersionLine> formatVersionLine(String installedRaw, String latestRaw) {
         String installed = installedRaw == null ? "" : installedRaw;
@@ -130,12 +107,9 @@ public final class CommandUtils {
         if (installed.isBlank() || latest.isBlank()) {
             return Optional.empty();
         }
-        Optional<String> installedExtracted = extractSemverLike(installed);
-        Optional<String> latestExtracted = extractSemverLike(latest);
-        if (installedExtracted.isPresent() && latestExtracted.isPresent()) {
-            return Optional.of(new VersionLine(installedExtracted.get(), latestExtracted.get()));
-        }
-        return Optional.of(new VersionLine(installed, latest));
+        String installedDisplay = VersionExtractor.normalizeVersion(installed);
+        String latestDisplay = VersionExtractor.normalizeVersion(latest);
+        return Optional.of(new VersionLine(installedDisplay, latestDisplay));
     }
 
     public record VersionLine(String oldDisplay, String newDisplay) {

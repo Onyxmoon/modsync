@@ -4,6 +4,7 @@ import com.hypixel.hytale.codec.ExtraInfo;
 import com.hypixel.hytale.codec.util.RawJsonReader;
 import com.hypixel.hytale.common.plugin.PluginIdentifier;
 import com.hypixel.hytale.common.plugin.PluginManifest;
+import com.hypixel.hytale.common.semver.Semver;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
 import com.hypixel.hytale.server.core.plugin.PluginManager;
@@ -70,5 +71,15 @@ public final class ManifestReader {
     public static Optional<PluginIdentifier> readIdentifier(Path jarPath) {
         return readManifest(jarPath)
                 .map(manifest -> new PluginIdentifier(manifest.getGroup(), manifest.getName()));
+    }
+
+    /**
+     * Reads the version from a JAR file's manifest.
+     *
+     * @param jarPath the path to the JAR file
+     * @return the version string, or empty if the manifest cannot be read or has no version
+     */
+    public static Optional<Semver> readVersion(Path jarPath) {
+        return readManifest(jarPath).map(PluginManifest::getVersion);
     }
 }

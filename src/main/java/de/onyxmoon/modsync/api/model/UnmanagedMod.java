@@ -9,12 +9,13 @@ import java.nio.file.Path;
  * Represents an unmanaged mod found in the mods or earlyplugins folder.
  * These are JAR files that exist on disk but are not tracked by ModSync.
  *
- * @param filePath   Full path to the JAR file
- * @param fileName   Name of the JAR file
- * @param identifier Plugin identifier extracted from manifest (group:name), may be null if manifest is unreadable
- * @param fileHash   SHA-256 hash of the file
- * @param fileSize   Size of the file in bytes
- * @param pluginType Whether this is a regular plugin or early plugin
+ * @param filePath      Full path to the JAR file
+ * @param fileName      Name of the JAR file
+ * @param identifier    Plugin identifier extracted from manifest (group:name), may be null if manifest is unreadable
+ * @param fileHash      SHA-256 hash of the file
+ * @param fileSize      Size of the file in bytes
+ * @param pluginType    Whether this is a regular plugin or early plugin
+ * @param manifestVersion Version extracted from manifest.json, may be null if not available
  */
 public record UnmanagedMod(
         Path filePath,
@@ -22,7 +23,8 @@ public record UnmanagedMod(
         PluginIdentifier identifier,
         String fileHash,
         long fileSize,
-        PluginType pluginType
+        PluginType pluginType,
+        String manifestVersion
 ) {
     /**
      * Returns the mod name from the identifier, or the filename without extension as fallback.
