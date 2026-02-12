@@ -1,26 +1,8 @@
-$C = "Common.ui";
-
-@PrimaryButtonStyle = TextButtonStyle(
-  Default: (Background: #3a7bd5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Hovered: (Background: #4a8be5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Pressed: (Background: #2a6bc5, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
-);
-
-@SecondaryButtonStyle = TextButtonStyle(
-  Default: (Background: #2b3542, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Hovered: (Background: #3b4552, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Pressed: (Background: #1b2532, LabelStyle: (FontSize: 12, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
-);
-
-@SuccessButtonStyle = TextButtonStyle(
-  Default: (Background: #2d6a4f, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Hovered: (Background: #3d7a5f, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Pressed: (Background: #1d5a3f, LabelStyle: (FontSize: 12, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
-);
+$C = "ModSyncCommon.ui";
 
 Group {
   Anchor: (Width: 550, Height: 500);
-  Background: #141c26(0.98);
+  Background: $C.@PanelBackground;
   LayoutMode: Top;
   Padding: (Full: 20);
 
@@ -31,26 +13,21 @@ Group {
     Label #title {
       Text: "ModSync Settings";
       Anchor: (Width: 250);
-      Style: (
-        FontSize: 24,
-        TextColor: #ffffff,
-        HorizontalAlignment: Left,
-        RenderBold: true
-      );
+      Style: $C.@TitleStyle;
     }
 
     Group { FlexWeight: 1; }
 
-    TextButton #back_btn {
+    TextButton #backBtn {
       Text: "Back";
       Anchor: (Width: 70, Height: 32);
-      Style: @SecondaryButtonStyle;
+      Style: $C.@SecondaryButtonStyle;
     }
   }
 
   Group {
     Anchor: (Height: 1);
-    Background: #2b3542;
+    Background: $C.@DividerColor;
   }
 
   Group { Anchor: (Height: 16); }
@@ -58,7 +35,7 @@ Group {
   Label {
     Text: "VERSION";
     Anchor: (Height: 18);
-    Style: (FontSize: 11, TextColor: #4a5568, LetterSpacing: 2);
+    Style: $C.@SectionHeaderStyle;
   }
 
   Group { Anchor: (Height: 8); }
@@ -67,25 +44,25 @@ Group {
     LayoutMode: Left;
     Anchor: (Height: 32);
 
-    Label { Text: "Current Version:"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center); }
-    Label #version { Text: ""; Anchor: (Width: 80); Style: (FontSize: 13, TextColor: #ffffff, VerticalAlignment: Center); }
+    Label { Text: "Current Version:"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: $C.@TextSecondary, VerticalAlignment: Center); }
+    Label #version { Text: ""; Anchor: (Width: 80); Style: (FontSize: 13, TextColor: $C.@TextPrimary, VerticalAlignment: Center); }
 
     Group { Anchor: (Width: 16); }
 
-    Label #update_status { Text: ""; FlexWeight: 1; Style: (FontSize: 12, TextColor: #4a5568, VerticalAlignment: Center); }
+    Label #updateStatus { Text: ""; FlexWeight: 1; Style: (FontSize: 12, TextColor: $C.@TextMuted, VerticalAlignment: Center); }
 
-    TextButton #check_update_btn {
+    TextButton #checkUpdateBtn {
       Text: "Check";
       Anchor: (Width: 70, Height: 28);
-      Style: @SecondaryButtonStyle;
+      Style: $C.@SecondaryButtonStyle;
     }
 
     Group { Anchor: (Width: 8); }
 
-    TextButton #upgrade_btn {
+    TextButton #upgradeBtn {
       Text: "Upgrade";
       Anchor: (Width: 80, Height: 28);
-      Style: @SuccessButtonStyle;
+      Style: $C.@SuccessButtonStyle;
     }
   }
 
@@ -93,7 +70,7 @@ Group {
 
   Group {
     Anchor: (Height: 1);
-    Background: #2b3542(0.5);
+    Background: $C.@DividerColorLight;
   }
 
   Group { Anchor: (Height: 16); }
@@ -101,7 +78,7 @@ Group {
   Label {
     Text: "CONFIGURATION";
     Anchor: (Height: 18);
-    Style: (FontSize: 11, TextColor: #4a5568, LetterSpacing: 2);
+    Style: $C.@SectionHeaderStyle;
   }
 
   Group { Anchor: (Height: 8); }
@@ -110,23 +87,23 @@ Group {
     LayoutMode: Left;
     Anchor: (Height: 28);
 
-    Label { Text: "Update Mode:"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center); }
-    Label #update_mode { Text: ""; FlexWeight: 1; Style: (FontSize: 13, TextColor: #ffffff, VerticalAlignment: Center); }
+    Label { Text: "Update Mode:"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: $C.@TextSecondary, VerticalAlignment: Center); }
+    Label #updateMode { Text: ""; FlexWeight: 1; Style: (FontSize: 13, TextColor: $C.@TextPrimary, VerticalAlignment: Center); }
   }
 
   Group {
     LayoutMode: Left;
     Anchor: (Height: 28);
 
-    Label { Text: "Release Channel:"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center); }
-    Label #default_channel { Text: ""; FlexWeight: 1; Style: (FontSize: 13, TextColor: #ffffff, VerticalAlignment: Center); }
+    Label { Text: "Release Channel:"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: $C.@TextSecondary, VerticalAlignment: Center); }
+    Label #defaultChannel { Text: ""; FlexWeight: 1; Style: (FontSize: 13, TextColor: $C.@TextPrimary, VerticalAlignment: Center); }
   }
 
   Group { Anchor: (Height: 16); }
 
   Group {
     Anchor: (Height: 1);
-    Background: #2b3542(0.5);
+    Background: $C.@DividerColorLight;
   }
 
   Group { Anchor: (Height: 16); }
@@ -134,15 +111,15 @@ Group {
   Label {
     Text: "API KEYS";
     Anchor: (Height: 18);
-    Style: (FontSize: 11, TextColor: #4a5568, LetterSpacing: 2);
+    Style: $C.@SectionHeaderStyle;
   }
 
   Group { Anchor: (Height: 8); }
 
-  Group #providers_container {
+  Group #providersContainer {
     FlexWeight: 1;
     LayoutMode: Top;
-    Background: #1a2332;
+    Background: $C.@ContentBackground;
     Padding: (Full: 8);
   }
 
@@ -152,18 +129,18 @@ Group {
     LayoutMode: Left;
     Anchor: (Height: 40);
 
-    TextButton #reload_btn {
+    TextButton #reloadBtn {
       Text: "Reload Config";
       Anchor: (Width: 120, Height: 34);
-      Style: @SecondaryButtonStyle;
+      Style: $C.@SecondaryButtonStyle;
     }
 
     Group { FlexWeight: 1; }
 
-    Label #status_message {
+    Label #statusMessage {
       Text: "";
       FlexWeight: 1;
-      Style: (FontSize: 12, TextColor: #96a9be, HorizontalAlignment: Right, VerticalAlignment: Center);
+      Style: (FontSize: 12, TextColor: $C.@TextSecondary, HorizontalAlignment: End, VerticalAlignment: Center);
     }
   }
 }

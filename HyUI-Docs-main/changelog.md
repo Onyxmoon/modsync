@@ -1,0 +1,131 @@
+# Changelog
+
+<details>
+
+<summary><strong>0.5.11 - 31 Jan 2026</strong></summary>
+
+* Fixed layout mode being applied to buttons and not group surrounding button.
+* Refactor: use supplier instead of direct value - thank you @Farrael!
+* Feature: Allow negative anchors - thank you @WolverinDEV!
+* Changed from ARR to LGPLv3 license.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.10 - 30 Jan 2026</strong></summary>
+
+* Fix field access checks.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.9 - 30 Jan 2026</strong></summary>
+
+* Fix tab navigation builder not supporting template runtime interactions.
+* Add scrollbar style support for divs, same way as the textarea.
+* Add sub-components to Template Processor.
+* Add "hot-reload" of HYUIML (html) from project resources. This assumes one of the candidate paths exists (`src/main/resources`, `build/resources/main`, `../src/main/resources`, or `../build/resources/main`).
+
+</details>
+
+<details>
+
+<summary><strong>0.5.8 - 29 Jan 2026</strong></summary>
+
+* Rework internally how logging occurs, it is now enabled in releases, at Finest level only.
+* Add helper methods to ItemGridBuilder to update/remove/get all slots, the tutorial has also been updated to showcase this.
+* Add support for replacing button builders for tab navigation - this complements the existing selected/unselected styling. Use `TabNavigationBuilder.addTab(id, label, contentId, buttonBuilder)` , this means every tab's button can have its own builder. By default, tabs are built with secondary/primary button builders. You can of course update/remove tabs as well.
+* Add support for `CustomButtonBuilder` for tab navigation.
+* Add [tutorial](tutorials/tutorial-tab-navigation/) for Tab Navigation.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.7 - 29 Jan 2026</strong></summary>
+
+* Add events for ItemGrid. See tutorial: [here](tutorial-working-with-item-grids.md).
+* Add Multi-Line Text Field (textarea).
+* Ensure store in HUDs is always called with a 'fresh' store. This means there is no need to pass a store to a HUD on creation, or opening. These are marked as deprecated. Thanks to Willem for this!
+
+</details>
+
+<details>
+
+<summary><strong>0.5.6 - 28 Jan 2026</strong></summary>
+
+* Fix button text not being set.
+* Fix progressbar texture paths not working as expected.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.5 - 27 Jan 2026</strong></summary>
+
+* Update validation rules according to schema.
+* Add helper method to cast a value to a particular type (UIContext.getValueAs).
+* Optimize jar size.
+* Add custom button support.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.4 - 26 Jan 2026</strong></summary>
+
+* Add template runtime evaluation.
+* Add helper method to get a builder as a casted type.
+* CHANGE: Do not force clearing a page when reloading an image, allow caller to decide: `reloadImage(String dynamicImageElementId, boolean shouldClearPage)`
+
+</details>
+
+<details>
+
+<summary><strong>0.5.3 - 25 Jan 2026</strong></summary>
+
+* Add decorated container.
+* Add a per-player image limit of 10.
+* Add Hyvatar.io component.
+* Add small secondary and tertiary buttons.
+* Fix text alignment issues.
+* Remove support for font size on buttons (client crash).
+
+</details>
+
+<details>
+
+<summary><strong>0.5.2 - 24 Jan 2026</strong></summary>
+
+* Add access to custom styles from HYUIML.
+* Add dynamic images from remote sources.
+* Add circular progress bar support.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.1 - 24 Jan 2026</strong></summary>
+
+* Add default events to all elements that handle value changes, this allows us to always capture data updates.
+* Add numberfield support for MinValue, MaxValue, Step, MaxDecimalPlaces.
+* Fix bug with padding not being applied.
+* Add conditionals, logical operators and string comparison to template.
+* Add loops to template processor.
+
+</details>
+
+<details>
+
+<summary><strong>0.5.0 - 23 Jan 2026</strong></summary>
+
+* Added `ItemGrid`.
+* Added `ItemSlot`.
+* Added `TabNavigation`.
+* Added timer label builder (multiple formats).
+* Added `TemplateProcessor` for HYUIML, including reusable components with variables/default values.
+* BREAKING CHANGE: `flex-weight` now applies to the outer wrapping group (all elements except `Group`/`Label` are wrapped). This can change layout behavior compared to earlier versions.
+
+</details>

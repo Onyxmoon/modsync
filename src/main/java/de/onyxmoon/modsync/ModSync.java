@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
@@ -21,7 +22,7 @@ import de.onyxmoon.modsync.service.SelfUpgradeService;
 import de.onyxmoon.modsync.storage.ConfigurationStorage;
 import de.onyxmoon.modsync.storage.JsonModListStorage;
 import de.onyxmoon.modsync.storage.ManagedModStorage;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.util.CommandUtils;
 import de.onyxmoon.modsync.util.PermissionHelper;
 
@@ -54,7 +55,7 @@ public class ModSync extends JavaPlugin {
     private SelfUpgradeService selfUpgradeService;
     private UpdateScheduler updateScheduler;
     private PluginManager pluginManager;
-    private ModSyncUIManager uiManager;
+    private UIManager uiManager;
 
     public ModSync(@Nonnull JavaPluginInit init) {
         super(init);
@@ -103,7 +104,7 @@ public class ModSync extends JavaPlugin {
         this.pluginManager = PluginManager.get();
 
         // Initialize UI manager
-        this.uiManager = new ModSyncUIManager(this);
+        this.uiManager = new UIManager(this);
 
         LOGGER.atInfo().log("ModSync setup complete");
     }
@@ -122,6 +123,13 @@ public class ModSync extends JavaPlugin {
 
         // Show update notification
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::sendWelcomeMessage);
+
+        // Cleanup UI state on disconnect to prevent memory leaks
+        this.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, event -> {
+            if (uiManager != null) {
+                uiManager.removeState(event.getPlayerRef());
+            }
+        });
     }
 
     private void registerCommands() {
@@ -281,7 +289,7 @@ public class ModSync extends JavaPlugin {
         return pluginManager;
     }
 
-    public ModSyncUIManager getUIManager() {
+    public UIManager getUIManager() {
         return uiManager;
     }
 

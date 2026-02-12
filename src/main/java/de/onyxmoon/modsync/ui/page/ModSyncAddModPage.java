@@ -9,11 +9,10 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.provider.ModEntry;
 import de.onyxmoon.modsync.service.ProviderFetchService;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.ui.state.UIState;
 import de.onyxmoon.modsync.util.CommandUtils;
 
-import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.List;
 
@@ -27,61 +26,54 @@ public class ModSyncAddModPage extends ModSyncBasePage {
     private ModEntry fetchedMod;
     private String fetchedProvider;
 
-    public ModSyncAddModPage(ModSyncUIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
+    public ModSyncAddModPage(UIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
         super(uiManager, playerRef, store);
     }
 
     @Override
     protected void buildPage(UICommandBuilder commands) {
-        commands.append("Custom/Pages/ModSyncAddMod.ui");
-
-        commands.set("#title", "Add Mod");
-        commands.set("#url_value", currentUrl);
+        commands.append("Pages/ModSyncAddMod.ui");
 
         // Show detected providers
         if (!currentUrl.isEmpty()) {
             List<String> providers = getModSync().getFetchService().getProviderNamesForUrl(currentUrl);
             if (!providers.isEmpty()) {
-                commands.set("#provider_info", "Provider: " + String.join(", ", providers));
+                commands.set("#providerInfo.Text", "Provider: " + String.join(", ", providers));
             } else {
-                commands.set("#provider_info", "No provider found for this URL");
+                commands.set("#providerInfo.Text", "No provider found for this URL");
             }
-        }
-
-        // Show loading state
-        if (getUIState().isLoading()) {
-            commands.set("#loading", "true");
-            commands.set("#status_message", "Fetching mod info...");
         }
 
         // Show error if any
         if (errorMessage != null) {
-            commands.set("#error_message", errorMessage);
+            commands.set("#errorMessage.Text", errorMessage);
         }
 
         // Show fetched mod info
         if (fetchedMod != null) {
-            commands.set("#mod_name", fetchedMod.getName());
-            commands.set("#mod_slug", fetchedMod.getSlug());
-            commands.set("#mod_provider", fetchedProvider);
-            commands.set("#mod_found", "true");
+            commands.set("#modName.Text", fetchedMod.getName());
+            commands.set("#modSlug.Text", fetchedMod.getSlug());
+            commands.set("#modProvider.Text", fetchedProvider);
         }
     }
 
     @Override
     protected void bindEvents(UIEventBuilder events) {
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#fetch_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#add_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#back_btn");
-        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#url_input");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#fetchBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#addBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#backBtn");
+        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#urlInput");
     }
 
     @Override
     protected void handleAction(String action, ModSyncEventData eventData) {
-        switch (action) {
-            case "fetch" -> onFetchClicked();
-            case "add" -> onAddClicked();
-            case "url_changed" -> {
+        String normalizedAction = action.startsWith("#") ? action.substring(1) : action;
+
+        switch (normalizedAction) {
+            case "fetchBtn", "fetch" -> onFetchClicked();
+            case "addBtn", "add" -> onAddClicked();
+            case "backBtn", "back" -> navigateBack();
+            case "urlInput", "url_changed" -> {
                 if (eventData.param1 != null) {
                     onUrlChanged(eventData.param1);
                 }

@@ -1,0 +1,121 @@
+// ModSync gemeinsame Styles und Komponenten
+
+// Farben
+@PanelBackground = #141c26(0.98);
+@ContentBackground = #1a2332;
+@DividerColor = #2b3542;
+@DividerColorLight = #2b3542(0.5);
+
+@TextPrimary = #ffffff;
+@TextSecondary = #96a9be;
+@TextMuted = #4a5568;
+@TextError = #cc4444;
+@TextPlaceholder = #6e7da1;
+
+// Button Label Styles
+@PrimaryButtonLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #ffffff,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SecondaryButtonLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #96a9be,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SecondaryButtonHoveredLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #ffffff,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+// Button Styles
+@PrimaryButtonStyle = TextButtonStyle(
+  Default: (Background: #3a7bd5, LabelStyle: @PrimaryButtonLabelStyle),
+  Hovered: (Background: #4a8be5, LabelStyle: @PrimaryButtonLabelStyle),
+  Pressed: (Background: #2a6bc5, LabelStyle: @PrimaryButtonLabelStyle)
+);
+
+@SecondaryButtonStyle = TextButtonStyle(
+  Default: (Background: #2b3542, LabelStyle: @SecondaryButtonLabelStyle),
+  Hovered: (Background: #3b4552, LabelStyle: @SecondaryButtonHoveredLabelStyle),
+  Pressed: (Background: #1b2532, LabelStyle: @SecondaryButtonLabelStyle)
+);
+
+@SuccessButtonStyle = TextButtonStyle(
+  Default: (Background: #2d6a4f, LabelStyle: @PrimaryButtonLabelStyle),
+  Hovered: (Background: #3d7a5f, LabelStyle: @PrimaryButtonLabelStyle),
+  Pressed: (Background: #1d5a3f, LabelStyle: @PrimaryButtonLabelStyle)
+);
+
+@DangerButtonStyle = TextButtonStyle(
+  Default: (Background: #8b3a3a, LabelStyle: @PrimaryButtonLabelStyle),
+  Hovered: (Background: #9b4a4a, LabelStyle: @PrimaryButtonLabelStyle),
+  Pressed: (Background: #7b2a2a, LabelStyle: @PrimaryButtonLabelStyle)
+);
+
+// Input Field Styles
+@DefaultInputFieldStyle = InputFieldStyle(FontSize: 13, TextColor: #ffffff);
+@DefaultInputFieldPlaceholderStyle = InputFieldStyle(TextColor: #6e7da1);
+
+// Label Styles
+@TitleStyle = LabelStyle(
+  FontSize: 24,
+  TextColor: #ffffff,
+  RenderBold: true,
+  HorizontalAlignment: Start
+);
+
+@BigTitleStyle = LabelStyle(
+  FontSize: 26,
+  TextColor: #ffffff,
+  RenderBold: true,
+  HorizontalAlignment: Start
+);
+
+@SectionHeaderStyle = LabelStyle(
+  FontSize: 11,
+  TextColor: #4a5568,
+  LetterSpacing: 2
+);
+
+@BodyStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #96a9be
+);
+
+@ValueStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #ffffff
+);
+
+// Standard-Komponenten
+@ContentSeparator = Group {
+  Anchor: (Height: 1);
+  Background: @DividerColor;
+};
+
+@ContentSeparatorLight = Group {
+  Anchor: (Height: 1);
+  Background: @DividerColorLight;
+};
+
+@Spacer8 = Group {
+  Anchor: (Height: 8);
+};
+
+@Spacer12 = Group {
+  Anchor: (Height: 12);
+};
+
+@Spacer16 = Group {
+  Anchor: (Height: 16);
+};

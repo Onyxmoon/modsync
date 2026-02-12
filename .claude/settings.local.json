@@ -10,7 +10,11 @@
       "WebFetch(domain:hytale-docs.pages.dev)",
       "Bash(unzip:*)",
       "mcp__ide__getDiagnostics",
-      "WebFetch(domain:cfwidget.com)"
+      "WebFetch(domain:cfwidget.com)",
+      "WebFetch(domain:hyui.gitbook.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.curseforge.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   },
   "hooks": {

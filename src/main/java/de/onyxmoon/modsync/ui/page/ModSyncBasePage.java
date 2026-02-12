@@ -14,7 +14,7 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.ModSync;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.ui.state.UIState;
 
 import javax.annotation.Nonnull;
@@ -52,11 +52,11 @@ public abstract class ModSyncBasePage extends InteractiveCustomUIPage<ModSyncBas
                         .build();
     }
 
-    protected final ModSyncUIManager uiManager;
+    protected final UIManager uiManager;
     protected final PlayerRef playerRef;
     protected final Store<EntityStore> store;
 
-    protected ModSyncBasePage(ModSyncUIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
+    protected ModSyncBasePage(UIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
         super(playerRef, CustomPageLifetime.CanDismissOrCloseThroughInteraction, ModSyncEventData.CODEC);
         this.uiManager = uiManager;
         this.playerRef = playerRef;
@@ -69,8 +69,13 @@ public abstract class ModSyncBasePage extends InteractiveCustomUIPage<ModSyncBas
     @Override
     public void build(@Nonnull Ref<EntityStore> ref, @Nonnull UICommandBuilder commands,
                       @Nonnull UIEventBuilder events, @Nonnull Store<EntityStore> store) {
-        buildPage(commands);
-        bindEvents(events);
+        try {
+            buildPage(commands);
+            bindEvents(events);
+        } catch (Exception e) {
+            ModSync.LOGGER.atSevere().log("Failed to build UI page %s: %s",
+                    getClass().getSimpleName(), e.getMessage());
+        }
     }
 
     /**

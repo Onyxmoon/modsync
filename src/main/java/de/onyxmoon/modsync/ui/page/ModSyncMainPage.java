@@ -7,9 +7,10 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.BuildInfo;
+import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
 import de.onyxmoon.modsync.api.model.ManagedModRegistry;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.ui.state.UIState;
 
 import java.util.List;
@@ -20,20 +21,19 @@ import java.util.List;
  */
 public class ModSyncMainPage extends ModSyncBasePage {
 
-    public ModSyncMainPage(ModSyncUIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
+    public ModSyncMainPage(UIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
         super(uiManager, playerRef, store);
     }
 
     @Override
     protected void buildPage(UICommandBuilder commands) {
-        commands.append("Custom/Pages/ModSyncMain.ui");
+        commands.append("Pages/ModSyncMain.ui");
 
         ManagedModRegistry registry = getModSync().getManagedModStorage().getRegistry();
         List<ManagedMod> mods = registry.getAll();
 
         // Set header info
-        commands.set("#title", "ModSync");
-        commands.set("#version", BuildInfo.VERSION);
+        commands.set("#version.Text", BuildInfo.VERSION);
 
         // Populate mod list
         populateModList(commands, mods);
@@ -41,7 +41,7 @@ public class ModSyncMainPage extends ModSyncBasePage {
         // Set summary
         int installed = registry.getInstalled().size();
         int total = mods.size();
-        commands.set("#summary", installed + " / " + total + " installed");
+        commands.set("#summary.Text", installed + " / " + total + " installed");
 
         // Show loading state if active
         if (getUIState().isLoading()) {
@@ -51,56 +51,76 @@ public class ModSyncMainPage extends ModSyncBasePage {
         // Show status message if any
         String statusMessage = getUIState().getStatusMessage();
         if (statusMessage != null) {
-            commands.set("#status_message", statusMessage);
-            commands.set("#status_type", getUIState().getStatusType().name().toLowerCase());
+            commands.set("#statusMessage.Text", statusMessage);
+            commands.set("#statusType", getUIState().getStatusType().name().toLowerCase());
         }
     }
 
     private void populateModList(UICommandBuilder commands, List<ManagedMod> mods) {
-        StringBuilder modListHtml = new StringBuilder();
-
-        for (ManagedMod mod : mods) {
-            String status = mod.isInstalled() ? "installed" : "not_installed";
-            String version = mod.getInstalledState()
-                    .map(state -> state.getInstalledVersionNumber())
-                    .orElse("-");
-
-            // Build mod entry (format depends on .ui file structure)
-            modListHtml.append(String.format(
-                    "<mod id=\"%s\" name=\"%s\" status=\"%s\" version=\"%s\" source=\"%s\"/>",
-                    mod.getSourceId(),
-                    escapeXml(mod.getName()),
-                    status,
-                    escapeXml(version),
-                    mod.getSource()
-            ));
+        if (mods.isEmpty()) {
+            // Empty message is shown by default in the UI
+            return;
         }
 
-        commands.set("#mod_list", modListHtml.toString());
+        // Hide empty message
+        commands.set("#emptyMessage.Text", "");
+
+        // Use appendInline to create mod items with embedded values
+        for (ManagedMod mod : mods) {
+            String name = escapeUiString(mod.getName());
+            String identifier = escapeUiString(mod.getIdentifierString().orElse(mod.getSource() + ":" + mod.getSourceId()));
+            String version = "v" + mod.getInstalledState()
+                    .map(InstalledState::getInstalledVersionNumber)
+                    .orElse("-");
+            String status = mod.isInstalled() ? "Installed" : "Not installed";
+
+            String inlineUi = String.format("""
+                Group {
+                  Anchor: (Height: 56, Bottom: 4);
+                  Padding: (Full: 8);
+                  LayoutMode: Left;
+                  Background: (Color: #1e2a3a);
+
+                  Group { Anchor: (Width: 40, Height: 40); Background: (Color: #2a3a4a); }
+                  Group { Anchor: (Width: 10); }
+
+                  Group {
+                    FlexWeight: 1;
+                    LayoutMode: Top;
+                    Label { Text: "%s"; Style: (FontSize: 14, TextColor: #ffffff, RenderBold: true); Anchor: (Height: 18); }
+                    Label { Text: "%s"; Style: (FontSize: 11, TextColor: #4a5568); Anchor: (Height: 14); }
+                    Label { Text: "%s"; Style: (FontSize: 11, TextColor: #96a9be); }
+                  }
+
+                  Label { Text: "%s"; Anchor: (Width: 80); Style: (FontSize: 11, TextColor: #96a9be, HorizontalAlignment: End, VerticalAlignment: Center); }
+                }
+                """, name, identifier, version, status);
+
+            commands.appendInline("#modListContainer", inlineUi);
+        }
     }
 
-    private String escapeXml(String text) {
+    private String escapeUiString(String text) {
         if (text == null) return "";
-        return text
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
+        return text.replace("\"", "\\\"").replace("\n", " ");
     }
 
     @Override
     protected void bindEvents(UIEventBuilder events) {
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#add_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#scan_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#settings_btn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#addBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#scanBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#settingsBtn");
     }
 
     @Override
     protected void handleAction(String action, ModSyncEventData eventData) {
-        switch (action) {
-            case "add_mod" -> uiManager.openAddModPage(playerRef, store);
-            case "scan" -> uiManager.openScanPage(playerRef, store);
-            case "settings" -> uiManager.openConfigPage(playerRef, store);
+        // Action may come as button ID (with or without #) or as custom action name
+        String normalizedAction = action.startsWith("#") ? action.substring(1) : action;
+
+        switch (normalizedAction) {
+            case "addBtn", "add_mod" -> uiManager.openAddModPage(playerRef, store);
+            case "scanBtn", "scan" -> uiManager.openScanPage(playerRef, store);
+            case "settingsBtn", "settings" -> uiManager.openConfigPage(playerRef, store);
             case "mod_click" -> {
                 if (eventData.param1 != null) {
                     getModSync().getManagedModStorage().getRegistry()

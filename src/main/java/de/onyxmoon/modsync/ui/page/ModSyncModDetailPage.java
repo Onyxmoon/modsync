@@ -8,7 +8,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.api.model.InstalledState;
 import de.onyxmoon.modsync.api.model.ManagedMod;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.ui.state.UIState;
 
 /**
@@ -19,80 +19,62 @@ public class ModSyncModDetailPage extends ModSyncBasePage {
 
     private final ManagedMod mod;
 
-    public ModSyncModDetailPage(ModSyncUIManager uiManager, PlayerRef playerRef,
-                                 Store<EntityStore> store, ManagedMod mod) {
+    public ModSyncModDetailPage(UIManager uiManager, PlayerRef playerRef,
+                                Store<EntityStore> store, ManagedMod mod) {
         super(uiManager, playerRef, store);
         this.mod = mod;
     }
 
     @Override
     protected void buildPage(UICommandBuilder commands) {
-        commands.append("Custom/Pages/ModSyncModDetail.ui");
+        commands.append("Pages/ModSyncModDetail.ui");
 
         // Basic info
-        commands.set("#mod_name", mod.getName());
-        commands.set("#mod_slug", mod.getSlug() != null ? mod.getSlug() : "-");
-        commands.set("#mod_identifier", mod.getIdentifierString().orElse("-"));
-        commands.set("#mod_source", mod.getSource());
-        commands.set("#mod_id", mod.getModId());
-        commands.set("#mod_type", mod.getPluginType() != null ? mod.getPluginType().name() : "Unknown");
-
-        // Added info
-        if (mod.getAddedAt() != null) {
-            commands.set("#added_at", mod.getAddedAt().toString());
-        }
-        if (mod.getAddedViaUrl() != null) {
-            commands.set("#added_url", mod.getAddedViaUrl());
-        }
+        commands.set("#modName.Text", mod.getName());
+        commands.set("#modSlug.Text", mod.getSlug() != null ? mod.getSlug() : "-");
+        commands.set("#modIdentifier.Text", mod.getIdentifierString().orElse("-"));
+        commands.set("#modSource.Text", mod.getSource());
+        commands.set("#modId.Text", mod.getModId());
+        commands.set("#modType.Text", mod.getPluginType() != null ? mod.getPluginType().name() : "Unknown");
 
         // Installation state
         if (mod.isInstalled()) {
             InstalledState state = mod.getInstalledState().orElseThrow();
-            commands.set("#is_installed", "true");
-            commands.set("#installed_version", state.getInstalledVersionNumber());
-            commands.set("#installed_file", state.getFileName());
-            commands.set("#installed_hash", state.getFileHash() != null ? state.getFileHash() : "-");
-            if (state.getInstalledAt() != null) {
-                commands.set("#installed_at", state.getInstalledAt().toString());
-            }
+            commands.set("#isInstalled.Text", "Installed");
+            commands.set("#installedVersion.Text", state.getInstalledVersionNumber());
+            commands.set("#installedFile.Text", state.getFileName());
         } else {
-            commands.set("#is_installed", "false");
-        }
-
-        // Release channel override
-        if (mod.getReleaseChannelOverride() != null) {
-            commands.set("#channel_override", mod.getReleaseChannelOverride().name());
-        }
-
-        // Loading state
-        if (getUIState().isLoading()) {
-            commands.set("#loading", "true");
+            commands.set("#isInstalled.Text", "Not installed");
+            commands.set("#installedVersion.Text", "-");
+            commands.set("#installedFile.Text", "-");
         }
 
         // Status message
         String statusMessage = getUIState().getStatusMessage();
         if (statusMessage != null) {
-            commands.set("#status_message", statusMessage);
-            commands.set("#status_type", getUIState().getStatusType().name().toLowerCase());
+            commands.set("#statusMessage.Text", statusMessage);
         }
     }
 
     @Override
     protected void bindEvents(UIEventBuilder events) {
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#install_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#uninstall_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#upgrade_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#remove_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#back_btn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#installBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#uninstallBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#upgradeBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#removeBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#backBtn");
     }
 
     @Override
     protected void handleAction(String action, ModSyncEventData eventData) {
-        switch (action) {
-            case "install" -> installMod();
-            case "uninstall" -> uninstallMod();
-            case "upgrade" -> upgradeMod();
-            case "remove" -> removeFromList();
+        String normalizedAction = action.startsWith("#") ? action.substring(1) : action;
+
+        switch (normalizedAction) {
+            case "installBtn", "install" -> installMod();
+            case "uninstallBtn", "uninstall" -> uninstallMod();
+            case "upgradeBtn", "upgrade" -> upgradeMod();
+            case "removeBtn", "remove" -> removeFromList();
+            case "backBtn", "back" -> navigateBack();
             default -> super.handleAction(action, eventData);
         }
     }

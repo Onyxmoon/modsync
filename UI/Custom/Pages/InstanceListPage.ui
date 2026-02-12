@@ -1,0 +1,75 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  Anchor: (Top: 130);
+}
+
+$C.@Container {
+  Anchor: (Width: 600, Height: 700);
+
+  #Title {
+    $C.@Title {
+      @Text = %server.customUI.instanceListPage.title;
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #CurrentPath {
+      Anchor: (Bottom: 8, Horizontal: 4);
+      Style: (...$C.@DefaultLabelStyle, FontSize: 12, TextColor: #6a7d8f);
+      Text: "/";
+    }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Bottom: 10, Height: $C.@DropdownBoxHeight);
+
+      $C.@TextField #SearchInput {
+        @Anchor = (Left: 0);
+        FlexWeight: 1;
+        PlaceholderText: %server.customUI.instanceListPage.searchPlaceholder;
+      }
+    }
+
+    Group #List {
+      FlexWeight: 1;
+      Anchor: (Bottom: 15);
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+    }
+
+    Label #Name {
+        Padding: 8;
+        Style: (
+          FontSize: 18,
+          RenderUppercase: true,
+          RenderBold: true,
+          HorizontalAlignment: Center,
+          TextColor: #94969a
+        );
+        Text: " ";
+      }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Top: 15);
+
+      $C.@TextButton #Load {
+        @Anchor = (Right: 10);
+        Text: %server.customUI.instanceListPage.button.load;
+        FlexWeight: 1;
+        Disabled: true;
+      }
+
+      $C.@TextButton #Spawn {
+        Text: %server.customUI.instanceListPage.button.spawn;
+        FlexWeight: 1;
+        Disabled: true;
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

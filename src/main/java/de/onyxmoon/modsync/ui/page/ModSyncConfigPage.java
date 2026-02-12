@@ -7,13 +7,10 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.onyxmoon.modsync.BuildInfo;
-import de.onyxmoon.modsync.api.ModProvider;
 import de.onyxmoon.modsync.service.selfupgrade.model.UpgradeCheckResult;
 import de.onyxmoon.modsync.storage.model.PluginConfig;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.ui.state.UIState;
-
-import java.util.Collection;
 
 /**
  * Configuration page for ModSync settings and API keys.
@@ -22,107 +19,58 @@ public class ModSyncConfigPage extends ModSyncBasePage {
 
     private UpgradeCheckResult upgradeCheck;
 
-    public ModSyncConfigPage(ModSyncUIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
+    public ModSyncConfigPage(UIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
         super(uiManager, playerRef, store);
     }
 
     @Override
     protected void buildPage(UICommandBuilder commands) {
-        commands.append("Custom/Pages/ModSyncConfig.ui");
-
-        commands.set("#title", "ModSync Settings");
+        commands.append("Pages/ModSyncConfig.ui");
 
         // Version info
-        commands.set("#version", BuildInfo.VERSION);
+        commands.set("#version.Text", BuildInfo.VERSION);
 
         // Upgrade status
         if (upgradeCheck != null) {
             if (upgradeCheck.hasUpdate()) {
-                commands.set("#update_available", "true");
-                commands.set("#latest_version", upgradeCheck.latestVersion().toString());
+                commands.set("#updateStatus.Text", "Update available: " + upgradeCheck.latestVersion());
             } else {
-                commands.set("#update_available", "false");
-                commands.set("#update_status", "Up to date");
+                commands.set("#updateStatus.Text", "Up to date");
             }
         } else {
-            commands.set("#update_status", "Not checked");
+            commands.set("#updateStatus.Text", "Not checked");
         }
-
-        // Provider API keys
-        populateProviderKeys(commands);
 
         // Config settings
         PluginConfig config = getModSync().getConfigStorage().getConfig();
-        commands.set("#update_mode", config.getUpdateMode().name());
-        commands.set("#default_channel", config.getDefaultReleaseChannel().getDisplayName());
-
-        // Loading state
-        if (getUIState().isLoading()) {
-            commands.set("#loading", "true");
-        }
+        commands.set("#updateMode.Text", config.getUpdateMode().name());
+        commands.set("#defaultChannel.Text", config.getDefaultReleaseChannel().getDisplayName());
 
         // Status message
         String statusMessage = getUIState().getStatusMessage();
         if (statusMessage != null) {
-            commands.set("#status_message", statusMessage);
-            commands.set("#status_type", getUIState().getStatusType().name().toLowerCase());
+            commands.set("#statusMessage.Text", statusMessage);
         }
-    }
-
-    private void populateProviderKeys(UICommandBuilder commands) {
-        Collection<ModProvider> providers = getModSync().getProviderRegistry().getProviders();
-        PluginConfig config = getModSync().getConfigStorage().getConfig();
-
-        StringBuilder providersHtml = new StringBuilder();
-
-        for (ModProvider provider : providers) {
-            String name = provider.getDisplayName();
-            boolean requiresKey = provider.requiresApiKey();
-            String keyStatus;
-
-            if (!requiresKey) {
-                keyStatus = "not_required";
-            } else {
-                String key = config.getApiKey(provider.getSource());
-                keyStatus = (key != null && !key.isEmpty()) ? "set" : "missing";
-            }
-
-            providersHtml.append(String.format(
-                    "<provider name=\"%s\" id=\"%s\" requires_key=\"%s\" key_status=\"%s\"/>",
-                    escapeXml(name),
-                    escapeXml(provider.getSource()),
-                    requiresKey,
-                    keyStatus
-            ));
-        }
-
-        commands.set("#providers", providersHtml.toString());
-    }
-
-    private String escapeXml(String text) {
-        if (text == null) return "";
-        return text
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
     }
 
     @Override
     protected void bindEvents(UIEventBuilder events) {
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#check_update_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#upgrade_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#reload_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#back_btn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#checkUpdateBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#upgradeBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#reloadBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#backBtn");
     }
 
     @Override
     protected void handleAction(String action, ModSyncEventData eventData) {
-        switch (action) {
-            case "check_update" -> checkForUpdate();
-            case "self_upgrade" -> performSelfUpgrade();
+        String normalizedAction = action.startsWith("#") ? action.substring(1) : action;
+
+        switch (normalizedAction) {
+            case "checkUpdateBtn", "check_update" -> checkForUpdate();
+            case "upgradeBtn", "self_upgrade" -> performSelfUpgrade();
             case "save_key" -> saveApiKey(eventData.param1, eventData.param2);
-            case "reload" -> reloadConfig();
+            case "reloadBtn", "reload" -> reloadConfig();
+            case "backBtn", "back" -> navigateBack();
             default -> super.handleAction(action, eventData);
         }
     }

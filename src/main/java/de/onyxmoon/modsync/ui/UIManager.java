@@ -22,12 +22,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * Central UI manager for ModSync.
  * Manages page navigation and per-player UI state.
  */
-public class ModSyncUIManager {
+public class UIManager {
 
     private final ModSync modSync;
     private final Map<PlayerRef, UIState> playerStates = new ConcurrentHashMap<>();
 
-    public ModSyncUIManager(ModSync modSync) {
+    public UIManager(ModSync modSync) {
         this.modSync = modSync;
     }
 
@@ -64,7 +64,7 @@ public class ModSyncUIManager {
         state.setCurrentPage(UIState.PageType.MAIN);
         state.setSelectedMod(null);
 
-        openPage(playerRef, store, new ModSyncMainPage(this, playerRef, store));
+        new HyUIModSyncPage(this, playerRef, store).open();
     }
 
     /**

@@ -10,7 +10,7 @@ import de.onyxmoon.modsync.api.model.ImportMatch;
 import de.onyxmoon.modsync.api.model.ImportMatchConfidence;
 import de.onyxmoon.modsync.api.model.UnmanagedMod;
 import de.onyxmoon.modsync.service.ModScanService;
-import de.onyxmoon.modsync.ui.ModSyncUIManager;
+import de.onyxmoon.modsync.ui.UIManager;
 import de.onyxmoon.modsync.ui.state.UIState;
 
 import javax.annotation.Nullable;
@@ -30,12 +30,12 @@ public class ModSyncScanPage extends ModSyncBasePage {
     private final Map<String, ImportMatch> matches = new HashMap<>();
     private boolean isScanning = false;
 
-    public ModSyncScanPage(ModSyncUIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
+    public ModSyncScanPage(UIManager uiManager, PlayerRef playerRef, Store<EntityStore> store) {
         super(uiManager, playerRef, store);
         this.unmanagedMods = null; // Will trigger scan on build
     }
 
-    public ModSyncScanPage(ModSyncUIManager uiManager, PlayerRef playerRef, Store<EntityStore> store,
+    public ModSyncScanPage(UIManager uiManager, PlayerRef playerRef, Store<EntityStore> store,
                            List<UnmanagedMod> unmanagedMods) {
         super(uiManager, playerRef, store);
         this.unmanagedMods = unmanagedMods;
@@ -43,9 +43,7 @@ public class ModSyncScanPage extends ModSyncBasePage {
 
     @Override
     protected void buildPage(UICommandBuilder commands) {
-        commands.append("Custom/Pages/ModSyncScan.ui");
-
-        commands.set("#title", "Scan Unmanaged Mods");
+        commands.append("Pages/ModSyncScan.ui");
 
         // If no mods scanned yet, trigger scan
         if (unmanagedMods == null && !isScanning) {
@@ -54,48 +52,24 @@ public class ModSyncScanPage extends ModSyncBasePage {
 
         // Show scanning state
         if (isScanning || getUIState().isLoading()) {
-            commands.set("#loading", "true");
-            commands.set("#status_message", "Scanning...");
+            commands.set("#statusMessage.Text", "Scanning...");
             return;
         }
 
         // Show results
         if (unmanagedMods != null) {
             if (unmanagedMods.isEmpty()) {
-                commands.set("#no_results", "true");
-                commands.set("#status_message", "No unmanaged mods found");
+                commands.set("#statusMessage.Text", "No unmanaged mods found");
             } else {
-                populateModList(commands);
-                commands.set("#summary", unmanagedMods.size() + " unmanaged mod(s) found");
+                commands.set("#summary.Text", unmanagedMods.size() + " unmanaged mod(s) found");
             }
         }
 
         // Status message
         String statusMessage = getUIState().getStatusMessage();
         if (statusMessage != null) {
-            commands.set("#status_message", statusMessage);
-            commands.set("#status_type", getUIState().getStatusType().name().toLowerCase());
+            commands.set("#statusMessage.Text", statusMessage);
         }
-    }
-
-    private void populateModList(UICommandBuilder commands) {
-        StringBuilder listHtml = new StringBuilder();
-
-        for (UnmanagedMod mod : unmanagedMods) {
-            String identifier = mod.getIdentifierString() != null ? mod.getIdentifierString() : "Unknown";
-            String matchStatus = getMatchStatusText(mod);
-
-            listHtml.append(String.format(
-                    "<mod id=\"%s\" filename=\"%s\" identifier=\"%s\" size=\"%d\" match=\"%s\"/>",
-                    escapeXml(mod.filePath().getFileName().toString()),
-                    escapeXml(mod.filePath().getFileName().toString()),
-                    escapeXml(identifier),
-                    mod.fileSize(),
-                    escapeXml(matchStatus)
-            ));
-        }
-
-        commands.set("#mod_list", listHtml.toString());
     }
 
     private String getMatchStatusText(UnmanagedMod mod) {
@@ -111,43 +85,36 @@ public class ModSyncScanPage extends ModSyncBasePage {
         };
     }
 
-    private String escapeXml(String text) {
-        if (text == null) return "";
-        return text
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
-    }
-
     @Override
     protected void bindEvents(UIEventBuilder events) {
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#rescan_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#import_all_btn");
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#back_btn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#rescanBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#importAllBtn");
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#backBtn");
     }
 
     @Override
     protected void handleAction(String action, ModSyncEventData eventData) {
-        switch (action) {
-            case "rescan" -> performScan();
+        String normalizedAction = action.startsWith("#") ? action.substring(1) : action;
+
+        switch (normalizedAction) {
+            case "rescanBtn", "rescan" -> performScan();
             case "find_match" -> findMatch(eventData.param1);
             case "import" -> importMod(eventData.param1);
-            case "import_all" -> importAllWithHighConfidence();
+            case "importAllBtn", "import_all" -> importAllWithHighConfidence();
+            case "backBtn", "back" -> navigateBack();
             default -> super.handleAction(action, eventData);
         }
     }
 
     private void performScan() {
         isScanning = true;
-        unmanagedMods = null;
         matches.clear();
-        refresh();
 
+        // Scan synchronously without refresh during build
         ModScanService scanService = getModSync().getScanService();
         this.unmanagedMods = scanService.scanForUnmanagedMods();
         isScanning = false;
-        refresh();
+        // Don't call refresh() here - buildPage() will handle the display
     }
 
     private void findMatch(String filename) {
